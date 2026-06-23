@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cosmic-navy: #0B1120;
+  --color-cosmic-panel: #141E33;
+  --color-cosmic-panel-hover: #1E293B;
+  --color-cosmic-cyan: #22D3EE;
+  --color-cosmic-purple: #C084FC;
+}
+
+body {
+  background-color: var(--color-cosmic-navy);
+  color: white;
+}

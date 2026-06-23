@@ -1,0 +1,6 @@
+{
+  "name": "GYTama EDU Classes Gamification",
+  "description": "Phase 1A prototype of an online classroom gamification platform with a Cosmic Classroom theme.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

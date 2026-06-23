@@ -1,0 +1,22 @@
+import React from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '../../lib/auth/AuthContext';
+
+export const ProtectedRoute: React.FC = () => {
+  const { session, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-cosmic-navy flex flex-col items-center justify-center font-sans">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-cosmic-cyan mb-6"></div>
+        <p className="text-xl text-slate-300">Checking authentication...</p>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Outlet />;
+};

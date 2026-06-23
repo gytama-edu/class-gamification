@@ -1,0 +1,395 @@
+import { ClassroomRepository } from './classroomRepository';
+import { Classroom, ClassroomDashboardData, DbStudent, LeaderboardEntry, Meeting, StudentWithCurrentState } from '../types/database';
+
+const MOCK_STORAGE_KEY = 'gytama_edu_mock_db';
+
+interface MockDB {
+  schema_version: number;
+  classes: Classroom[];
+  students: DbStudent[];
+  meetings: Meeting[];
+  student_meeting_states: { id: string; meeting_id: string; student_id: string; lives_remaining: number; }[];
+  point_events: any[];
+  life_events: any[];
+}
+
+const CURRENT_SCHEMA_VERSION = 1;
+
+function generateId() {
+  return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+}
+
+function getInitialMockDB(): MockDB {
+  const class1Id = generateId();
+  const class2Id = generateId();
+  const class3Id = generateId();
+
+  const c1: Classroom = { id: class1Id, owner_id: 'mock-teacher-id', name: 'Galaxy Explorers', level_name: 'Grade 5', max_lives: 10, current_meeting_number: 1, is_archived: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+  const c2: Classroom = { id: class2Id, owner_id: 'mock-teacher-id', name: 'Comet Crew', level_name: 'Teen Class', max_lives: 15, current_meeting_number: 1, is_archived: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+  const c3: Classroom = { id: class3Id, owner_id: 'mock-teacher-id', name: 'Orion Academy', level_name: 'IELTS Preparation', max_lives: 8, current_meeting_number: 1, is_archived: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+
+  const m1: Meeting = { id: generateId(), class_id: class1Id, meeting_number: 1, max_lives_snapshot: 10, status: 'active', started_at: new Date().toISOString(), ended_at: null, created_at: new Date().toISOString() };
+  const m2: Meeting = { id: generateId(), class_id: class2Id, meeting_number: 1, max_lives_snapshot: 15, status: 'active', started_at: new Date().toISOString(), ended_at: null, created_at: new Date().toISOString() };
+  const m3: Meeting = { id: generateId(), class_id: class3Id, meeting_number: 1, max_lives_snapshot: 8, status: 'active', started_at: new Date().toISOString(), ended_at: null, created_at: new Date().toISOString() };
+
+  const students: DbStudent[] = [];
+  const states: any[] = [];
+
+  const addMockStudent = (classId: string, meetingId: string, name: string, points: number, lives: number) => {
+    const sId = generateId();
+    students.push({ id: sId, class_id: classId, display_name: name, avatar_key: null, total_points: points, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+    states.push({ id: generateId(), meeting_id: meetingId, student_id: sId, lives_remaining: lives });
+  };
+
+  addMockStudent(class1Id, m1.id, 'Luna Starfall', 120, 10);
+  addMockStudent(class1Id, m1.id, 'Orion Blaze', 95, 10);
+  addMockStudent(class1Id, m1.id, 'Zara Comet', 150, 8);
+
+  addMockStudent(class2Id, m2.id, 'Alex Nova', 200, 15);
+  addMockStudent(class2Id, m2.id, 'Sam Eclipse', 180, 12);
+
+  addMockStudent(class3Id, m3.id, 'Jordan Rings', 50, 8);
+  addMockStudent(class3Id, m3.id, 'Taylor Mars', 75, 7);
+
+  return {
+    schema_version: CURRENT_SCHEMA_VERSION,
+    classes: [c1, c2, c3],
+    students,
+    meetings: [m1, m2, m3],
+    student_meeting_states: states,
+    point_events: [],
+    life_events: []
+  };
+}
+
+export class MockClassroomRepository implements ClassroomRepository {
+  private getDb(): MockDB {
+    const stored = localStorage.getItem(MOCK_STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        
+        // Validate and migrate old single-class schema
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed.classes)) {
+          console.warn("Detected old or invalid schema in localStorage. Attempting migration or reset...");
+          
+          if (parsed.className && Array.isArray(parsed.students)) {
+            // It's the old single-class schema, migrate it
+            console.info("Migrating old single-class data to multi-class structure...");
+            const newDb = getInitialMockDB();
+            
+            // Clear out the dummy data and use the old data
+            newDb.classes = [];
+            newDb.students = [];
+            newDb.meetings = [];
+            newDb.student_meeting_states = [];
+            
+            const classId = generateId();
+            newDb.classes.push({
+              id: classId,
+              owner_id: 'mock-teacher-id',
+              name: parsed.className || 'Migrated Class',
+              level_name: parsed.classLevel || 'General',
+              max_lives: parsed.maxLives || 10,
+              current_meeting_number: parsed.meetingNumber || 1,
+              is_archived: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+            
+            const meetingId = generateId();
+            newDb.meetings.push({
+              id: meetingId,
+              class_id: classId,
+              meeting_number: parsed.meetingNumber || 1,
+              max_lives_snapshot: parsed.maxLives || 10,
+              status: 'active',
+              started_at: new Date().toISOString(),
+              ended_at: null,
+              created_at: new Date().toISOString()
+            });
+            
+            parsed.students.forEach((s: any) => {
+              const studentId = s.id || generateId();
+              newDb.students.push({
+                id: studentId,
+                class_id: classId,
+                display_name: s.name || 'Unknown',
+                avatar_key: null,
+                total_points: s.totalPoints || 0,
+                is_active: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              });
+              
+              newDb.student_meeting_states.push({
+                id: generateId(),
+                meeting_id: meetingId,
+                student_id: studentId,
+                lives_remaining: s.currentLives !== undefined ? s.currentLives : (parsed.maxLives || 10)
+              });
+            });
+            
+            this.saveDb(newDb);
+            return newDb;
+          } else {
+            console.warn("Stored data is invalid or incompatible. Resetting to initial mock data.");
+            const init = getInitialMockDB();
+            this.saveDb(init);
+            return init;
+          }
+        }
+        
+        // Ensure all required arrays exist
+        parsed.classes = Array.isArray(parsed.classes) ? parsed.classes : [];
+        parsed.students = Array.isArray(parsed.students) ? parsed.students : [];
+        parsed.meetings = Array.isArray(parsed.meetings) ? parsed.meetings : [];
+        parsed.student_meeting_states = Array.isArray(parsed.student_meeting_states) ? parsed.student_meeting_states : [];
+        parsed.schema_version = parsed.schema_version || CURRENT_SCHEMA_VERSION;
+        
+        // It's the new schema
+        return parsed as MockDB;
+      } catch (e) {
+        console.error("Failed to parse mock DB", e);
+        console.warn("Resetting to initial mock data due to parse error.");
+      }
+    }
+    const init = getInitialMockDB();
+    this.saveDb(init);
+    return init;
+  }
+
+  private saveDb(db: MockDB) {
+    localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(db));
+  }
+
+  async getClasses(): Promise<Classroom[]> {
+    return this.getDb().classes.filter(c => !c.is_archived);
+  }
+
+  async getClassroomDashboard(classId: string): Promise<ClassroomDashboardData> {
+    const db = this.getDb();
+    const classroom = db.classes.find(c => c.id === classId);
+    if (!classroom) throw new Error("Class not found");
+
+    const activeMeeting = db.meetings.find(m => m.class_id === classId && m.status === 'active') || null;
+    const classStudents = db.students.filter(s => s.class_id === classId && s.is_active);
+
+    const studentsWithState: StudentWithCurrentState[] = classStudents.map(s => {
+      let lives_remaining = classroom.max_lives;
+      if (activeMeeting) {
+        const state = db.student_meeting_states.find(st => st.student_id === s.id && st.meeting_id === activeMeeting.id);
+        if (state) lives_remaining = state.lives_remaining;
+      }
+      return { ...s, lives_remaining };
+    });
+
+    return { classroom, activeMeeting, students: studentsWithState };
+  }
+
+  async createClass(input: { name: string; level_name: string; max_lives: number; }): Promise<Classroom> {
+    const db = this.getDb();
+    const newClass: Classroom = {
+      id: generateId(),
+      owner_id: 'mock-teacher-id',
+      name: input.name,
+      level_name: input.level_name,
+      max_lives: input.max_lives,
+      current_meeting_number: 0,
+      is_archived: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    db.classes.push(newClass);
+    this.saveDb(db);
+    return newClass;
+  }
+
+  async updateClass(classId: string, input: { name?: string; level_name?: string; max_lives?: number; }): Promise<void> {
+    const db = this.getDb();
+    const idx = db.classes.findIndex(c => c.id === classId);
+    if (idx !== -1) {
+      db.classes[idx] = { ...db.classes[idx], ...input, updated_at: new Date().toISOString() };
+      this.saveDb(db);
+    }
+  }
+
+  async archiveClass(classId: string): Promise<void> {
+    const db = this.getDb();
+    const idx = db.classes.findIndex(c => c.id === classId);
+    if (idx !== -1) {
+      db.classes[idx].is_archived = true;
+      this.saveDb(db);
+    }
+  }
+
+  async getStudents(classId: string): Promise<DbStudent[]> {
+    return this.getDb().students.filter(s => s.class_id === classId);
+  }
+
+  async addStudent(classId: string, input: { display_name: string; }): Promise<DbStudent> {
+    const db = this.getDb();
+    const sId = generateId();
+    const newStudent: DbStudent = {
+      id: sId,
+      class_id: classId,
+      display_name: input.display_name,
+      avatar_key: null,
+      total_points: 0,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    db.students.push(newStudent);
+
+    const activeMeeting = db.meetings.find(m => m.class_id === classId && m.status === 'active');
+    if (activeMeeting) {
+      db.student_meeting_states.push({
+        id: generateId(),
+        meeting_id: activeMeeting.id,
+        student_id: sId,
+        lives_remaining: activeMeeting.max_lives_snapshot
+      });
+    }
+
+    this.saveDb(db);
+    return newStudent;
+  }
+
+  async updateStudent(studentId: string, input: { display_name?: string; is_active?: boolean; }): Promise<void> {
+    const db = this.getDb();
+    const idx = db.students.findIndex(s => s.id === studentId);
+    if (idx !== -1) {
+      db.students[idx] = { ...db.students[idx], ...input, updated_at: new Date().toISOString() };
+      this.saveDb(db);
+    }
+  }
+
+  async getActiveMeeting(classId: string): Promise<Meeting | null> {
+    const db = this.getDb();
+    return db.meetings.find(m => m.class_id === classId && m.status === 'active') || null;
+  }
+
+  async getStudentProfile(studentId: string): Promise<StudentWithCurrentState | null> {
+    const db = this.getDb();
+    const student = db.students.find(s => s.id === studentId);
+    if (!student) return null;
+
+    let lives_remaining = 0;
+    const activeMeeting = db.meetings.find(m => m.class_id === student.class_id && m.status === 'active');
+    if (activeMeeting) {
+      const state = db.student_meeting_states.find(st => st.student_id === studentId && st.meeting_id === activeMeeting.id);
+      if (state) lives_remaining = state.lives_remaining;
+    }
+
+    return { ...student, lives_remaining };
+  }
+
+  async getLeaderboard(classId: string): Promise<LeaderboardEntry[]> {
+    const dashboard = await this.getClassroomDashboard(classId);
+    return dashboard.students.map(s => ({
+      id: s.id,
+      display_name: s.display_name,
+      total_points: s.total_points,
+      lives_remaining: s.lives_remaining,
+    })).sort((a, b) => b.total_points - a.total_points);
+  }
+
+  async addPoints(classId: string, studentId: string, points: number, reason?: string): Promise<void> {
+    const db = this.getDb();
+    const student = db.students.find(s => s.id === studentId && s.class_id === classId);
+    if (student) {
+      student.total_points += points;
+      this.saveDb(db);
+    }
+  }
+
+  async removePoints(classId: string, studentId: string, points: number, reason?: string): Promise<void> {
+    const db = this.getDb();
+    const student = db.students.find(s => s.id === studentId && s.class_id === classId);
+    if (student) {
+      student.total_points = Math.max(0, student.total_points - points);
+      this.saveDb(db);
+    }
+  }
+
+  async removeLife(classId: string, studentId: string, reason?: string): Promise<void> {
+    const db = this.getDb();
+    const meeting = db.meetings.find(m => m.class_id === classId && m.status === 'active');
+    if (meeting) {
+      const state = db.student_meeting_states.find(st => st.meeting_id === meeting.id && st.student_id === studentId);
+      if (state && state.lives_remaining > 0) {
+        state.lives_remaining -= 1;
+        this.saveDb(db);
+      }
+    }
+  }
+
+  async restoreLife(classId: string, studentId: string, reason?: string): Promise<void> {
+    const db = this.getDb();
+    const meeting = db.meetings.find(m => m.class_id === classId && m.status === 'active');
+    if (meeting) {
+      const state = db.student_meeting_states.find(st => st.meeting_id === meeting.id && st.student_id === studentId);
+      if (state && state.lives_remaining < meeting.max_lives_snapshot) {
+        state.lives_remaining += 1;
+        this.saveDb(db);
+      }
+    }
+  }
+
+  async resetStudentLives(classId: string, studentId: string): Promise<void> {
+    const db = this.getDb();
+    const meeting = db.meetings.find(m => m.class_id === classId && m.status === 'active');
+    if (meeting) {
+      const state = db.student_meeting_states.find(st => st.meeting_id === meeting.id && st.student_id === studentId);
+      if (state) {
+        state.lives_remaining = meeting.max_lives_snapshot;
+        this.saveDb(db);
+      }
+    }
+  }
+
+  async startNewMeeting(classId: string): Promise<void> {
+    const db = this.getDb();
+    const classroom = db.classes.find(c => c.id === classId);
+    if (!classroom) return;
+
+    const oldMeeting = db.meetings.find(m => m.class_id === classId && m.status === 'active');
+    if (oldMeeting) {
+      oldMeeting.status = 'completed';
+      oldMeeting.ended_at = new Date().toISOString();
+    }
+
+    classroom.current_meeting_number += 1;
+    classroom.updated_at = new Date().toISOString();
+
+    const newMeetingId = generateId();
+    db.meetings.push({
+      id: newMeetingId,
+      class_id: classId,
+      meeting_number: classroom.current_meeting_number,
+      max_lives_snapshot: classroom.max_lives,
+      status: 'active',
+      started_at: new Date().toISOString(),
+      ended_at: null,
+      created_at: new Date().toISOString(),
+    });
+
+    const students = db.students.filter(s => s.class_id === classId && s.is_active);
+    for (const student of students) {
+      db.student_meeting_states.push({
+        id: generateId(),
+        meeting_id: newMeetingId,
+        student_id: student.id,
+        lives_remaining: classroom.max_lives
+      });
+    }
+
+    this.saveDb(db);
+  }
+
+  async restoreDefaultMockData(): Promise<void> {
+    localStorage.removeItem(MOCK_STORAGE_KEY);
+    this.getDb();
+  }
+}

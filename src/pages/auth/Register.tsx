@@ -40,7 +40,10 @@ export const Register: React.FC = () => {
     }
 
     if (isMock) {
-      navigate('/teacher/classes', { replace: true });
+      setTimeout(() => {
+        setSuccess(true);
+        setIsLoading(false);
+      }, 500);
       return;
     }
 

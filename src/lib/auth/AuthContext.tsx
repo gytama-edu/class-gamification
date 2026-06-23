@@ -9,6 +9,7 @@ interface AuthContextType {
   teacherProfile: TeacherProfile | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  signInAsDemo: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,14 +25,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (isMock) {
-      setSession({} as Session);
-      setUser({ id: 'mock-teacher-id', email: 'teacher@demo.edu' } as User);
-      setTeacherProfile({
-        id: 'mock-teacher-id',
-        full_name: 'Demo Teacher',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
+      const mockSession = localStorage.getItem('mock_teacher_session');
+      if (mockSession === 'true') {
+        setSession({} as Session);
+        setUser({ id: 'mock-teacher-id', email: 'teacher@demo.edu' } as User);
+        setTeacherProfile({
+          id: 'mock-teacher-id',
+          full_name: 'Demo Teacher',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      } else {
+        setSession(null);
+        setUser(null);
+        setTeacherProfile(null);
+      }
       setIsLoading(false);
       return;
     }
@@ -89,15 +97,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isMock]);
 
   const signOut = async () => {
-    if (!isMock && supabase) {
+    if (isMock) {
+      localStorage.removeItem('mock_teacher_session');
+      setSession(null);
+      setUser(null);
+      setTeacherProfile(null);
+      return;
+    }
+    if (supabase) {
       await supabase.auth.signOut();
     }
-    // Note: in mock mode we don't actually sign out, or we could simulate it by setting states to null
-    // But typically mock mode stays "logged in"
+  };
+
+  const signInAsDemo = () => {
+    if (isMock) {
+      localStorage.setItem('mock_teacher_session', 'true');
+      setSession({} as Session);
+      setUser({ id: 'mock-teacher-id', email: 'teacher@demo.edu' } as User);
+      setTeacherProfile({
+        id: 'mock-teacher-id',
+        full_name: 'Demo Teacher',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, teacherProfile, isLoading, signOut }}>
+    <AuthContext.Provider value={{ session, user, teacherProfile, isLoading, signOut, signInAsDemo }}>
       {children}
     </AuthContext.Provider>
   );

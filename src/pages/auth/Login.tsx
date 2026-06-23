@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase/client';
-import { Rocket } from 'lucide-react';
+import { Rocket, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../lib/auth/AuthContext';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, signInAsDemo } = useAuth();
   
   // If already logged in, redirect
   if (session) {
@@ -26,7 +27,9 @@ export const Login: React.FC = () => {
     setError('');
 
     if (isMock) {
-      // Mock mode handles auto-login in context, but if they reach here, we just navigate
+      // In mock mode, we require them to click the demo button to show explicit intent.
+      // But if they fill out the form, we can just do a mock login too.
+      signInAsDemo();
       navigate('/teacher/classes', { replace: true });
       return;
     }
@@ -45,6 +48,11 @@ export const Login: React.FC = () => {
     }
   };
 
+  const handleDemoLogin = () => {
+    signInAsDemo();
+    navigate('/teacher/classes', { replace: true });
+  };
+
   return (
     <div className="min-h-screen bg-cosmic-navy flex items-center justify-center p-4 font-sans text-white">
       <div className="w-full max-w-md bg-cosmic-panel border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
@@ -55,8 +63,8 @@ export const Login: React.FC = () => {
           <div className="bg-slate-800/50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-700">
             <Rocket className="text-cosmic-cyan" size={32} />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight mb-2">Teacher Login</h1>
-          <p className="text-slate-400 text-sm">Welcome back to your cosmic classroom.</p>
+          <h1 className="text-2xl font-bold tracking-tight mb-2">Welcome Back</h1>
+          <p className="text-slate-400 text-sm">Sign in to manage your classrooms.</p>
         </div>
 
         {error && (
@@ -80,14 +88,23 @@ export const Login: React.FC = () => {
           
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5" htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-cosmic-cyan focus:ring-1 focus:ring-cosmic-cyan transition-all"
-              required
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 pr-10 focus:outline-none focus:border-cosmic-cyan focus:ring-1 focus:ring-cosmic-cyan transition-all"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <button
@@ -103,10 +120,21 @@ export const Login: React.FC = () => {
           </button>
         </form>
 
+        {isMock && (
+          <div className="mt-4">
+            <button
+              onClick={handleDemoLogin}
+              type="button"
+              className="w-full flex items-center justify-center py-3 bg-slate-800 text-slate-300 font-medium border border-slate-700 rounded-xl hover:bg-slate-700 hover:text-white transition-colors"
+            >
+              Continue as Demo Teacher
+            </button>
+          </div>
+        )}
+
         <div className="mt-6 text-center text-sm text-slate-400">
-          Don't have an account?{' '}
           <Link to="/register" className="text-cosmic-cyan hover:underline font-medium">
-            Register here
+            Create a teacher account
           </Link>
         </div>
       </div>

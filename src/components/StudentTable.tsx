@@ -127,6 +127,12 @@ export const StudentTable: React.FC = () => {
                       <div className="flex justify-center items-center w-full px-4 text-cosmic-cyan">
                         <Loader2 size={18} className="animate-spin" />
                       </div>
+                    ) : !dashboardData.activeMeeting ? (
+                      <div className="flex justify-center items-center w-full px-4">
+                        <span className="text-xs font-medium text-slate-500 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/50">
+                          No active meeting
+                        </span>
+                      </div>
                     ) : (
                       <>
                         <div className="flex bg-slate-800 rounded-lg overflow-hidden border border-slate-700">

@@ -11,6 +11,7 @@ export const StudentView: React.FC = () => {
 
   const [student, setStudent] = useState<StudentWithCurrentState | null>(null);
   const [classroom, setClassroom] = useState<Classroom | null>(null);
+  const [activeMeeting, setActiveMeeting] = useState<any>(null);
   const [rank, setRank] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -21,9 +22,9 @@ export const StudentView: React.FC = () => {
       const profile = await repo.getStudentProfile(studentId);
       if (profile) {
         setStudent(profile);
-        const classes = await repo.getClasses();
-        const cls = classes.find((c) => c.id === profile.class_id);
-        if (cls) setClassroom(cls);
+        const dashboard = await repo.getClassroomDashboard(profile.class_id);
+        setClassroom(dashboard.classroom);
+        setActiveMeeting(dashboard.activeMeeting);
 
         const leaderboard = await repo.getLeaderboard(profile.class_id);
         const idx = leaderboard.findIndex((l) => l.id === studentId);
@@ -114,11 +115,18 @@ export const StudentView: React.FC = () => {
                   </h1>
                   <ConnectionStatus status={status} />
                 </div>
-                <p className="text-cosmic-cyan font-medium flex items-center gap-2">
-                  {classroom.name}{" "}
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-700"></span>{" "}
-                  {classroom.level_name}
-                </p>
+                <div className="flex items-center gap-3">
+                  <p className="text-cosmic-cyan font-medium flex items-center gap-2">
+                    {classroom.name}{" "}
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-700"></span>{" "}
+                    {classroom.level_name}
+                  </p>
+                  {!activeMeeting && (
+                    <span className="px-2 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded text-xs font-bold uppercase tracking-wider">
+                      Meeting Complete
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 

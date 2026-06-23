@@ -66,7 +66,12 @@ export const Layout: React.FC = () => {
         {
           to: `/teacher/classes/${classId}`,
           icon: <LayoutDashboard size={20} />,
-          label: "Dashboard",
+          label: "Overview",
+        },
+        {
+          to: `/teacher/classes/${classId}/live`,
+          icon: <MonitorPlay size={20} />,
+          label: "Live Meeting",
         },
         {
           to: `/teacher/classes/${classId}/students`,
@@ -76,13 +81,7 @@ export const Layout: React.FC = () => {
         {
           to: "#",
           icon: <Calendar size={20} />,
-          label: "Meetings",
-          disabled: true,
-        },
-        {
-          to: "#",
-          icon: <ChartColumn size={20} />,
-          label: "Reports",
+          label: "Meeting History",
           disabled: true,
         },
         {

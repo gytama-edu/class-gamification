@@ -1,12 +1,22 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Classroom, ClassroomDashboardData } from './lib/types/database';
-import { getRepository } from './lib/data/repository';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import { Classroom, ClassroomDashboardData } from "./lib/types/database";
+import { getRepository } from "./lib/data/repository";
 
 interface AppContextType {
   classes: Classroom[];
   isLoadingClasses: boolean;
   refreshClasses: () => Promise<void>;
-  createClass: (name: string, levelName: string, maxLives: number) => Promise<string>;
+  createClass: (
+    name: string,
+    levelName: string,
+    maxLives: number,
+  ) => Promise<string>;
   archiveClass: (classId: string) => Promise<void>;
 
   selectedClassId: string | null;
@@ -19,27 +29,43 @@ interface AppContextType {
 
   updateMaxLives: (classId: string, newMax: number) => Promise<void>;
   startNewMeeting: (classId: string) => Promise<void>;
-  
-  addPoints: (classId: string, studentId: string, points: number) => Promise<void>;
-  removePoints: (classId: string, studentId: string, points: number) => Promise<void>;
+  endMeeting: (classId: string) => Promise<void>;
+
+  addPoints: (
+    classId: string,
+    studentId: string,
+    points: number,
+  ) => Promise<void>;
+  removePoints: (
+    classId: string,
+    studentId: string,
+    points: number,
+  ) => Promise<void>;
   removeLife: (classId: string, studentId: string) => Promise<void>;
   restoreLife: (classId: string, studentId: string) => Promise<void>;
   resetStudentLives: (classId: string, studentId: string) => Promise<void>;
 
   addStudent: (classId: string, name: string) => Promise<void>;
-  updateStudent: (studentId: string, name: string, isActive: boolean) => Promise<void>;
+  updateStudent: (
+    studentId: string,
+    name: string,
+    isActive: boolean,
+  ) => Promise<void>;
 
   restoreDefaultData: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [classes, setClasses] = useState<Classroom[]>([]);
   const [isLoadingClasses, setIsLoadingClasses] = useState(true);
-  
+
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
-  const [dashboardData, setDashboardData] = useState<ClassroomDashboardData | null>(null);
+  const [dashboardData, setDashboardData] =
+    useState<ClassroomDashboardData | null>(null);
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +78,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setClasses(cls);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Failed to load classes');
+      setError(err.message || "Failed to load classes");
     } finally {
       setIsLoadingClasses(false);
     }
@@ -74,7 +100,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setDashboardData(db);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Failed to load classroom dashboard');
+      setError(err.message || "Failed to load classroom dashboard");
     } finally {
       setIsLoadingDashboard(false);
     }
@@ -84,8 +110,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     refreshDashboard();
   }, [refreshDashboard]);
 
-  const createClass = async (name: string, levelName: string, maxLives: number) => {
-    const newClass = await repo.createClass({ name, level_name: levelName, max_lives: maxLives });
+  const createClass = async (
+    name: string,
+    levelName: string,
+    maxLives: number,
+  ) => {
+    const newClass = await repo.createClass({
+      name,
+      level_name: levelName,
+      max_lives: maxLives,
+    });
     await refreshClasses();
     return newClass.id;
   };
@@ -109,23 +143,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await refreshClasses(); // Meeting number changed
   };
 
-  const addPoints = async (classId: string, studentId: string, points: number) => {
-    await repo.addPoints(classId, studentId, points, 'teacher awarded');
+  const endMeeting = async (classId: string) => {
+    await repo.endMeeting(classId);
     if (selectedClassId === classId) await refreshDashboard();
   };
 
-  const removePoints = async (classId: string, studentId: string, points: number) => {
-    await repo.removePoints(classId, studentId, points, 'teacher deducted');
+  const addPoints = async (
+    classId: string,
+    studentId: string,
+    points: number,
+  ) => {
+    await repo.addPoints(classId, studentId, points, "teacher awarded");
+    if (selectedClassId === classId) await refreshDashboard();
+  };
+
+  const removePoints = async (
+    classId: string,
+    studentId: string,
+    points: number,
+  ) => {
+    await repo.removePoints(classId, studentId, points, "teacher deducted");
     if (selectedClassId === classId) await refreshDashboard();
   };
 
   const removeLife = async (classId: string, studentId: string) => {
-    await repo.removeLife(classId, studentId, 'teacher removed');
+    await repo.removeLife(classId, studentId, "teacher removed");
     if (selectedClassId === classId) await refreshDashboard();
   };
 
   const restoreLife = async (classId: string, studentId: string) => {
-    await repo.restoreLife(classId, studentId, 'teacher restored');
+    await repo.restoreLife(classId, studentId, "teacher restored");
     if (selectedClassId === classId) await refreshDashboard();
   };
 
@@ -139,8 +186,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (selectedClassId === classId) await refreshDashboard();
   };
 
-  const updateStudent = async (studentId: string, name: string, isActive: boolean) => {
-    await repo.updateStudent(studentId, { display_name: name, is_active: isActive });
+  const updateStudent = async (
+    studentId: string,
+    name: string,
+    isActive: boolean,
+  ) => {
+    await repo.updateStudent(studentId, {
+      display_name: name,
+      is_active: isActive,
+    });
     await refreshDashboard();
   };
 
@@ -166,6 +220,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         refreshDashboard,
         updateMaxLives,
         startNewMeeting,
+        endMeeting,
         addPoints,
         removePoints,
         removeLife,
@@ -184,7 +239,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 export const useAppContext = () => {
   const context = useContext(AppContext);
   if (context === undefined) {
-    throw new Error('useAppContext must be used within an AppProvider');
+    throw new Error("useAppContext must be used within an AppProvider");
   }
   return context;
 };

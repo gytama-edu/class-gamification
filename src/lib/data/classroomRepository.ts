@@ -21,6 +21,7 @@ export interface ClassroomRepository {
   restoreLife(classId: string, studentId: string, reason?: string): Promise<void>;
   resetStudentLives(classId: string, studentId: string): Promise<void>;
   startNewMeeting(classId: string): Promise<void>;
+  endMeeting(classId: string): Promise<void>;
   
   restoreDefaultMockData(): Promise<void>;
 }

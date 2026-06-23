@@ -1,20 +1,39 @@
-import React, { useState } from 'react';
-import { Play, Settings2, Users, Trophy, ExternalLink, RotateCcw } from 'lucide-react';
-import { useAppContext } from '../store';
-import { StudentTable } from '../components/StudentTable';
-import { NewMeetingDialog } from '../components/NewMeetingDialog';
-import { Link, useParams } from 'react-router-dom';
+import React, { useState } from "react";
+import {
+  Play,
+  Power,
+  Settings2,
+  Users,
+  Trophy,
+  ExternalLink,
+  RotateCcw,
+} from "lucide-react";
+import { useAppContext } from "../store";
+import { StudentTable } from "../components/StudentTable";
+import { NewMeetingDialog } from "../components/NewMeetingDialog";
+import { EndMeetingDialog } from "../components/EndMeetingDialog";
+import { Link, useParams } from "react-router-dom";
 
 export const TeacherDashboard: React.FC = () => {
   const { classId } = useParams();
-  const { dashboardData, isLoadingDashboard, error, updateMaxLives, startNewMeeting, restoreDefaultData } = useAppContext();
+  const {
+    dashboardData,
+    isLoadingDashboard,
+    error,
+    updateMaxLives,
+    startNewMeeting,
+    endMeeting,
+  } = useAppContext();
   const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
+  const [isEndMeetingDialogOpen, setIsEndMeetingDialogOpen] = useState(false);
 
   if (isLoadingDashboard || !dashboardData) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cosmic-cyan mb-4"></div>
-        <p className="text-slate-400 font-medium tracking-wide">Loading Classroom Data...</p>
+        <p className="text-slate-400 font-medium tracking-wide">
+          Loading Classroom Data...
+        </p>
       </div>
     );
   }
@@ -22,16 +41,40 @@ export const TeacherDashboard: React.FC = () => {
   if (error) {
     return (
       <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-6 text-center max-w-2xl mx-auto mt-10">
-        <h2 className="text-xl font-bold text-rose-400 mb-2">Connection Error</h2>
+        <h2 className="text-xl font-bold text-rose-400 mb-2">
+          Connection Error
+        </h2>
         <p className="text-slate-300 mb-4">{error}</p>
         <p className="text-sm text-slate-500">
-          If you are using Supabase, ensure your .env variables are set correctly and you have run the database migrations and seed script.
+          If you are using Supabase, ensure your .env variables are set
+          correctly and you have run the database migrations and seed script.
         </p>
       </div>
     );
   }
 
-  const { classroom, students } = dashboardData;
+  const { classroom, students, activeMeeting } = dashboardData;
+
+  if (!activeMeeting) {
+    return (
+      <div className="bg-cosmic-panel p-10 rounded-2xl border border-slate-800 text-center max-w-2xl mx-auto mt-10">
+        <h2 className="text-2xl font-bold text-white mb-2">
+          No active meeting
+        </h2>
+        <p className="text-slate-400 mb-6">
+          There is no active meeting for this class. Start a new meeting from
+          the overview page.
+        </p>
+        <Link
+          to={`/teacher/classes/${classId}`}
+          className="inline-flex items-center justify-center px-6 py-3 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors font-medium"
+        >
+          Return to Overview
+        </Link>
+      </div>
+    );
+  }
+
   const totalClassPoints = students.reduce((acc, s) => acc + s.total_points, 0);
 
   return (
@@ -51,21 +94,32 @@ export const TeacherDashboard: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Link 
-            to={`/projector/${classId}`} 
+          <Link
+            to={`/projector/${classId}`}
             target="_blank"
             className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 hover:border-slate-600 transition-colors font-medium text-sm"
           >
             <ExternalLink size={18} />
             Projector Mode
           </Link>
-          <button 
+
+          <button
             onClick={() => setIsMeetingDialogOpen(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cosmic-cyan to-blue-500 text-slate-900 rounded-lg shadow-lg shadow-cosmic-cyan/20 hover:opacity-90 transition-opacity font-bold text-sm"
           >
             <Play size={18} className="fill-slate-900" />
             Start New Meeting
           </button>
+
+          {activeMeeting && (
+            <button
+              onClick={() => setIsEndMeetingDialogOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded-lg hover:bg-rose-500/20 transition-colors font-bold text-sm"
+            >
+              <Power size={18} />
+              End Meeting
+            </button>
+          )}
         </div>
       </div>
 
@@ -88,7 +142,9 @@ export const TeacherDashboard: React.FC = () => {
           </div>
           <div>
             <p className="text-sm text-slate-400 font-medium">Class Points</p>
-            <p className="text-2xl font-bold text-white font-mono">{totalClassPoints.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-white font-mono">
+              {totalClassPoints.toLocaleString()}
+            </p>
           </div>
           <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-500/5 rounded-full blur-xl"></div>
         </div>
@@ -100,20 +156,26 @@ export const TeacherDashboard: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-slate-400 font-medium">Max Lives</p>
-              <p className="text-2xl font-bold text-white">{classroom.max_lives}</p>
+              <p className="text-2xl font-bold text-white">
+                {classroom.max_lives}
+              </p>
             </div>
           </div>
-          
+
           <div className="flex flex-col">
-            <input 
-              type="number" 
-              min="1" 
-              max="20" 
+            <input
+              type="number"
+              min="1"
+              max="20"
               value={classroom.max_lives}
-              onChange={(e) => updateMaxLives(classId!, parseInt(e.target.value) || 1)}
+              onChange={(e) =>
+                updateMaxLives(classId!, parseInt(e.target.value) || 1)
+              }
               className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center text-white focus:outline-none focus:border-cosmic-cyan transition-colors"
             />
-            <span className="text-[10px] text-slate-500 mt-1 text-center">Limit: 1-20</span>
+            <span className="text-[10px] text-slate-500 mt-1 text-center">
+              Limit: 1-20
+            </span>
           </div>
         </div>
       </div>
@@ -126,10 +188,17 @@ export const TeacherDashboard: React.FC = () => {
         <StudentTable />
       </div>
 
-      <NewMeetingDialog 
-        isOpen={isMeetingDialogOpen} 
-        onClose={() => setIsMeetingDialogOpen(false)} 
+      <NewMeetingDialog
+        isOpen={isMeetingDialogOpen}
+        hasActiveMeeting={!!activeMeeting}
+        onClose={() => setIsMeetingDialogOpen(false)}
         onConfirm={() => startNewMeeting(classId!)}
+      />
+
+      <EndMeetingDialog
+        isOpen={isEndMeetingDialogOpen}
+        onClose={() => setIsEndMeetingDialogOpen(false)}
+        onConfirm={() => endMeeting(classId!)}
       />
     </div>
   );

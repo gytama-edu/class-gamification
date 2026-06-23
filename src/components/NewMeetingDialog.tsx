@@ -1,14 +1,35 @@
-import React from 'react';
-import { AlertCircle, X } from 'lucide-react';
+import React, { useState } from "react";
+import { AlertCircle, X, Loader2 } from "lucide-react";
 
 interface NewMeetingDialogProps {
   isOpen: boolean;
+  hasActiveMeeting?: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
 }
 
-export const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ isOpen, onClose, onConfirm }) => {
+export const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({
+  isOpen,
+  hasActiveMeeting,
+  onClose,
+  onConfirm,
+}) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleConfirm = async () => {
+    setIsProcessing(true);
+    try {
+      await onConfirm();
+      onClose();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to start new meeting.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
@@ -17,33 +38,45 @@ export const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ isOpen, onCl
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-3 text-cosmic-cyan">
               <AlertCircle size={24} />
-              <h2 className="text-xl font-semibold text-white">Start New Meeting</h2>
+              <h2 className="text-xl font-semibold text-white">
+                Start a new meeting?
+              </h2>
             </div>
-            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+            <button
+              onClick={onClose}
+              disabled={isProcessing}
+              className="text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+            >
               <X size={20} />
             </button>
           </div>
-          
+
           <p className="text-slate-300 leading-relaxed mb-8">
-            This will begin a new meeting and restore every student's lives to the class maximum. 
-            <span className="block mt-2 font-medium text-cosmic-purple">Total points will remain saved.</span>
+            {hasActiveMeeting
+              ? "The current meeting will be completed, final lives will be saved, and all active students will begin the next meeting with refreshed lives. Permanent points will remain saved."
+              : "All active students will begin with the class maximum lives. Permanent points will remain saved."}
           </p>
 
           <div className="flex justify-end gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-800 transition-colors"
+              disabled={isProcessing}
+              className="px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
-              onClick={() => {
-                onConfirm();
-                onClose();
-              }}
-              className="px-4 py-2 rounded-lg font-medium bg-gradient-to-r from-cosmic-cyan to-blue-500 text-slate-900 hover:opacity-90 transition-opacity shadow-lg shadow-cosmic-cyan/20"
+              onClick={handleConfirm}
+              disabled={isProcessing}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium bg-gradient-to-r from-cosmic-cyan to-blue-500 text-slate-900 hover:opacity-90 transition-opacity shadow-lg shadow-cosmic-cyan/20 disabled:opacity-50 min-w-[140px]"
             >
-              Start Meeting
+              {isProcessing ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : hasActiveMeeting ? (
+                "Start New Meeting"
+              ) : (
+                "Start Meeting"
+              )}
             </button>
           </div>
         </div>

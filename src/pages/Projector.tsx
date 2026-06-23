@@ -83,20 +83,41 @@ export const Projector: React.FC = () => {
               </h1>
               <ConnectionStatus status={status} />
             </div>
-            <p className="text-2xl text-cosmic-cyan font-medium tracking-wide uppercase">
-              {data.classroom.level_name} • Meeting #
-              {data.classroom.current_meeting_number}
-            </p>
+            {data.activeMeeting ? (
+              <p className="text-2xl text-cosmic-cyan font-medium tracking-wide uppercase">
+                {data.classroom.level_name} • Meeting #
+                {data.classroom.current_meeting_number}
+              </p>
+            ) : (
+              <p className="text-2xl text-rose-400 font-bold tracking-wide uppercase bg-rose-500/10 inline-block px-3 py-1 rounded border border-rose-500/20">
+                Meeting Complete
+              </p>
+            )}
           </div>
         </div>
         <div className="text-right bg-slate-800/80 p-5 rounded-2xl border border-slate-700">
-          <p className="text-slate-300 font-medium text-lg flex items-center gap-2">
-            <Star className="text-amber-400" size={24} /> Points stay saved.
-          </p>
-          <p className="text-slate-300 font-medium text-lg flex items-center gap-2 mt-2">
-            <Heart className="text-rose-500" size={24} /> Lives reset every
-            meeting.
-          </p>
+          {data.activeMeeting ? (
+            <>
+              <p className="text-slate-300 font-medium text-lg flex items-center gap-2">
+                <Star className="text-amber-400" size={24} /> Points stay saved.
+              </p>
+              <p className="text-slate-300 font-medium text-lg flex items-center gap-2 mt-2">
+                <Heart className="text-rose-500" size={24} /> Lives reset every
+                meeting.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-slate-300 font-medium text-lg flex items-center gap-2">
+                <Star className="text-amber-400" size={24} /> Points have been
+                saved.
+              </p>
+              <p className="text-slate-300 font-medium text-lg flex items-center gap-2 mt-2">
+                <Heart className="text-slate-500" size={24} /> The next meeting
+                will begin with refreshed lives.
+              </p>
+            </>
+          )}
         </div>
       </header>
 

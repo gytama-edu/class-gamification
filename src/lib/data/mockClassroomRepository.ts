@@ -1,5 +1,6 @@
 import { ClassroomRepository } from './classroomRepository';
 import { Classroom, ClassroomDashboardData, DbStudent, LeaderboardEntry, Meeting, StudentWithCurrentState } from '../types/database';
+import { notifyMockUpdate } from '../realtime/useClassroomRealtime';
 
 const MOCK_STORAGE_KEY = 'gytama_edu_mock_db';
 
@@ -211,6 +212,7 @@ export class MockClassroomRepository implements ClassroomRepository {
     if (idx !== -1) {
       db.classes[idx] = { ...db.classes[idx], ...input, updated_at: new Date().toISOString() };
       this.saveDb(db);
+      notifyMockUpdate(classId);
     }
   }
 
@@ -220,6 +222,7 @@ export class MockClassroomRepository implements ClassroomRepository {
     if (idx !== -1) {
       db.classes[idx].is_archived = true;
       this.saveDb(db);
+      notifyMockUpdate(classId);
     }
   }
 
@@ -253,6 +256,7 @@ export class MockClassroomRepository implements ClassroomRepository {
     }
 
     this.saveDb(db);
+    notifyMockUpdate(classId);
     return newStudent;
   }
 
@@ -262,6 +266,7 @@ export class MockClassroomRepository implements ClassroomRepository {
     if (idx !== -1) {
       db.students[idx] = { ...db.students[idx], ...input, updated_at: new Date().toISOString() };
       this.saveDb(db);
+      notifyMockUpdate(db.students[idx].class_id);
     }
   }
 
@@ -301,6 +306,7 @@ export class MockClassroomRepository implements ClassroomRepository {
     if (student) {
       student.total_points += points;
       this.saveDb(db);
+      notifyMockUpdate(classId);
     }
   }
 
@@ -310,6 +316,7 @@ export class MockClassroomRepository implements ClassroomRepository {
     if (student) {
       student.total_points = Math.max(0, student.total_points - points);
       this.saveDb(db);
+      notifyMockUpdate(classId);
     }
   }
 
@@ -321,6 +328,7 @@ export class MockClassroomRepository implements ClassroomRepository {
       if (state && state.lives_remaining > 0) {
         state.lives_remaining -= 1;
         this.saveDb(db);
+        notifyMockUpdate(classId);
       }
     }
   }
@@ -333,6 +341,7 @@ export class MockClassroomRepository implements ClassroomRepository {
       if (state && state.lives_remaining < meeting.max_lives_snapshot) {
         state.lives_remaining += 1;
         this.saveDb(db);
+        notifyMockUpdate(classId);
       }
     }
   }
@@ -345,6 +354,7 @@ export class MockClassroomRepository implements ClassroomRepository {
       if (state) {
         state.lives_remaining = meeting.max_lives_snapshot;
         this.saveDb(db);
+        notifyMockUpdate(classId);
       }
     }
   }
@@ -386,6 +396,7 @@ export class MockClassroomRepository implements ClassroomRepository {
     }
 
     this.saveDb(db);
+    notifyMockUpdate(classId);
   }
 
   async restoreDefaultMockData(): Promise<void> {

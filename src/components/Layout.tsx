@@ -1,14 +1,43 @@
-import React, { useEffect } from 'react';
-import { NavLink, Outlet, useParams, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Calendar, ChartColumn, Settings, Rocket, ArrowLeft, MonitorPlay, LogOut, User as UserIcon } from 'lucide-react';
-import { useAppContext } from '../store';
-import { useAuth } from '../lib/auth/AuthContext';
+import React, { useEffect, useCallback } from "react";
+import { NavLink, Outlet, useParams, useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Users,
+  Calendar,
+  ChartColumn,
+  Settings,
+  Rocket,
+  ArrowLeft,
+  MonitorPlay,
+  LogOut,
+  User as UserIcon,
+} from "lucide-react";
+import { useAppContext } from "../store";
+import { useAuth } from "../lib/auth/AuthContext";
+import { useClassroomRealtime } from "../lib/realtime/useClassroomRealtime";
+import { ConnectionStatus } from "./ConnectionStatus";
 
 export const Layout: React.FC = () => {
   const { classId } = useParams();
-  const { classes, setSelectedClassId, isLoadingClasses } = useAppContext();
+  const {
+    classes,
+    setSelectedClassId,
+    isLoadingClasses,
+    refreshDashboard,
+    refreshClasses,
+  } = useAppContext();
   const { teacherProfile, signOut } = useAuth();
   const navigate = useNavigate();
+
+  const handleRealtimeUpdate = useCallback(() => {
+    refreshDashboard();
+    refreshClasses();
+  }, [refreshDashboard, refreshClasses]);
+
+  const { status } = useClassroomRealtime(
+    classId || null,
+    handleRealtimeUpdate,
+  );
 
   useEffect(() => {
     if (classId) {
@@ -18,27 +47,51 @@ export const Layout: React.FC = () => {
     }
   }, [classId, setSelectedClassId]);
 
-  const activeClass = classes.find(c => c.id === classId);
+  const activeClass = classes.find((c) => c.id === classId);
 
   useEffect(() => {
     // If we have loaded classes, have a classId, but the class isn't in the list, redirect to /teacher/classes
     if (!isLoadingClasses && classId && !activeClass) {
-      navigate('/teacher/classes');
+      navigate("/teacher/classes");
     }
   }, [isLoadingClasses, classId, activeClass, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/login');
+    navigate("/login");
   };
 
-  const navItems = classId ? [
-    { to: `/teacher/classes/${classId}`, icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-    { to: `/teacher/classes/${classId}/students`, icon: <Users size={20} />, label: 'Students' },
-    { to: '#', icon: <Calendar size={20} />, label: 'Meetings', disabled: true },
-    { to: '#', icon: <ChartColumn size={20} />, label: 'Reports', disabled: true },
-    { to: `/teacher/classes/${classId}/settings`, icon: <Settings size={20} />, label: 'Settings' },
-  ] : [];
+  const navItems = classId
+    ? [
+        {
+          to: `/teacher/classes/${classId}`,
+          icon: <LayoutDashboard size={20} />,
+          label: "Dashboard",
+        },
+        {
+          to: `/teacher/classes/${classId}/students`,
+          icon: <Users size={20} />,
+          label: "Students",
+        },
+        {
+          to: "#",
+          icon: <Calendar size={20} />,
+          label: "Meetings",
+          disabled: true,
+        },
+        {
+          to: "#",
+          icon: <ChartColumn size={20} />,
+          label: "Reports",
+          disabled: true,
+        },
+        {
+          to: `/teacher/classes/${classId}/settings`,
+          icon: <Settings size={20} />,
+          label: "Settings",
+        },
+      ]
+    : [];
 
   return (
     <div className="flex h-screen overflow-hidden font-sans">
@@ -50,14 +103,18 @@ export const Layout: React.FC = () => {
               <Rocket className="text-white" size={24} />
             </div>
             <div>
-              <h1 className="font-bold text-lg leading-tight tracking-tight">GYTama EDU</h1>
-              <p className="text-xs text-cosmic-cyan font-medium">Cosmic Classroom</p>
+              <h1 className="font-bold text-lg leading-tight tracking-tight">
+                GYTama EDU
+              </h1>
+              <p className="text-xs text-cosmic-cyan font-medium">
+                Cosmic Classroom
+              </p>
             </div>
           </div>
-          
+
           {classId && (
-            <button 
-              onClick={() => navigate('/teacher/classes')}
+            <button
+              onClick={() => navigate("/teacher/classes")}
               className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors bg-slate-800/50 hover:bg-slate-700 p-2 rounded-lg"
             >
               <ArrowLeft size={16} />
@@ -70,8 +127,13 @@ export const Layout: React.FC = () => {
           {classId ? (
             <>
               <div className="px-4 pb-2">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Class Menu</p>
-                <p className="text-sm font-bold text-white truncate mt-1">{activeClass?.name}</p>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  Class Menu
+                </p>
+                <ConnectionStatus status={status} />
+                <p className="text-sm font-bold text-white truncate mt-2">
+                  {activeClass?.name}
+                </p>
               </div>
               {navItems.map((item, idx) => (
                 <NavLink
@@ -84,13 +146,13 @@ export const Layout: React.FC = () => {
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
                       item.disabled
-                        ? 'opacity-50 cursor-not-allowed hover:bg-transparent text-slate-400'
-                        : isActive && item.to !== '#'
-                        ? 'bg-gradient-to-r from-cosmic-cyan/20 to-cosmic-purple/10 text-cosmic-cyan border border-cosmic-cyan/30'
-                        : 'text-slate-300 hover:bg-cosmic-panel-hover'
+                        ? "opacity-50 cursor-not-allowed hover:bg-transparent text-slate-400"
+                        : isActive && item.to !== "#"
+                          ? "bg-gradient-to-r from-cosmic-cyan/20 to-cosmic-purple/10 text-cosmic-cyan border border-cosmic-cyan/30"
+                          : "text-slate-300 hover:bg-cosmic-panel-hover"
                     }`
                   }
-                  title={item.disabled ? 'Coming in a later phase' : ''}
+                  title={item.disabled ? "Coming in a later phase" : ""}
                 >
                   {item.icon}
                   <span className="font-medium">{item.label}</span>
@@ -101,9 +163,9 @@ export const Layout: React.FC = () => {
                   )}
                 </NavLink>
               ))}
-              
+
               <div className="mt-8 pt-4 border-t border-slate-800">
-                <a 
+                <a
                   href={`/projector/${classId}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -116,11 +178,13 @@ export const Layout: React.FC = () => {
             </>
           ) : (
             <div className="px-4">
-              <p className="text-sm text-slate-400">Select a class to view its dashboard.</p>
+              <p className="text-sm text-slate-400">
+                Select a class to view its dashboard.
+              </p>
             </div>
           )}
         </nav>
-        
+
         <div className="p-4 border-t border-slate-800 relative overflow-hidden bg-slate-900/50">
           <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-cosmic-purple/10 rounded-full blur-2xl pointer-events-none"></div>
           <div className="absolute -bottom-12 -left-10 w-40 h-40 bg-cosmic-cyan/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -130,11 +194,13 @@ export const Layout: React.FC = () => {
                 <UserIcon size={18} className="text-slate-300" />
               </div>
               <div className="truncate">
-                <p className="text-sm font-semibold text-white truncate">{teacherProfile?.full_name || 'Teacher'}</p>
+                <p className="text-sm font-semibold text-white truncate">
+                  {teacherProfile?.full_name || "Teacher"}
+                </p>
                 <p className="text-xs text-slate-500 truncate">Instructor</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={handleSignOut}
               className="text-slate-400 hover:text-rose-400 p-2 transition-colors"
               title="Log out"

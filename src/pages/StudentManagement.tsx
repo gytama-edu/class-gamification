@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Users, Plus, Edit2, Ban, CheckCircle, RotateCcw } from 'lucide-react';
-import { useAppContext } from '../store';
-import { getRepository } from '../lib/data/repository';
-import { DbStudent } from '../lib/types/database';
+import React, { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import { Users, Plus, Edit2, Ban, CheckCircle, RotateCcw } from "lucide-react";
+import { useAppContext } from "../store";
+import { getRepository } from "../lib/data/repository";
+import { DbStudent } from "../lib/types/database";
 
 export const StudentManagement: React.FC = () => {
   const { classId } = useParams();
-  const { dashboardData, isLoadingDashboard, refreshDashboard } = useAppContext();
-  
-  const [newStudentName, setNewStudentName] = useState('');
+  const { dashboardData, isLoadingDashboard, refreshDashboard } =
+    useAppContext();
+
+  const [newStudentName, setNewStudentName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const [allStudents, setAllStudents] = useState<DbStudent[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
 
@@ -21,9 +23,9 @@ export const StudentManagement: React.FC = () => {
       try {
         const repo = getRepository();
         // We'll fetch all students, regardless of active status by calling the DB directly
-        // Wait, repo.getStudents() currently returns only active. 
+        // Wait, repo.getStudents() currently returns only active.
         // Let's just adjust repo to return all if needed, or we just rely on getStudents
-        // If repo.getStudents only returns active, we might need a new method. 
+        // If repo.getStudents only returns active, we might need a new method.
         // Let's modify the component to just use repo.getStudents for now, and we'll fix the repo next.
         const students = await repo.getStudents(classId);
         setAllStudents(students);
@@ -37,7 +39,9 @@ export const StudentManagement: React.FC = () => {
   }, [classId, dashboardData]); // Re-fetch when dashboard updates (e.g. after adding)
 
   if (isLoadingDashboard || !dashboardData || isLoadingStudents) {
-    return <div className="p-8 text-center text-slate-400">Loading students...</div>;
+    return (
+      <div className="p-8 text-center text-slate-400">Loading students...</div>
+    );
   }
 
   const handleAddStudent = async (e: React.FormEvent) => {
@@ -47,24 +51,31 @@ export const StudentManagement: React.FC = () => {
     try {
       const repo = getRepository();
       await repo.addStudent(classId, { display_name: newStudentName.trim() });
-      setNewStudentName('');
+      setNewStudentName("");
       await refreshDashboard();
     } catch (err) {
       console.error(err);
-      alert('Failed to add student');
+      alert("Failed to add student");
     } finally {
       setIsAdding(false);
     }
   };
 
-  const handleToggleActive = async (studentId: string, currentStatus: boolean) => {
+  const handleToggleActive = async (
+    studentId: string,
+    currentStatus: boolean,
+  ) => {
+    if (processingId === studentId) return;
+    setProcessingId(studentId);
     try {
       const repo = getRepository();
       await repo.updateStudent(studentId, { is_active: !currentStatus });
       await refreshDashboard();
     } catch (err) {
       console.error(err);
-      alert('Failed to update student status');
+      alert("Failed to update student status");
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -72,8 +83,12 @@ export const StudentManagement: React.FC = () => {
     <div className="space-y-8 animate-in fade-in duration-500 py-8">
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Student Management</h1>
-          <p className="text-slate-400">Add or manage students for {dashboardData.classroom.name}.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+            Student Management
+          </h1>
+          <p className="text-slate-400">
+            Add or manage students for {dashboardData.classroom.name}.
+          </p>
         </div>
       </div>
 
@@ -94,7 +109,7 @@ export const StudentManagement: React.FC = () => {
             className="flex items-center gap-2 px-6 py-3 bg-cosmic-cyan text-slate-900 font-bold rounded-xl hover:bg-cyan-400 transition-colors"
           >
             <Plus size={18} />
-            {isAdding ? 'Adding...' : 'Add Student'}
+            {isAdding ? "Adding..." : "Add Student"}
           </button>
         </form>
       </div>
@@ -118,7 +133,10 @@ export const StudentManagement: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-800">
               {allStudents.map((student) => (
-                <tr key={student.id} className={`hover:bg-slate-800/30 transition-colors ${!student.is_active ? 'opacity-50' : ''}`}>
+                <tr
+                  key={student.id}
+                  className={`hover:bg-slate-800/30 transition-colors ${!student.is_active ? "opacity-50" : ""}`}
+                >
                   <td className="px-6 py-4 font-medium text-white">
                     {student.display_name}
                   </td>
@@ -148,7 +166,8 @@ export const StudentManagement: React.FC = () => {
                       {student.is_active ? (
                         <button
                           onClick={() => handleToggleActive(student.id, true)}
-                          className="p-2 text-slate-400 hover:text-rose-400 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                          disabled={processingId === student.id}
+                          className="p-2 text-slate-400 hover:text-rose-400 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 transition-colors"
                           title="Deactivate Student"
                         >
                           <Ban size={16} />
@@ -156,7 +175,8 @@ export const StudentManagement: React.FC = () => {
                       ) : (
                         <button
                           onClick={() => handleToggleActive(student.id, false)}
-                          className="p-2 text-slate-400 hover:text-emerald-400 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                          disabled={processingId === student.id}
+                          className="p-2 text-slate-400 hover:text-emerald-400 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 transition-colors"
                           title="Reactivate Student"
                         >
                           <RotateCcw size={16} />
@@ -168,7 +188,10 @@ export const StudentManagement: React.FC = () => {
               ))}
               {allStudents.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-slate-400">
+                  <td
+                    colSpan={4}
+                    className="px-6 py-8 text-center text-slate-400"
+                  >
                     No students found. Add one above.
                   </td>
                 </tr>

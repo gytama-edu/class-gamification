@@ -1,8 +1,9 @@
-import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../../lib/auth/AuthContext';
+import React from "react";
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "../../lib/auth/AuthContext";
+import { AppProvider } from "../../store";
 
-export const ProtectedRoute: React.FC = () => {
+export const TeacherProtectedRoute: React.FC = () => {
   const { session, isLoading } = useAuth();
 
   if (isLoading) {
@@ -14,9 +15,14 @@ export const ProtectedRoute: React.FC = () => {
     );
   }
 
-  if (!session) {
+  // Allow only non-anonymous users
+  if (!session || session.user?.is_anonymous) {
     return <Navigate to="/login" replace />;
   }
 
-  return <Outlet />;
+  return (
+    <AppProvider>
+      <Outlet />
+    </AppProvider>
+  );
 };

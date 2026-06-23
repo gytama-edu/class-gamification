@@ -4,7 +4,6 @@
  */
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AppProvider } from "./store";
 import { AuthProvider, useAuth } from "./lib/auth/AuthContext";
 import { Layout } from "./components/Layout";
 import { MyClasses } from "./pages/MyClasses";
@@ -17,7 +16,10 @@ import { StudentView } from "./pages/StudentView";
 import { Projector } from "./pages/Projector";
 import { Login } from "./pages/auth/Login";
 import { Register } from "./pages/auth/Register";
-import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { TeacherProtectedRoute } from "./components/auth/TeacherProtectedRoute";
+import { StudentProtectedRoute } from "./components/auth/StudentProtectedRoute";
+import { StudentJoin } from "./pages/StudentJoin";
+import { StudentDashboard } from "./pages/StudentDashboard";
 
 const RootRedirect = () => {
   const { session, isLoading } = useAuth();
@@ -30,54 +32,68 @@ const RootRedirect = () => {
     );
   }
 
-  return session ? (
-    <Navigate to="/teacher/classes" replace />
-  ) : (
-    <Navigate to="/login" replace />
-  );
+  // Determine if it's an anonymous student session or a teacher
+  if (session) {
+    if (session.user?.is_anonymous) {
+      return <Navigate to="/student/dashboard" replace />;
+    }
+    return <Navigate to="/teacher/classes" replace />;
+  }
+
+  // For unauthenticated users or users relying on mock localStorage, check if they have a student session
+  if (localStorage.getItem("gytama_student_id")) {
+    return <Navigate to="/student/dashboard" replace />;
+  }
+
+  return <Navigate to="/login" replace />;
 };
 
 export default function App() {
   return (
     <AuthProvider>
-      <AppProvider>
-        <BrowserRouter basename={import.meta.env.BASE_URL}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/" element={<RootRedirect />} />
-            <Route path="/teacher" element={<RootRedirect />} />
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/join" element={<StudentJoin />} />
+          <Route path="/" element={<RootRedirect />} />
+          <Route path="/teacher" element={<RootRedirect />} />
+          <Route path="/student" element={<RootRedirect />} />
 
-            {/* Protected Routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/projector/:classId" element={<Projector />} />
-              <Route path="/projector" element={<RootRedirect />} />
+          {/* Student Protected Routes */}
+          <Route element={<StudentProtectedRoute />}>
+            <Route path="/student/dashboard" element={<StudentDashboard />} />
+          </Route>
 
-              <Route element={<Layout />}>
-                <Route path="/teacher/classes" element={<MyClasses />} />
-                <Route path="/teacher/classes/new" element={<CreateClass />} />
-                <Route
-                  path="/teacher/classes/:classId"
-                  element={<ClassOverview />}
-                />
-                <Route
-                  path="/teacher/classes/:classId/live"
-                  element={<TeacherDashboard />}
-                />
-                <Route
-                  path="/teacher/classes/:classId/students"
-                  element={<StudentManagement />}
-                />
-                <Route
-                  path="/teacher/classes/:classId/settings"
-                  element={<ClassSettings />}
-                />
-                <Route path="/student/:studentId" element={<StudentView />} />
-              </Route>
+          {/* Teacher Protected Routes */}
+          <Route element={<TeacherProtectedRoute />}>
+            <Route path="/projector/:classId" element={<Projector />} />
+            <Route path="/projector" element={<RootRedirect />} />
+
+            <Route element={<Layout />}>
+              <Route path="/teacher/classes" element={<MyClasses />} />
+              <Route path="/teacher/classes/new" element={<CreateClass />} />
+              <Route
+                path="/teacher/classes/:classId"
+                element={<ClassOverview />}
+              />
+              <Route
+                path="/teacher/classes/:classId/live"
+                element={<TeacherDashboard />}
+              />
+              <Route
+                path="/teacher/classes/:classId/students"
+                element={<StudentManagement />}
+              />
+              <Route
+                path="/teacher/classes/:classId/settings"
+                element={<ClassSettings />}
+              />
+              <Route path="/student/:studentId" element={<StudentView />} />
             </Route>
-          </Routes>
-        </BrowserRouter>
-      </AppProvider>
+          </Route>
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
   );
 }

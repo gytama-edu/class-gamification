@@ -10,11 +10,12 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useAppContext } from "../store";
+import { getRepository } from "../lib/data/repository";
 import { NewMeetingDialog } from "../components/NewMeetingDialog";
 
 export const ClassOverview: React.FC = () => {
   const { classId } = useParams<{ classId: string }>();
-  const { dashboardData, isLoadingDashboard, error, startNewMeeting } =
+  const { dashboardData, isLoadingDashboard, error, startNewMeeting, refreshDashboard } =
     useAppContext();
   const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
   const navigate = useNavigate();
@@ -253,6 +254,79 @@ export const ClassOverview: React.FC = () => {
                 View All Students
                 <ArrowRight size={16} />
               </Link>
+            </div>
+          </div>
+
+          {/* Student Access Panel */}
+          <div className="bg-cosmic-panel rounded-2xl border border-slate-800 overflow-hidden mt-6">
+            <div className="p-5 border-b border-slate-800 bg-slate-900/50">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                Student Access
+              </h2>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-slate-400">Class Join Code</span>
+                <span className="text-lg font-mono font-bold text-cosmic-cyan tracking-wider">
+                  {classroom.join_code}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                Students can join using this code and their personal PIN at:
+                <br />
+                <span className="text-slate-300 font-mono mt-1 block">
+                  gytama-edu.github.io/class-gamification/join
+                </span>
+              </p>
+              
+              <div className="flex gap-2">
+                 <button 
+                   onClick={() => navigator.clipboard.writeText(classroom.join_code)}
+                   className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors"
+                 >
+                   Copy Code
+                 </button>
+                 <button 
+                   onClick={async () => {
+                     if (confirm("The old class code will stop working. Students who have already joined will remain connected.")) {
+                       try {
+                         const repo = getRepository();
+                         await repo.regenerateJoinCode(classroom.id);
+                         refreshDashboard();
+                       } catch (e) {
+                         alert("Failed to regenerate join code.");
+                       }
+                     }
+                   }}
+                   className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors"
+                 >
+                   Regenerate
+                 </button>
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
+                 <span className="text-sm text-slate-400">Access Enabled</span>
+                 <button
+                   onClick={async () => {
+                     try {
+                       const repo = getRepository();
+                       await repo.updateStudentAccessEnabled(classroom.id, !classroom.student_access_enabled);
+                       refreshDashboard();
+                     } catch (e) {
+                       alert("Failed to update access.");
+                     }
+                   }}
+                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                     classroom.student_access_enabled ? 'bg-emerald-500' : 'bg-slate-600'
+                   }`}
+                 >
+                   <span
+                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                       classroom.student_access_enabled ? 'translate-x-6' : 'translate-x-1'
+                     }`}
+                   />
+                 </button>
+              </div>
             </div>
           </div>
         </div>

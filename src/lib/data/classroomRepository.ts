@@ -6,12 +6,20 @@ export interface ClassroomRepository {
   createClass(input: { name: string; level_name: string; max_lives: number }): Promise<Classroom>;
   updateClass(classId: string, input: { name?: string; level_name?: string; max_lives?: number }): Promise<void>;
   archiveClass(classId: string): Promise<void>;
+  regenerateJoinCode(classId: string): Promise<string>;
+  updateStudentAccessEnabled(classId: string, enabled: boolean): Promise<void>;
 
   getStudents(classId: string): Promise<DbStudent[]>;
   addStudent(classId: string, input: { display_name: string }): Promise<DbStudent>;
   updateStudent(studentId: string, input: { display_name?: string; is_active?: boolean }): Promise<void>;
+  updateStudentAccess(studentId: string, enabled: boolean): Promise<void>;
+  generateStudentPin(studentId: string): Promise<string>;
+  resetStudentDevice(studentId: string): Promise<void>;
+
+  joinClassAsStudent(classCode: string, pin: string): Promise<{ student_id: string; class_id: string }>;
 
   getActiveMeeting(classId: string): Promise<Meeting | null>;
+  getStudentDashboard(studentId: string): Promise<{ student: DbStudent; classroom: Classroom; activeMeeting: Meeting | null; lives_remaining: number; rank: number } | null>;
   getStudentProfile(studentId: string): Promise<StudentWithCurrentState | null>;
   getLeaderboard(classId: string): Promise<LeaderboardEntry[]>;
 

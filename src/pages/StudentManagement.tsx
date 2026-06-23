@@ -71,9 +71,64 @@ export const StudentManagement: React.FC = () => {
       const repo = getRepository();
       await repo.updateStudent(studentId, { is_active: !currentStatus });
       await refreshDashboard();
+      // Also update local allStudents to reflect change quickly
+      setAllStudents(prev => prev.map(s => s.id === studentId ? { ...s, is_active: !currentStatus } : s));
     } catch (err) {
       console.error(err);
       alert("Failed to update student status");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleToggleAccess = async (studentId: string, currentAccess: boolean) => {
+    if (processingId === studentId) return;
+    setProcessingId(studentId);
+    try {
+      const repo = getRepository();
+      await repo.updateStudentAccess(studentId, !currentAccess);
+      setAllStudents(prev => prev.map(s => s.id === studentId ? { ...s, access_enabled: !currentAccess } : s));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update student access");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleGeneratePin = async (studentId: string) => {
+    if (processingId === studentId) return;
+    if (!confirm("Are you sure you want to generate a new PIN? The old PIN will no longer work.")) return;
+    
+    setProcessingId(studentId);
+    try {
+      const repo = getRepository();
+      const newPin = await repo.generateStudentPin(studentId);
+      // We do not save the cleartext PIN to state, only show it once
+      alert(`The new PIN is: ${newPin}\n\nPlease save this or give it to the student. It will not be shown again.`);
+      
+      // We don't have the hash in the client, but we know they now have a pin.
+      setAllStudents(prev => prev.map(s => s.id === studentId ? { ...s, access_pin_hash: "set" } : s));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to generate PIN");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleResetDevice = async (studentId: string) => {
+    if (processingId === studentId) return;
+    if (!confirm("Are you sure you want to reset device access? The student will be logged out of their current device.")) return;
+    
+    setProcessingId(studentId);
+    try {
+      const repo = getRepository();
+      await repo.resetStudentDevice(studentId);
+      setAllStudents(prev => prev.map(s => s.id === studentId ? { ...s, student_auth_user_id: null, access_activated_at: null } : s));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to reset device access");
     } finally {
       setProcessingId(null);
     }
@@ -128,6 +183,7 @@ export const StudentManagement: React.FC = () => {
                 <th className="px-6 py-4 font-medium">Name</th>
                 <th className="px-6 py-4 font-medium">Points</th>
                 <th className="px-6 py-4 font-medium text-center">Status</th>
+                <th className="px-6 py-4 font-medium text-center">Access</th>
                 <th className="px-6 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
@@ -154,32 +210,74 @@ export const StudentManagement: React.FC = () => {
                       </span>
                     )}
                   </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col items-center gap-2">
+                      {student.access_enabled ? (
+                        <span className="text-xs text-emerald-400">Enabled</span>
+                      ) : (
+                        <span className="text-xs text-rose-400">Revoked</span>
+                      )}
+                      
+                      {student.student_auth_user_id && (
+                        <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">
+                          Device Linked
+                        </span>
+                      )}
+                      {!student.access_pin_hash && (
+                         <span className="text-[10px] text-amber-400">No PIN</span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2 flex-wrap">
+                      <button
+                        onClick={() => handleToggleAccess(student.id, student.access_enabled)}
+                        disabled={processingId === student.id}
+                        className="text-xs px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
+                      >
+                        {student.access_enabled ? "Revoke Access" : "Restore Access"}
+                      </button>
+                      <button
+                        onClick={() => handleGeneratePin(student.id)}
+                        disabled={processingId === student.id}
+                        className="text-xs px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
+                      >
+                        Gen PIN
+                      </button>
+                      {student.student_auth_user_id && (
+                        <button
+                          onClick={() => handleResetDevice(student.id)}
+                          disabled={processingId === student.id}
+                          className="text-xs px-2 py-1 bg-rose-900/30 hover:bg-rose-900/50 text-rose-400 rounded"
+                        >
+                          Reset Device
+                        </button>
+                      )}
+
                       <Link
                         to={`/student/${student.id}`}
-                        className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                        className="p-1.5 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition-colors"
                         title="View Profile"
                       >
-                        <Edit2 size={16} />
+                        <Edit2 size={14} />
                       </Link>
                       {student.is_active ? (
                         <button
                           onClick={() => handleToggleActive(student.id, true)}
                           disabled={processingId === student.id}
-                          className="p-2 text-slate-400 hover:text-rose-400 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-rose-400 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 transition-colors rounded"
                           title="Deactivate Student"
                         >
-                          <Ban size={16} />
+                          <Ban size={14} />
                         </button>
                       ) : (
                         <button
                           onClick={() => handleToggleActive(student.id, false)}
                           disabled={processingId === student.id}
-                          className="p-2 text-slate-400 hover:text-emerald-400 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-emerald-400 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 transition-colors rounded"
                           title="Reactivate Student"
                         >
-                          <RotateCcw size={16} />
+                          <RotateCcw size={14} />
                         </button>
                       )}
                     </div>
@@ -189,7 +287,7 @@ export const StudentManagement: React.FC = () => {
               {allStudents.length === 0 && (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-6 py-8 text-center text-slate-400"
                   >
                     No students found. Add one above.

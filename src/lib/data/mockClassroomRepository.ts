@@ -34,6 +34,15 @@ function generateId() {
     : Math.random().toString(36).substring(2, 15);
 }
 
+function generateJoinCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let result = "";
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 function getInitialMockDB(): MockDB {
   const class1Id = generateId();
   const class2Id = generateId();
@@ -47,6 +56,8 @@ function getInitialMockDB(): MockDB {
     max_lives: 10,
     current_meeting_number: 1,
     is_archived: false,
+    join_code: "GALAXY",
+    student_access_enabled: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -58,6 +69,8 @@ function getInitialMockDB(): MockDB {
     max_lives: 15,
     current_meeting_number: 1,
     is_archived: false,
+    join_code: "COMETS",
+    student_access_enabled: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -69,6 +82,8 @@ function getInitialMockDB(): MockDB {
     max_lives: 8,
     current_meeting_number: 1,
     is_archived: false,
+    join_code: "ORION1",
+    student_access_enabled: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -122,6 +137,10 @@ function getInitialMockDB(): MockDB {
       avatar_key: null,
       total_points: points,
       is_active: true,
+      student_auth_user_id: null,
+      access_pin_hash: "1234", // Using cleartext '1234' for mock simplicity
+      access_enabled: true,
+      access_activated_at: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
@@ -193,6 +212,8 @@ export class MockClassroomRepository implements ClassroomRepository {
               max_lives: parsed.maxLives || 10,
               current_meeting_number: parsed.meetingNumber || 1,
               is_archived: false,
+              join_code: generateJoinCode(),
+              student_access_enabled: false,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             });
@@ -218,6 +239,10 @@ export class MockClassroomRepository implements ClassroomRepository {
                 avatar_key: null,
                 total_points: s.totalPoints || 0,
                 is_active: true,
+                student_auth_user_id: null,
+                access_pin_hash: null,
+                access_enabled: true,
+                access_activated_at: null,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               });
@@ -325,6 +350,8 @@ export class MockClassroomRepository implements ClassroomRepository {
       max_lives: input.max_lives,
       current_meeting_number: 0,
       is_archived: false,
+      join_code: generateJoinCode(),
+      student_access_enabled: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -360,6 +387,32 @@ export class MockClassroomRepository implements ClassroomRepository {
     }
   }
 
+  async regenerateJoinCode(classId: string): Promise<string> {
+    const db = this.getDb();
+    const idx = db.classes.findIndex((c) => c.id === classId);
+    if (idx !== -1) {
+      const code = generateJoinCode();
+      db.classes[idx].join_code = code;
+      this.saveDb(db);
+      notifyMockUpdate(classId);
+      return code;
+    }
+    throw new Error("Class not found");
+  }
+
+  async updateStudentAccessEnabled(
+    classId: string,
+    enabled: boolean,
+  ): Promise<void> {
+    const db = this.getDb();
+    const idx = db.classes.findIndex((c) => c.id === classId);
+    if (idx !== -1) {
+      db.classes[idx].student_access_enabled = enabled;
+      this.saveDb(db);
+      notifyMockUpdate(classId);
+    }
+  }
+
   async getStudents(classId: string): Promise<DbStudent[]> {
     return this.getDb().students.filter((s) => s.class_id === classId);
   }
@@ -377,6 +430,10 @@ export class MockClassroomRepository implements ClassroomRepository {
       avatar_key: null,
       total_points: 0,
       is_active: true,
+      student_auth_user_id: null,
+      access_pin_hash: "1234",
+      access_enabled: true,
+      access_activated_at: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -414,6 +471,132 @@ export class MockClassroomRepository implements ClassroomRepository {
       this.saveDb(db);
       notifyMockUpdate(db.students[idx].class_id);
     }
+  }
+
+  async updateStudentAccess(
+    studentId: string,
+    enabled: boolean,
+  ): Promise<void> {
+    const db = this.getDb();
+    const idx = db.students.findIndex((s) => s.id === studentId);
+    if (idx !== -1) {
+      db.students[idx].access_enabled = enabled;
+      this.saveDb(db);
+      notifyMockUpdate(db.students[idx].class_id);
+    }
+  }
+
+  async generateStudentPin(studentId: string): Promise<string> {
+    const db = this.getDb();
+    const idx = db.students.findIndex((s) => s.id === studentId);
+    if (idx !== -1) {
+      const pin = Math.floor(1000 + Math.random() * 9000).toString();
+      db.students[idx].access_pin_hash = pin; // Mock stores cleartext for simplicity
+      this.saveDb(db);
+      notifyMockUpdate(db.students[idx].class_id);
+      return pin;
+    }
+    throw new Error("Student not found");
+  }
+
+  async resetStudentDevice(studentId: string): Promise<void> {
+    const db = this.getDb();
+    const idx = db.students.findIndex((s) => s.id === studentId);
+    if (idx !== -1) {
+      db.students[idx].student_auth_user_id = null;
+      db.students[idx].access_activated_at = null;
+      this.saveDb(db);
+      notifyMockUpdate(db.students[idx].class_id);
+    }
+  }
+
+  async joinClassAsStudent(
+    classCode: string,
+    pin: string,
+  ): Promise<{ student_id: string; class_id: string }> {
+    const db = this.getDb();
+    const cls = db.classes.find(
+      (c) =>
+        c.join_code === classCode.toUpperCase() && c.student_access_enabled,
+    );
+    if (!cls) {
+      throw new Error("The class code or PIN is incorrect.");
+    }
+
+    const student = db.students.find(
+      (s) =>
+        s.class_id === cls.id &&
+        s.is_active &&
+        s.access_enabled &&
+        s.access_pin_hash === pin,
+    );
+    if (!student) {
+      throw new Error("The class code or PIN is incorrect.");
+    }
+
+    // Since mock mode doesn't really have auth, we simulate a logged-in device
+    const mockUserId = "mock-device-" + Date.now();
+    student.student_auth_user_id = mockUserId;
+    student.access_activated_at = new Date().toISOString();
+
+    this.saveDb(db);
+    return { student_id: student.id, class_id: cls.id };
+  }
+
+  async getStudentDashboard(
+    studentId: string,
+  ): Promise<{
+    student: DbStudent;
+    classroom: Classroom;
+    activeMeeting: Meeting | null;
+    lives_remaining: number;
+    rank: number;
+  } | null> {
+    const db = this.getDb();
+    const student = db.students.find((s) => s.id === studentId);
+    if (!student || !student.access_enabled) return null;
+
+    const classroom = db.classes.find((c) => c.id === student.class_id);
+    if (!classroom) return null;
+
+    const activeMeeting =
+      db.meetings.find(
+        (m) => m.class_id === classroom.id && m.status === "active",
+      ) || null;
+
+    let lives_remaining = 0;
+    const latestMeeting =
+      db.meetings
+        .filter((m) => m.class_id === student.class_id)
+        .sort((a, b) => b.meeting_number - a.meeting_number)[0] || null;
+
+    if (latestMeeting) {
+      const state = db.student_meeting_states.find(
+        (st) =>
+          st.student_id === studentId && st.meeting_id === latestMeeting.id,
+      );
+      if (state) lives_remaining = state.lives_remaining;
+    }
+
+    const classStudents = db.students.filter(
+      (s) => s.class_id === classroom.id && s.is_active,
+    );
+    const sorted = [...classStudents].sort((a, b) => {
+      if (b.total_points !== a.total_points) {
+        return b.total_points - a.total_points;
+      }
+      return a.display_name.localeCompare(b.display_name);
+    });
+
+    const rank = sorted.findIndex((s) => s.id === studentId) + 1;
+
+    return {
+      student,
+      classroom,
+      activeMeeting,
+      lives_remaining,
+      rank,
+    };
   }
 
   async getActiveMeeting(classId: string): Promise<Meeting | null> {

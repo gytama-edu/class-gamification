@@ -13,6 +13,8 @@ export interface Classroom {
   max_lives: number;
   current_meeting_number: number;
   is_archived: boolean;
+  join_code: string;
+  student_access_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +26,10 @@ export interface DbStudent {
   avatar_key: string | null;
   total_points: number;
   is_active: boolean;
+  student_auth_user_id: string | null;
+  access_pin_hash: string | null;
+  access_enabled: boolean;
+  access_activated_at: string | null;
   created_at: string;
   updated_at: string;
 }

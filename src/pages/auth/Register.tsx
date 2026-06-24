@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase/client";
-import { Rocket } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../lib/auth/AuthContext";
+import missionControlLogo from "../../assets/branding/mission-control-full.jpeg";
 
 export const Register: React.FC = () => {
   const [fullName, setFullName] = useState("");
@@ -79,37 +80,43 @@ export const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cosmic-navy flex items-center justify-center p-4 font-sans text-white">
-      <div className="w-full max-w-md bg-cosmic-panel border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-cosmic-purple/10 blur-3xl rounded-full pointer-events-none"></div>
+    <div className="min-h-screen bg-mission-bg flex items-center justify-center p-4 font-sans text-mission-primary-text relative overflow-hidden">
+      {/* Background Radar Texture */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0V0zm20 20h20v20H20V20zM0 20h20v20H0V20z' fill='%2339FF88' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`, backgroundSize: '20px 20px' }}></div>
+
+      <div className="w-full max-w-md bg-mission-panel border border-mission-border rounded-2xl p-8 shadow-2xl relative z-10">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-radar-green/5 blur-3xl rounded-full pointer-events-none"></div>
 
         <div className="relative z-10 text-center mb-8">
-          <div className="bg-slate-800/50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-700">
-            <Rocket className="text-cosmic-purple" size={32} />
+          <div className="flex items-center justify-center mx-auto mb-6">
+            <img src={missionControlLogo} alt="Mission Control" className="h-20 w-auto max-w-[80%] object-contain rounded-xl" />
           </div>
-          <h1 className="font-display text-2xl font-bold tracking-tight mb-2">
-            Create Account
+          <div className="text-xs font-semibold text-mission-muted-text uppercase tracking-wider mb-2">
+            INSTRUCTOR REGISTRATION
+          </div>
+          <h1 className="font-display text-2xl font-bold tracking-tight mb-2 text-white">
+            Create Teacher Access
           </h1>
-          <p className="text-slate-400 text-sm">
-            Join the cosmic classroom and gamify learning.
+          <p className="text-mission-secondary-text text-sm">
+            Create your account to begin managing your classes.
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm">
+          <div className="mb-6 p-4 bg-mission-danger/10 border border-mission-danger/30 rounded-xl text-mission-danger text-sm">
             {error}
           </div>
         )}
 
         {success ? (
           <div className="text-center space-y-4">
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-sm">
+            <div className="p-4 bg-strong-green/10 border border-strong-green/30 rounded-xl text-strong-green text-sm">
               Registration successful! You can now log in. (If email
               confirmation is enabled, please check your inbox).
             </div>
             <button
               onClick={() => navigate("/login")}
-              className="w-full flex items-center justify-center py-3 bg-cosmic-cyan text-slate-900 font-bold rounded-xl hover:bg-cyan-400 transition-colors"
+              className="w-full flex items-center justify-center py-3 bg-radar-green text-mission-bg font-bold rounded-xl hover:bg-strong-green transition-colors focus:outline-none focus:ring-2 focus:ring-radar-green focus:ring-offset-2 focus:ring-offset-mission-bg"
             >
               Go to Login
             </button>
@@ -118,7 +125,7 @@ export const Register: React.FC = () => {
           <form onSubmit={handleRegister} className="space-y-4">
             <div>
               <label
-                className="block text-sm font-medium text-slate-300 mb-1.5"
+                className="block text-sm font-medium text-mission-secondary-text mb-1.5"
                 htmlFor="fullName"
               >
                 Full Name
@@ -128,14 +135,14 @@ export const Register: React.FC = () => {
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-cosmic-purple focus:ring-1 focus:ring-cosmic-purple transition-all"
+                className="w-full bg-mission-panel-elevated border border-mission-border text-white rounded-xl px-4 py-3 focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
                 required
               />
             </div>
 
             <div>
               <label
-                className="block text-sm font-medium text-slate-300 mb-1.5"
+                className="block text-sm font-medium text-mission-secondary-text mb-1.5"
                 htmlFor="email"
               >
                 Email Address
@@ -145,14 +152,14 @@ export const Register: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-cosmic-purple focus:ring-1 focus:ring-cosmic-purple transition-all"
+                className="w-full bg-mission-panel-elevated border border-mission-border text-white rounded-xl px-4 py-3 focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
                 required
               />
             </div>
 
             <div>
               <label
-                className="block text-sm font-medium text-slate-300 mb-1.5"
+                className="block text-sm font-medium text-mission-secondary-text mb-1.5"
                 htmlFor="password"
               >
                 Password
@@ -162,14 +169,14 @@ export const Register: React.FC = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-cosmic-purple focus:ring-1 focus:ring-cosmic-purple transition-all"
+                className="w-full bg-mission-panel-elevated border border-mission-border text-white rounded-xl px-4 py-3 focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
                 required
               />
             </div>
 
             <div>
               <label
-                className="block text-sm font-medium text-slate-300 mb-1.5"
+                className="block text-sm font-medium text-mission-secondary-text mb-1.5"
                 htmlFor="confirmPassword"
               >
                 Confirm Password
@@ -179,7 +186,7 @@ export const Register: React.FC = () => {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-cosmic-purple focus:ring-1 focus:ring-cosmic-purple transition-all"
+                className="w-full bg-mission-panel-elevated border border-mission-border text-white rounded-xl px-4 py-3 focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
                 required
               />
             </div>
@@ -187,10 +194,10 @@ export const Register: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center py-3 mt-2 bg-cosmic-purple hover:bg-purple-500 text-white font-bold rounded-xl transition-colors disabled:opacity-50"
+              className="w-full flex items-center justify-center py-3 mt-2 bg-radar-green hover:bg-strong-green text-mission-bg font-bold rounded-xl transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-radar-green focus:ring-offset-2 focus:ring-offset-mission-bg"
             >
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-slate-200/30 border-t-white rounded-full animate-spin"></div>
+                <div className="w-5 h-5 border-2 border-mission-bg/30 border-t-mission-bg rounded-full animate-spin"></div>
               ) : (
                 "Register"
               )}
@@ -198,11 +205,11 @@ export const Register: React.FC = () => {
           </form>
         )}
 
-        <div className="mt-6 text-center text-sm text-slate-400">
+        <div className="mt-6 text-center text-sm text-mission-secondary-text">
           Already have an account?{" "}
           <Link
             to="/login"
-            className="text-cosmic-purple hover:text-purple-400 hover:underline font-medium"
+            className="text-radar-green hover:text-strong-green hover:underline font-medium transition-colors"
           >
             Sign in
           </Link>

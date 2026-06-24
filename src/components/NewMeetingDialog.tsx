@@ -32,11 +32,11 @@ export const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-      <div className="bg-cosmic-panel border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl shadow-cosmic-cyan/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-mission-panel border border-mission-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="p-6">
           <div className="flex justify-between items-start mb-4">
-            <div className="flex items-center gap-3 text-cosmic-cyan">
+            <div className="flex items-center gap-3 text-radar-green">
               <AlertCircle size={24} />
               <h2 className="text-xl font-semibold text-white">
                 Start a new meeting?
@@ -45,13 +45,13 @@ export const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({
             <button
               onClick={onClose}
               disabled={isProcessing}
-              className="text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+              className="text-mission-muted-text hover:text-white transition-colors disabled:opacity-50"
             >
               <X size={20} />
             </button>
           </div>
 
-          <p className="text-slate-300 leading-relaxed mb-8">
+          <p className="text-mission-secondary-text leading-relaxed mb-8">
             {hasActiveMeeting
               ? "The current meeting will be completed, final lives will be saved, and all active students will begin the next meeting with refreshed lives. Permanent points will remain saved."
               : "All active students will begin with the class maximum lives. Permanent points will remain saved."}
@@ -61,14 +61,14 @@ export const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({
             <button
               onClick={onClose}
               disabled={isProcessing}
-              className="px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50"
+              className="px-4 py-2 rounded-lg font-medium text-mission-secondary-text hover:bg-mission-panel-elevated hover:text-white transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               onClick={handleConfirm}
               disabled={isProcessing}
-              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium bg-gradient-to-r from-cosmic-cyan to-blue-500 text-slate-900 hover:opacity-90 transition-opacity shadow-lg shadow-cosmic-cyan/20 disabled:opacity-50 min-w-[140px]"
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-bold bg-radar-green text-mission-bg hover:bg-strong-green transition-colors focus:outline-none focus:ring-2 focus:ring-radar-green focus:ring-offset-2 focus:ring-offset-mission-panel disabled:opacity-50 min-w-[140px]"
             >
               {isProcessing ? (
                 <Loader2 size={16} className="animate-spin" />

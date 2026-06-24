@@ -44,11 +44,11 @@ export const StudentTable: React.FC = () => {
   );
 
   return (
-    <div className="bg-cosmic-panel rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+    <div className="bg-mission-panel rounded-2xl border border-mission-border overflow-hidden shadow-xl">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-800/50 text-slate-300 text-sm uppercase tracking-wider border-b border-slate-800">
+            <tr className="bg-mission-bg-secondary text-mission-secondary-text text-sm uppercase tracking-wider border-b border-mission-border">
               <th className="px-6 py-4 font-medium">Rank</th>
               <th className="px-6 py-4 font-medium">Student</th>
               <th className="px-6 py-4 font-medium text-center">Lives</th>
@@ -56,23 +56,23 @@ export const StudentTable: React.FC = () => {
               <th className="px-6 py-4 font-medium text-center">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800">
+          <tbody className="divide-y divide-mission-border">
             {sortedStudents.map((student, index) => (
               <tr
                 key={student.id}
-                className="hover:bg-slate-800/30 transition-colors group"
+                className="hover:bg-mission-panel-elevated transition-colors group"
               >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div
                     className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm
                     ${
                       index === 0
-                        ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        ? "bg-radar-green/20 text-radar-green border border-radar-green/30"
                         : index === 1
-                          ? "bg-slate-300/20 text-slate-300 border border-slate-300/30"
+                          ? "bg-mission-secondary-text/20 text-mission-secondary-text border border-mission-secondary-text/30"
                           : index === 2
-                            ? "bg-amber-700/20 text-amber-600 border border-amber-700/30"
-                            : "text-slate-500"
+                            ? "bg-mission-warning/20 text-mission-warning border border-mission-warning/30"
+                            : "text-mission-muted-text"
                     }`}
                   >
                     {index + 1}
@@ -81,7 +81,7 @@ export const StudentTable: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Link
                     to={`/student/${student.id}`}
-                    className="font-medium text-white hover:text-cosmic-cyan transition-colors flex items-center gap-2"
+                    className="font-medium text-white hover:text-radar-green transition-colors flex items-center gap-2"
                   >
                     {student.display_name}
                   </Link>
@@ -96,46 +96,46 @@ export const StudentTable: React.FC = () => {
                           <Heart
                             key={i}
                             size={16}
-                            className="text-rose-500 fill-rose-500 shrink-0"
+                            className="text-mission-danger fill-mission-danger shrink-0"
                           />
                         ))}
                         {student.lives_remaining === 0 && (
                           <HeartOff
                             size={16}
-                            className="text-slate-600 shrink-0"
+                            className="text-mission-muted-text shrink-0"
                           />
                         )}
                       </div>
                       {student.lives_remaining > 5 && (
-                        <span className="ml-[12px] text-xs font-bold text-rose-500">
+                        <span className="ml-[12px] text-xs font-bold text-mission-danger">
                           +{student.lives_remaining - 5}
                         </span>
                       )}
                     </div>
-                    <span className="text-sm font-medium text-slate-400 w-12 text-center whitespace-nowrap">
+                    <span className="text-sm font-medium text-mission-secondary-text w-12 text-center whitespace-nowrap">
                       {student.lives_remaining} /{" "}
                       {dashboardData.classroom.max_lives}
                     </span>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right font-mono font-bold text-cosmic-cyan text-lg">
+                <td className="px-6 py-4 whitespace-nowrap text-right font-mono font-bold text-radar-green text-lg">
                   {student.total_points.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center justify-center gap-2 opacity-100 md:opacity-40 group-hover:opacity-100 transition-opacity">
                     {processingId === student.id ? (
-                      <div className="flex justify-center items-center w-full px-4 text-cosmic-cyan">
+                      <div className="flex justify-center items-center w-full px-4 text-radar-green">
                         <Loader2 size={18} className="animate-spin" />
                       </div>
                     ) : !dashboardData.activeMeeting ? (
                       <div className="flex justify-center items-center w-full px-4">
-                        <span className="text-xs font-medium text-slate-500 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/50">
+                        <span className="text-xs font-medium text-mission-muted-text bg-mission-bg-secondary px-3 py-1.5 rounded-lg border border-mission-border">
                           No active meeting
                         </span>
                       </div>
                     ) : (
                       <>
-                        <div className="flex bg-slate-800 rounded-lg overflow-hidden border border-slate-700">
+                        <div className="flex bg-mission-panel-elevated rounded-lg overflow-hidden border border-mission-border">
                           <button
                             onClick={() =>
                               handleAction(student.id, () =>
@@ -143,12 +143,12 @@ export const StudentTable: React.FC = () => {
                               )
                             }
                             title="Remove 10 Points"
-                            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                            className="p-1.5 text-mission-secondary-text hover:text-white hover:bg-mission-bg transition-colors"
                           >
                             <Minus size={16} />
                           </button>
-                          <div className="flex items-center px-2 bg-slate-900 text-xs font-bold text-cosmic-cyan">
-                            <Star size={12} className="mr-1 fill-cosmic-cyan" />{" "}
+                          <div className="flex items-center px-2 bg-mission-bg-secondary text-xs font-bold text-radar-green">
+                            <Star size={12} className="mr-1 fill-radar-green" />{" "}
                             10
                           </div>
                           <button
@@ -158,15 +158,15 @@ export const StudentTable: React.FC = () => {
                               )
                             }
                             title="Add 10 Points"
-                            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                            className="p-1.5 text-mission-secondary-text hover:text-white hover:bg-mission-bg transition-colors"
                           >
                             <Plus size={16} />
                           </button>
                         </div>
 
-                        <div className="w-px h-6 bg-slate-700 mx-1"></div>
+                        <div className="w-px h-6 bg-mission-border mx-1"></div>
 
-                        <div className="flex bg-slate-800 rounded-lg overflow-hidden border border-slate-700">
+                        <div className="flex bg-mission-panel-elevated rounded-lg overflow-hidden border border-mission-border">
                           <button
                             onClick={() =>
                               handleAction(student.id, () =>
@@ -175,7 +175,7 @@ export const StudentTable: React.FC = () => {
                             }
                             disabled={student.lives_remaining <= 0}
                             title="Remove 1 Life"
-                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-700 disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+                            className="p-1.5 text-mission-secondary-text hover:text-mission-danger hover:bg-mission-bg disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
                           >
                             <HeartOff size={16} />
                           </button>
@@ -190,7 +190,7 @@ export const StudentTable: React.FC = () => {
                               dashboardData.classroom.max_lives
                             }
                             title="Restore 1 Life"
-                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-700 disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+                            className="p-1.5 text-mission-secondary-text hover:text-mission-danger hover:bg-mission-bg disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
                           >
                             <Heart size={16} />
                           </button>
@@ -205,7 +205,7 @@ export const StudentTable: React.FC = () => {
                               dashboardData.classroom.max_lives
                             }
                             title="Reset Lives to Max"
-                            className="p-1.5 text-slate-400 hover:text-cosmic-cyan hover:bg-slate-700 disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+                            className="p-1.5 text-mission-secondary-text hover:text-radar-green hover:bg-mission-bg disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
                           >
                             <RotateCcw size={16} />
                           </button>

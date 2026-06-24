@@ -5,7 +5,6 @@ import {
   Users,
   Calendar,
   Settings,
-  Rocket,
   ArrowLeft,
   MonitorPlay,
   LogOut,
@@ -14,6 +13,7 @@ import {
   X,
   History,
 } from "lucide-react";
+import missionControlLogo from "../assets/branding/mission-control-full.jpeg";
 import { useAppContext } from "../store";
 import { useAuth } from "../lib/auth/AuthContext";
 import { useClassroomRealtime } from "../lib/realtime/useClassroomRealtime";
@@ -96,17 +96,17 @@ export const Layout: React.FC = () => {
 
   const SidebarContent = () => (
     <>
-      <div className="p-6 flex flex-col gap-4 border-b border-slate-800">
+      <div className="p-6 flex flex-col gap-4 border-b border-mission-border">
         <div className="flex items-center gap-3">
-          <div className="bg-gradient-to-br from-cosmic-cyan to-cosmic-purple p-2 rounded-lg">
-            <Rocket className="text-slate-900" size={24} />
+          <div className="h-10 shrink-0 flex items-center justify-start">
+            <img src={missionControlLogo} alt="Mission Control" className="h-full w-auto max-w-[80px] object-contain rounded" />
           </div>
           <div>
-            <h1 className="font-display font-bold text-lg leading-tight tracking-tight text-white">
-              GYTama EDU
+            <h1 className="font-display font-bold text-lg leading-tight tracking-tight text-white uppercase">
+              Mission Control
             </h1>
-            <p className="text-xs text-cosmic-cyan font-medium">
-              Cosmic Classroom
+            <p className="text-xs text-radar-green font-medium uppercase tracking-wider">
+              By GYTama EDU
             </p>
           </div>
         </div>
@@ -117,7 +117,7 @@ export const Layout: React.FC = () => {
               navigate("/teacher/classes");
               setIsMobileMenuOpen(false);
             }}
-            className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors bg-slate-800/50 hover:bg-slate-700 p-2 rounded-lg"
+            className="flex items-center gap-2 text-sm text-mission-secondary-text hover:text-white transition-colors bg-mission-panel-elevated hover:bg-mission-bg p-2 rounded-lg border border-transparent hover:border-mission-border"
           >
             <ArrowLeft size={16} />
             <span>Back to Classes</span>
@@ -129,12 +129,15 @@ export const Layout: React.FC = () => {
         {classId ? (
           <>
             <div className="px-4 pb-2">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                Class Menu
+              <p className="text-xs font-semibold text-mission-muted-text uppercase tracking-wider mb-2">
+                ACTIVE MISSION
               </p>
               <ConnectionStatus status={status} />
-              <p className="text-sm font-bold text-white truncate mt-2">
+              <p className="text-sm font-bold text-mission-primary-text truncate mt-2">
                 {activeClass?.name}
+              </p>
+              <p className="text-xs text-mission-secondary-text truncate">
+                {activeClass?.level_name}
               </p>
             </div>
             {navItems.map((item, idx) => (
@@ -146,10 +149,10 @@ export const Layout: React.FC = () => {
                   setIsMobileMenuOpen(false);
                 }}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                  `flex items-center gap-3 px-4 py-3 transition-colors ${
                     isActive
-                      ? "bg-gradient-to-r from-cosmic-cyan/20 to-cosmic-purple/10 text-cosmic-cyan border border-cosmic-cyan/30"
-                      : "text-slate-300 hover:bg-cosmic-panel-hover"
+                      ? "bg-soft-green-surface text-radar-green border-l-2 border-radar-green rounded-r-xl"
+                      : "text-mission-secondary-text hover:bg-mission-panel-elevated hover:text-mission-primary-text rounded-xl"
                   }`
                 }
               >
@@ -158,12 +161,12 @@ export const Layout: React.FC = () => {
               </NavLink>
             ))}
 
-            <div className="mt-8 pt-4 border-t border-slate-800">
+            <div className="mt-8 pt-4 border-t border-mission-border">
               <a
                 href={`/projector/${classId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-emerald-400 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/30"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-strong-green hover:bg-soft-green-surface border border-transparent hover:border-radar-green/30"
               >
                 <MonitorPlay size={20} />
                 <span className="font-medium">Open Projector</span>
@@ -172,31 +175,30 @@ export const Layout: React.FC = () => {
           </>
         ) : (
           <div className="px-4">
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-mission-secondary-text">
               Select a class to view its dashboard.
             </p>
           </div>
         )}
       </nav>
 
-      <div className="p-4 border-t border-slate-800 relative overflow-hidden bg-slate-900/50">
-        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-cosmic-purple/10 rounded-full blur-2xl pointer-events-none"></div>
-        <div className="absolute -bottom-12 -left-10 w-40 h-40 bg-cosmic-cyan/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="p-4 border-t border-mission-border relative overflow-hidden bg-mission-panel">
+        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-radar-green/5 rounded-full blur-2xl pointer-events-none"></div>
         <div className="relative z-10 flex items-center justify-between">
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="bg-slate-800 p-2 rounded-full border border-slate-700">
-              <UserIcon size={18} className="text-slate-300" />
+            <div className="bg-mission-bg p-2 rounded-full border border-mission-border">
+              <UserIcon size={18} className="text-mission-secondary-text" />
             </div>
             <div className="truncate">
-              <p className="text-sm font-semibold text-white truncate">
+              <p className="text-sm font-semibold text-mission-primary-text truncate">
                 {teacherProfile?.full_name || "Teacher"}
               </p>
-              <p className="text-xs text-slate-500 truncate">Instructor</p>
+              <p className="text-xs text-mission-muted-text truncate">Instructor</p>
             </div>
           </div>
           <button
             onClick={handleSignOut}
-            className="text-slate-400 hover:text-rose-400 p-2 transition-colors"
+            className="text-mission-muted-text hover:text-mission-danger p-2 transition-colors"
             title="Log out"
           >
             <LogOut size={18} />
@@ -207,9 +209,9 @@ export const Layout: React.FC = () => {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden font-sans bg-cosmic-navy text-slate-300">
+    <div className="flex h-screen overflow-hidden font-sans bg-mission-bg text-mission-primary-text">
       {/* Desktop Sidebar */}
-      <aside className="w-64 bg-cosmic-panel border-r border-slate-800 flex-col hidden md:flex z-20 shrink-0">
+      <aside className="w-64 bg-mission-panel border-r border-mission-border flex-col hidden md:flex z-20 shrink-0">
         <SidebarContent />
       </aside>
 
@@ -217,13 +219,13 @@ export const Layout: React.FC = () => {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
           <div
-            className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
           ></div>
-          <aside className="relative w-72 max-w-[80%] bg-cosmic-panel border-r border-slate-800 flex flex-col h-full animate-in slide-in-from-left duration-200 shadow-2xl">
+          <aside className="relative w-72 max-w-[80%] bg-mission-panel border-r border-mission-border flex flex-col h-full animate-in slide-in-from-left duration-200 shadow-2xl">
             <button
               onClick={() => setIsMobileMenuOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-2"
+              className="absolute top-4 right-4 text-mission-secondary-text hover:text-white p-2"
             >
               <X size={24} />
             </button>
@@ -233,21 +235,21 @@ export const Layout: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 bg-cosmic-navy relative overflow-hidden">
-        {/* Subtle Cosmic Background */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8Y2lyY2xlIGN4PSIyIiBjeT0iMiIgcj0iMC41IiBmaWxsPSIjZmZmZmZmIiBmaWxsLW9wYWNpdHk9IjAuMSIgLz4KPC9zdmc+')] opacity-50 pointer-events-none"></div>
+      <main className="flex-1 flex flex-col min-w-0 bg-mission-bg relative overflow-hidden">
+        {/* Radar Background Texture */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0V0zm20 20h20v20H20V20zM0 20h20v20H0V20z' fill='%2339FF88' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`, backgroundSize: '20px 20px' }}></div>
 
         {/* Mobile Top Bar */}
-        <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-800 bg-cosmic-panel/80 backdrop-blur-md relative z-10 shrink-0">
+        <header className="md:hidden flex items-center justify-between p-4 border-b border-mission-border bg-mission-panel/90 backdrop-blur-md relative z-10 shrink-0">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="text-slate-300 hover:text-white"
+              className="text-mission-primary-text hover:text-radar-green transition-colors"
             >
               <Menu size={24} />
             </button>
             <div className="font-bold text-lg text-white truncate max-w-[200px]">
-              {activeClass ? activeClass.name : "GYTama EDU"}
+              {activeClass ? activeClass.name : "Mission Control"}
             </div>
           </div>
         </header>

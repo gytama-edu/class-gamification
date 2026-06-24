@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase/client";
-import { Rocket, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../lib/auth/AuthContext";
+import missionControlLogo from "../../assets/branding/mission-control-full.jpeg";
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -54,25 +55,31 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cosmic-navy flex items-center justify-center p-4 font-sans text-white">
-      <div className="w-full max-w-md bg-cosmic-panel border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+    <div className="min-h-screen bg-mission-bg flex items-center justify-center p-4 font-sans text-mission-primary-text relative overflow-hidden">
+      {/* Background Radar Texture */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0V0zm20 20h20v20H20V20zM0 20h20v20H0V20z' fill='%2339FF88' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`, backgroundSize: '20px 20px' }}></div>
+
+      <div className="w-full max-w-md bg-mission-panel border border-mission-border rounded-2xl p-8 shadow-2xl relative z-10">
         {/* Subtle decorative glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-cosmic-cyan/10 blur-3xl rounded-full pointer-events-none"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-radar-green/5 blur-3xl rounded-full pointer-events-none"></div>
 
         <div className="relative z-10 text-center mb-8">
-          <div className="bg-slate-800/50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-700">
-            <Rocket className="text-cosmic-cyan" size={32} />
+          <div className="flex items-center justify-center mx-auto mb-6">
+            <img src={missionControlLogo} alt="Mission Control" className="h-20 w-auto max-w-[80%] object-contain rounded-xl" />
           </div>
-          <h1 className="font-display text-2xl font-bold tracking-tight mb-2">
-            Welcome Back
+          <div className="text-xs font-semibold text-mission-muted-text uppercase tracking-wider mb-2">
+            TEACHER ACCESS
+          </div>
+          <h1 className="font-display text-2xl font-bold tracking-tight mb-2 text-white">
+            Enter Mission Control
           </h1>
-          <p className="text-slate-400 text-sm">
-            Sign in to manage your classrooms.
+          <p className="text-mission-secondary-text text-sm">
+            Sign in to manage your classes and student progress.
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm">
+          <div className="mb-6 p-4 bg-mission-danger/10 border border-mission-danger/30 rounded-xl text-mission-danger text-sm">
             {error}
           </div>
         )}
@@ -80,7 +87,7 @@ export const Login: React.FC = () => {
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
             <label
-              className="block text-sm font-medium text-slate-300 mb-1.5"
+              className="block text-sm font-medium text-mission-secondary-text mb-1.5"
               htmlFor="email"
             >
               Email Address
@@ -90,14 +97,14 @@ export const Login: React.FC = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-cosmic-cyan focus:ring-1 focus:ring-cosmic-cyan transition-all"
+              className="w-full bg-mission-panel-elevated border border-mission-border text-white rounded-xl px-4 py-3 focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
               required
             />
           </div>
 
           <div>
             <label
-              className="block text-sm font-medium text-slate-300 mb-1.5"
+              className="block text-sm font-medium text-mission-secondary-text mb-1.5"
               htmlFor="password"
             >
               Password
@@ -108,13 +115,14 @@ export const Login: React.FC = () => {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 pr-10 focus:outline-none focus:border-cosmic-cyan focus:ring-1 focus:ring-cosmic-cyan transition-all"
+                className="w-full bg-mission-panel-elevated border border-mission-border text-white rounded-xl px-4 py-3 pr-10 focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-mission-muted-text hover:text-white transition-colors"
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -124,10 +132,10 @@ export const Login: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center py-3 bg-cosmic-cyan text-slate-900 font-bold rounded-xl hover:bg-cyan-400 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center py-3 bg-radar-green text-mission-bg font-bold rounded-xl hover:bg-strong-green transition-colors focus:outline-none focus:ring-2 focus:ring-radar-green focus:ring-offset-2 focus:ring-offset-mission-bg disabled:opacity-50"
           >
             {isLoading ? (
-              <div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin"></div>
+              <div className="w-5 h-5 border-2 border-mission-bg/30 border-t-mission-bg rounded-full animate-spin"></div>
             ) : (
               "Sign In"
             )}
@@ -139,17 +147,17 @@ export const Login: React.FC = () => {
             <button
               onClick={handleDemoLogin}
               type="button"
-              className="w-full flex items-center justify-center py-3 bg-slate-800 text-slate-300 font-medium border border-slate-700 rounded-xl hover:bg-slate-700 hover:text-white transition-colors"
+              className="w-full flex items-center justify-center py-3 bg-mission-panel-elevated text-mission-primary-text font-medium border border-mission-border rounded-xl hover:bg-mission-bg hover:border-radar-green/50 transition-colors focus:outline-none focus:ring-2 focus:ring-radar-green focus:ring-offset-2 focus:ring-offset-mission-bg"
             >
               Continue as Demo Teacher
             </button>
           </div>
         )}
 
-        <div className="mt-6 text-center text-sm text-slate-400">
+        <div className="mt-6 text-center text-sm text-mission-secondary-text">
           <Link
             to="/register"
-            className="text-cosmic-cyan hover:underline font-medium"
+            className="text-radar-green hover:underline font-medium transition-colors"
           >
             Create a teacher account
           </Link>

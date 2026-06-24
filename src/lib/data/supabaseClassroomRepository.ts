@@ -7,6 +7,8 @@ import {
   LeaderboardEntry,
   Meeting,
   StudentWithCurrentState,
+  MeetingHistoryItem,
+  MeetingReport
 } from "../types/database";
 
 export class SupabaseClassroomRepository implements ClassroomRepository {

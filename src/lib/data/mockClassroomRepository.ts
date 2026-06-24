@@ -6,6 +6,8 @@ import {
   LeaderboardEntry,
   Meeting,
   StudentWithCurrentState,
+  MeetingHistoryItem,
+  MeetingReport
 } from "../types/database";
 import { notifyMockUpdate } from "../realtime/useClassroomRealtime";
 
@@ -21,6 +23,10 @@ interface MockDB {
     meeting_id: string;
     student_id: string;
     lives_remaining: number;
+    student_name_snapshot?: string;
+    points_before?: number;
+    points_after?: number;
+    final_rank?: number;
   }[];
   point_events: any[];
   life_events: any[];

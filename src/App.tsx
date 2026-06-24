@@ -26,8 +26,8 @@ const RootRedirect = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-cosmic-navy flex items-center justify-center font-sans">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-cosmic-cyan mb-6"></div>
+      <div className="min-h-screen bg-mission-bg flex items-center justify-center font-sans">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-radar-green mb-6"></div>
       </div>
     );
   }

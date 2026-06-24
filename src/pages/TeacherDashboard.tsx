@@ -29,8 +29,8 @@ export const TeacherDashboard: React.FC = () => {
   if (isLoadingDashboard || !dashboardData) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cosmic-cyan mb-4"></div>
-        <p className="text-slate-400 font-medium tracking-wide">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-radar-green mb-4"></div>
+        <p className="text-mission-secondary-text font-medium tracking-wide">
           Loading Classroom Data...
         </p>
       </div>
@@ -39,12 +39,12 @@ export const TeacherDashboard: React.FC = () => {
 
   if (error) {
     return (
-      <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-6 text-center max-w-2xl mx-auto mt-10">
-        <h2 className="text-xl font-bold text-rose-400 mb-2">
+      <div className="bg-mission-danger/10 border border-mission-danger/20 rounded-2xl p-6 text-center max-w-2xl mx-auto mt-10">
+        <h2 className="text-xl font-bold text-mission-danger mb-2">
           Connection Error
         </h2>
-        <p className="text-slate-300 mb-4">{error}</p>
-        <p className="text-sm text-slate-500">
+        <p className="text-mission-primary-text mb-4">{error}</p>
+        <p className="text-sm text-mission-muted-text">
           If you are using Supabase, ensure your .env variables are set
           correctly and you have run the database migrations and seed script.
         </p>
@@ -56,17 +56,17 @@ export const TeacherDashboard: React.FC = () => {
 
   if (!activeMeeting) {
     return (
-      <div className="bg-cosmic-panel p-10 rounded-2xl border border-slate-800 text-center max-w-2xl mx-auto mt-10">
+      <div className="bg-mission-panel p-10 rounded-2xl border border-mission-border text-center max-w-2xl mx-auto mt-10">
         <h2 className="text-2xl font-bold text-white mb-2">
           No active meeting
         </h2>
-        <p className="text-slate-400 mb-6">
+        <p className="text-mission-secondary-text mb-6">
           There is no active meeting for this class. Start a new meeting from
           the overview page.
         </p>
         <Link
           to={`/teacher/classes/${classId}`}
-          className="inline-flex items-center justify-center px-6 py-3 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors font-medium"
+          className="inline-flex items-center justify-center px-6 py-3 bg-mission-panel-elevated text-white rounded-lg hover:bg-mission-bg border border-mission-border transition-colors font-medium"
         >
           Return to Overview
         </Link>
@@ -79,21 +79,21 @@ export const TeacherDashboard: React.FC = () => {
   return (
     <div className="space-y-6 pb-20 animate-in fade-in duration-300 relative">
       {/* Sticky Meeting Control Bar */}
-      <div className="sticky top-0 z-30 -mx-4 md:-mx-8 px-4 md:px-8 py-4 mb-6 bg-cosmic-navy/90 backdrop-blur-md border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="sticky top-0 z-30 -mx-4 md:-mx-8 px-4 md:px-8 py-4 mb-6 bg-mission-bg-secondary/90 backdrop-blur-md border-b border-mission-border flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-white mb-1">
             {classroom.name}
           </h1>
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-2 text-xs text-emerald-400 font-medium">
+            <span className="flex items-center gap-2 text-xs text-radar-green font-bold">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-radar-green opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-radar-green"></span>
               </span>
               Meeting Live
             </span>
-            <span className="text-slate-500 text-xs">•</span>
-            <span className="text-slate-400 font-medium text-xs">
+            <span className="text-mission-muted-text text-xs">•</span>
+            <span className="text-mission-secondary-text font-medium text-xs">
               Meeting #{classroom.current_meeting_number}
             </span>
           </div>
@@ -103,7 +103,7 @@ export const TeacherDashboard: React.FC = () => {
           <Link
             to={`/projector/${classId}`}
             target="_blank"
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 hover:border-slate-600 transition-colors font-medium text-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-mission-panel-elevated text-mission-secondary-text hover:text-white hover:bg-mission-bg rounded-lg border border-mission-border transition-colors font-medium text-sm"
           >
             <ExternalLink size={16} />
             Projector
@@ -111,7 +111,7 @@ export const TeacherDashboard: React.FC = () => {
 
           <button
             onClick={() => setIsEndMeetingDialogOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded-lg hover:bg-rose-500/20 transition-colors font-bold text-sm shadow-[0_0_15px_rgba(244,63,94,0.1)]"
+            className="flex items-center gap-2 px-5 py-2.5 bg-mission-danger/10 text-mission-danger border border-mission-danger/30 rounded-lg hover:bg-mission-danger/20 transition-colors font-bold text-sm shadow-[0_0_15px_rgba(255,87,87,0.1)] focus:outline-none focus:ring-2 focus:ring-mission-danger focus:ring-offset-2 focus:ring-offset-mission-bg-secondary"
           >
             <Power size={18} />
             End Meeting
@@ -121,37 +121,37 @@ export const TeacherDashboard: React.FC = () => {
 
       {/* Stats row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        <div className="bg-cosmic-panel p-5 rounded-2xl border border-slate-800 flex items-center gap-4 relative overflow-hidden">
-          <div className="bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
-            <Users size={24} className="text-blue-400" />
+        <div className="bg-mission-panel p-5 rounded-2xl border border-mission-border flex items-center gap-4 relative overflow-hidden">
+          <div className="bg-mission-panel-elevated p-3 rounded-xl border border-mission-border">
+            <Users size={24} className="text-mission-primary-text" />
           </div>
           <div>
-            <p className="text-sm text-slate-400 font-medium">Total Students</p>
+            <p className="text-sm text-mission-muted-text font-medium">Total Students</p>
             <p className="text-2xl font-bold text-white">{students.length}</p>
           </div>
-          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-500/5 rounded-full blur-xl"></div>
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-radar-green/5 rounded-full blur-xl"></div>
         </div>
 
-        <div className="bg-cosmic-panel p-5 rounded-2xl border border-slate-800 flex items-center gap-4 relative overflow-hidden">
-          <div className="bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
-            <Trophy size={24} className="text-amber-400" />
+        <div className="bg-mission-panel p-5 rounded-2xl border border-mission-border flex items-center gap-4 relative overflow-hidden">
+          <div className="bg-radar-green/10 p-3 rounded-xl border border-radar-green/20">
+            <Trophy size={24} className="text-radar-green" />
           </div>
           <div>
-            <p className="text-sm text-slate-400 font-medium">Class Points</p>
+            <p className="text-sm text-mission-muted-text font-medium">Class Points</p>
             <p className="text-2xl font-bold text-white font-mono">
               {totalClassPoints.toLocaleString()}
             </p>
           </div>
-          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-500/5 rounded-full blur-xl"></div>
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-radar-green/5 rounded-full blur-xl"></div>
         </div>
 
-        <div className="bg-cosmic-panel p-5 rounded-2xl border border-slate-800 flex items-center justify-between gap-4 relative overflow-hidden sm:col-span-2 md:col-span-1">
+        <div className="bg-mission-panel p-5 rounded-2xl border border-mission-border flex items-center justify-between gap-4 relative overflow-hidden sm:col-span-2 md:col-span-1">
           <div className="flex items-center gap-4">
-            <div className="bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">
-              <Settings2 size={24} className="text-rose-400" />
+            <div className="bg-mission-danger/10 p-3 rounded-xl border border-mission-danger/20">
+              <Settings2 size={24} className="text-mission-danger" />
             </div>
             <div>
-              <p className="text-sm text-slate-400 font-medium">Max Lives</p>
+              <p className="text-sm text-mission-muted-text font-medium">Max Lives</p>
               <p className="text-2xl font-bold text-white">
                 {classroom.max_lives}
               </p>
@@ -167,9 +167,9 @@ export const TeacherDashboard: React.FC = () => {
               onChange={(e) =>
                 updateMaxLives(classId!, parseInt(e.target.value) || 1)
               }
-              className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center text-white focus:outline-none focus:border-cosmic-cyan transition-colors"
+              className="w-16 bg-mission-input border border-mission-border rounded-lg px-2 py-1 text-center text-white focus:outline-none focus:border-radar-green transition-colors"
             />
-            <span className="text-[10px] text-slate-500 mt-1 text-center">
+            <span className="text-[10px] text-mission-muted-text mt-1 text-center">
               Limit: 1-20
             </span>
           </div>
@@ -181,7 +181,7 @@ export const TeacherDashboard: React.FC = () => {
         <div className="flex items-center justify-between mb-4 mt-8">
           <h2 className="font-display text-lg font-semibold text-white">Student Roster</h2>
         </div>
-        <div className="bg-cosmic-panel rounded-2xl border border-slate-800 overflow-hidden">
+        <div className="bg-mission-panel rounded-2xl border border-mission-border overflow-hidden">
            <StudentTable />
         </div>
       </div>

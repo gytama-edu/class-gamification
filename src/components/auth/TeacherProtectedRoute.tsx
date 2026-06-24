@@ -8,9 +8,9 @@ export const TeacherProtectedRoute: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-cosmic-navy flex flex-col items-center justify-center font-sans">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-cosmic-cyan mb-6"></div>
-        <p className="text-xl text-slate-300">Checking authentication...</p>
+      <div className="min-h-screen bg-mission-bg flex flex-col items-center justify-center font-sans">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-radar-green mb-6"></div>
+        <p className="text-xl text-mission-secondary-text">Checking authentication...</p>
       </div>
     );
   }

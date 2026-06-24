@@ -41,7 +41,7 @@ export const StudentManagement: React.FC = () => {
 
   if (isLoadingDashboard || !dashboardData || isLoadingStudents) {
     return (
-      <div className="p-8 text-center text-slate-400">Loading students...</div>
+      <div className="p-8 text-center text-mission-muted-text">Loading students...</div>
     );
   }
 
@@ -193,35 +193,35 @@ export const StudentManagement: React.FC = () => {
           <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
             Student Management
           </h1>
-          <p className="text-slate-400">
+          <p className="text-mission-secondary-text">
             Add or manage students for {dashboardData.classroom.name}.
           </p>
         </div>
       </div>
 
-      <div className="bg-cosmic-panel border border-slate-800 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="bg-mission-panel border border-mission-border rounded-3xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h2 className="text-xl font-bold text-white mb-2">
             Class Access Info
           </h2>
-          <p className="text-slate-400 mb-4 text-sm">
+          <p className="text-mission-secondary-text mb-4 text-sm">
             Students can join using this class code and their unique PIN.
           </p>
           <div className="flex gap-4 items-center">
-            <div className="bg-slate-900 px-4 py-2 rounded-lg border border-slate-700">
-              <span className="text-xs text-slate-500 block uppercase tracking-wider mb-1">
+            <div className="bg-mission-bg-secondary px-4 py-2 rounded-lg border border-mission-border">
+              <span className="text-xs text-mission-muted-text block uppercase tracking-wider mb-1">
                 Class Code
               </span>
-              <span className="text-2xl font-mono text-cosmic-cyan font-bold tracking-widest">
+              <span className="text-2xl font-mono text-radar-green font-bold tracking-widest">
                 {dashboardData.classroom.join_code || "MISSING"}
               </span>
             </div>
-            <div className="bg-slate-900 px-4 py-2 rounded-lg border border-slate-700">
-              <span className="text-xs text-slate-500 block uppercase tracking-wider mb-1">
+            <div className="bg-mission-bg-secondary px-4 py-2 rounded-lg border border-mission-border">
+              <span className="text-xs text-mission-muted-text block uppercase tracking-wider mb-1">
                 Access
               </span>
               <span
-                className={`text-sm font-medium ${dashboardData.classroom.student_access_enabled ? "text-emerald-400" : "text-rose-400"}`}
+                className={`text-sm font-medium ${dashboardData.classroom.student_access_enabled ? "text-radar-green" : "text-mission-danger"}`}
               >
                 {dashboardData.classroom.student_access_enabled
                   ? "Enabled"
@@ -231,11 +231,11 @@ export const StudentManagement: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-slate-900 px-6 py-4 rounded-xl border border-slate-700 min-w-[200px]">
-          <div className="text-sm text-slate-400 mb-1">Students with PIN</div>
+        <div className="bg-mission-bg-secondary px-6 py-4 rounded-xl border border-mission-border min-w-[200px]">
+          <div className="text-sm text-mission-muted-text mb-1">Students with PIN</div>
           <div className="text-3xl font-bold text-white">
             {allStudents.filter((s) => s.has_pin).length}{" "}
-            <span className="text-lg text-slate-500 font-normal">
+            <span className="text-lg text-mission-muted-text font-normal">
               / {allStudents.length}
             </span>
           </div>
@@ -243,11 +243,11 @@ export const StudentManagement: React.FC = () => {
       </div>
 
       {import.meta.env.DEV && import.meta.env.VITE_DATA_SOURCE === "mock" && (
-        <div className="bg-amber-900/20 border border-amber-500/30 rounded-3xl p-6">
-          <h2 className="text-lg font-bold text-amber-500 mb-2">
+        <div className="bg-mission-warning/10 border border-mission-warning/30 rounded-3xl p-6">
+          <h2 className="text-lg font-bold text-mission-warning mb-2">
             Development Recovery Tool
           </h2>
-          <p className="text-sm text-amber-400/80 mb-4">
+          <p className="text-sm text-mission-warning/80 mb-4">
             This tool generates missing class codes and mock PINs. It is only
             visible in mock development mode.
           </p>
@@ -282,14 +282,14 @@ export const StudentManagement: React.FC = () => {
                 window.location.reload();
               }
             }}
-            className="px-4 py-2 bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 rounded-lg text-sm font-medium transition-colors border border-amber-500/30"
+            className="px-4 py-2 bg-mission-warning/20 text-mission-warning hover:bg-mission-warning/30 rounded-lg text-sm font-medium transition-colors border border-mission-warning/30"
           >
             Repair Student Access Data
           </button>
         </div>
       )}
 
-      <div className="bg-cosmic-panel border border-slate-800 rounded-3xl p-6 md:p-8">
+      <div className="bg-mission-panel border border-mission-border rounded-3xl p-6 md:p-8">
         <h2 className="text-xl font-bold text-white mb-6">Add New Student</h2>
         <form onSubmit={handleAddStudent} className="flex gap-4">
           <input
@@ -297,22 +297,22 @@ export const StudentManagement: React.FC = () => {
             value={newStudentName}
             onChange={(e) => setNewStudentName(e.target.value)}
             placeholder="Student Name"
-            className="flex-1 bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-cosmic-cyan transition-all"
+            className="flex-1 bg-mission-input border border-mission-border rounded-xl px-4 py-3 text-white focus:border-radar-green transition-all"
             required
           />
           <button
             type="submit"
             disabled={isAdding}
-            className="flex items-center gap-2 px-6 py-3 bg-cosmic-cyan text-slate-900 font-bold rounded-xl hover:bg-cyan-400 transition-colors"
+            className="flex items-center gap-2 px-6 py-3 bg-radar-green text-mission-bg font-bold rounded-xl hover:bg-strong-green transition-colors focus:outline-none focus:ring-2 focus:ring-radar-green focus:ring-offset-2 focus:ring-offset-mission-panel"
           >
             <Plus size={18} />
-            {isAdding ? "Adding..." : "Add Student"}
+            {isAdding ? "Initializing..." : "Add Student"}
           </button>
         </form>
       </div>
 
-      <div className="bg-cosmic-panel border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
-        <div className="p-6 border-b border-slate-800">
+      <div className="bg-mission-panel border border-mission-border rounded-3xl overflow-hidden shadow-xl">
+        <div className="p-6 border-b border-mission-border">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Users size={20} />
             Class Roster ({allStudents.length})
@@ -321,7 +321,7 @@ export const StudentManagement: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-800/50 text-slate-300 text-sm uppercase tracking-wider border-b border-slate-800">
+              <tr className="bg-mission-bg-secondary text-mission-secondary-text text-sm uppercase tracking-wider border-b border-mission-border">
                 <th className="px-6 py-4 font-medium">Name</th>
                 <th className="px-6 py-4 font-medium">Points</th>
                 <th className="px-6 py-4 font-medium text-center">Status</th>
@@ -329,25 +329,25 @@ export const StudentManagement: React.FC = () => {
                 <th className="px-6 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-mission-border">
               {allStudents.map((student) => (
                 <tr
                   key={student.id}
-                  className={`hover:bg-slate-800/30 transition-colors ${!student.is_active ? "opacity-50" : ""}`}
+                  className={`hover:bg-mission-panel-elevated transition-colors ${!student.is_active ? "opacity-50" : ""}`}
                 >
                   <td className="px-6 py-4 font-medium text-white">
                     {student.display_name}
                   </td>
-                  <td className="px-6 py-4 font-mono text-cosmic-cyan">
+                  <td className="px-6 py-4 font-mono text-radar-green">
                     {student.total_points.toLocaleString()}
                   </td>
                   <td className="px-6 py-4 text-center">
                     {student.is_active ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-radar-green/10 text-radar-green border border-radar-green/20">
                         <CheckCircle size={12} /> Active
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-mission-secondary-text/10 text-mission-secondary-text border border-mission-secondary-text/20">
                         <Ban size={12} /> Inactive
                       </span>
                     )}
@@ -355,21 +355,21 @@ export const StudentManagement: React.FC = () => {
                   <td className="px-6 py-4">
                     <div className="flex flex-col items-center gap-2">
                       {!student.access_enabled ? (
-                        <span className="text-xs font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-md">
+                        <span className="text-xs font-medium text-mission-danger bg-mission-danger/10 border border-mission-danger/20 px-2 py-1 rounded-md">
                           Access Disabled
                         </span>
                       ) : student.has_pin ? (
-                        <span className="text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-md">
+                        <span className="text-xs font-medium text-radar-green bg-radar-green/10 border border-radar-green/20 px-2 py-1 rounded-md">
                           PIN Ready
                         </span>
                       ) : (
-                        <span className="text-xs font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-md">
+                        <span className="text-xs font-medium text-mission-warning bg-mission-warning/10 border border-mission-warning/20 px-2 py-1 rounded-md">
                           PIN Not Generated
                         </span>
                       )}
 
                       {student.student_auth_user_id && (
-                        <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] text-mission-muted-text bg-mission-panel-elevated border border-mission-border px-2 py-0.5 rounded-full">
                           Device Linked
                         </span>
                       )}
@@ -382,7 +382,7 @@ export const StudentManagement: React.FC = () => {
                           handleToggleAccess(student.id, student.access_enabled)
                         }
                         disabled={processingId === student.id}
-                        className="text-xs px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
+                        className="text-xs px-2 py-1 bg-mission-panel-elevated border border-mission-border hover:bg-mission-bg text-mission-secondary-text rounded"
                       >
                         {student.access_enabled
                           ? "Revoke Access"
@@ -391,7 +391,7 @@ export const StudentManagement: React.FC = () => {
                       <button
                         onClick={() => handleGeneratePin(student.id)}
                         disabled={processingId === student.id}
-                        className="text-xs px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
+                        className="text-xs px-2 py-1 bg-mission-panel-elevated border border-mission-border hover:bg-mission-bg text-mission-secondary-text rounded"
                       >
                         {student.has_pin ? "Reset PIN" : "Generate PIN"}
                       </button>
@@ -399,7 +399,7 @@ export const StudentManagement: React.FC = () => {
                         <button
                           onClick={() => handleResetDevice(student.id)}
                           disabled={processingId === student.id}
-                          className="text-xs px-2 py-1 bg-rose-900/30 hover:bg-rose-900/50 text-rose-400 rounded"
+                          className="text-xs px-2 py-1 bg-mission-danger/20 hover:bg-mission-danger/30 text-mission-danger border border-mission-danger/30 rounded"
                         >
                           Reset Device
                         </button>
@@ -407,7 +407,7 @@ export const StudentManagement: React.FC = () => {
 
                       <Link
                         to={`/student/${student.id}`}
-                        className="p-1.5 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition-colors"
+                        className="p-1.5 text-mission-muted-text hover:text-white bg-mission-panel-elevated border border-mission-border hover:bg-mission-bg rounded transition-colors"
                         title="View Profile"
                       >
                         <Edit2 size={14} />
@@ -416,7 +416,7 @@ export const StudentManagement: React.FC = () => {
                         <button
                           onClick={() => handleToggleActive(student.id, true)}
                           disabled={processingId === student.id}
-                          className="p-1.5 text-slate-400 hover:text-amber-400 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 transition-colors rounded"
+                          className="p-1.5 text-mission-muted-text hover:text-mission-warning bg-mission-panel-elevated border border-mission-border hover:bg-mission-bg disabled:opacity-50 transition-colors rounded"
                           title="Deactivate Student"
                         >
                           <Ban size={14} />
@@ -425,7 +425,7 @@ export const StudentManagement: React.FC = () => {
                         <button
                           onClick={() => handleToggleActive(student.id, false)}
                           disabled={processingId === student.id}
-                          className="p-1.5 text-slate-400 hover:text-emerald-400 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 transition-colors rounded"
+                          className="p-1.5 text-mission-muted-text hover:text-radar-green bg-mission-panel-elevated border border-mission-border hover:bg-mission-bg disabled:opacity-50 transition-colors rounded"
                           title="Reactivate Student"
                         >
                           <RotateCcw size={14} />
@@ -434,7 +434,7 @@ export const StudentManagement: React.FC = () => {
                       <button
                         onClick={() => setStudentToDelete(student)}
                         disabled={processingId === student.id}
-                        className="p-1.5 text-slate-400 hover:text-rose-400 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 transition-colors rounded"
+                        className="p-1.5 text-mission-muted-text hover:text-mission-danger bg-mission-panel-elevated border border-mission-border hover:bg-mission-bg disabled:opacity-50 transition-colors rounded"
                         title="Delete Student"
                       >
                         <Trash2 size={14} />
@@ -447,7 +447,7 @@ export const StudentManagement: React.FC = () => {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-6 py-8 text-center text-slate-400"
+                    className="px-6 py-8 text-center text-mission-muted-text"
                   >
                     No students found. Add one above.
                   </td>
@@ -460,24 +460,24 @@ export const StudentManagement: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {studentToDelete && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-cosmic-panel border border-slate-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-mission-panel border border-mission-border rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <h2 className="text-xl font-bold text-white mb-4">Delete Student?</h2>
-            <p className="text-slate-300 mb-6">
+            <p className="text-mission-secondary-text mb-6">
               This will remove <span className="font-bold text-white">{studentToDelete.display_name}</span> from the active class roster and revoke their student access. Historical meeting records will be preserved.
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setStudentToDelete(null)}
                 disabled={processingId === studentToDelete.id}
-                className="px-5 py-2.5 bg-slate-800 text-slate-300 font-bold rounded-xl hover:bg-slate-700 transition-colors"
+                className="px-5 py-2.5 bg-mission-panel-elevated border border-mission-border text-mission-secondary-text font-bold rounded-xl hover:bg-mission-bg hover:text-white transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={executeDeleteStudent}
                 disabled={processingId === studentToDelete.id}
-                className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(244,63,94,0.3)] transition-colors"
+                className="px-5 py-2.5 bg-mission-danger hover:bg-mission-danger/80 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(255,87,87,0.3)] transition-colors focus:outline-none focus:ring-2 focus:ring-mission-danger focus:ring-offset-2 focus:ring-offset-mission-panel"
               >
                 {processingId === studentToDelete.id ? "Deleting..." : "Delete Student"}
               </button>

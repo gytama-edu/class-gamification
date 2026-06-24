@@ -33,8 +33,8 @@ export const ClassOverview: React.FC = () => {
   if (isLoadingDashboard || !dashboardData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-cosmic-cyan mb-6"></div>
-        <p className="text-slate-400 animate-pulse">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-radar-green mb-6"></div>
+        <p className="text-mission-muted-text animate-pulse">
           Loading class overview...
         </p>
       </div>
@@ -43,12 +43,12 @@ export const ClassOverview: React.FC = () => {
 
   if (error) {
     return (
-      <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-6 rounded-xl flex flex-col items-center text-center max-w-lg mx-auto mt-20">
+      <div className="bg-mission-danger/10 border border-mission-danger/20 text-mission-danger p-6 rounded-xl flex flex-col items-center text-center max-w-lg mx-auto mt-20">
         <p className="font-semibold mb-2">Error loading class</p>
         <p className="text-sm opacity-80">{error}</p>
         <Link
           to="/teacher/classes"
-          className="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+          className="mt-4 px-4 py-2 bg-mission-panel-elevated hover:bg-mission-bg border border-mission-border text-white rounded-lg transition-colors"
         >
           Back to Classes
         </Link>
@@ -80,27 +80,27 @@ export const ClassOverview: React.FC = () => {
   return (
     <div className="animate-in fade-in duration-300 space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-cosmic-panel p-6 rounded-2xl border border-slate-800">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-mission-panel p-6 rounded-2xl border border-mission-border">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h1 className="font-display text-3xl font-bold text-white tracking-tight">
               {classroom.name}
             </h1>
-            <span className="px-3 py-1 bg-cosmic-purple/10 text-cosmic-purple border border-cosmic-purple/20 rounded-full text-xs font-bold uppercase tracking-wider">
+            <span className="px-3 py-1 bg-mission-panel-elevated text-mission-secondary-text border border-mission-border rounded-full text-xs font-bold uppercase tracking-wider">
               {classroom.level_name}
             </span>
           </div>
           <div className="flex items-center gap-2">
             {activeMeeting ? (
-              <span className="flex items-center gap-2 text-sm text-emerald-400 font-medium">
+              <span className="flex items-center gap-2 text-sm text-radar-green font-bold">
                 <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-radar-green opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-radar-green"></span>
                 </span>
                 Meeting #{classroom.current_meeting_number} currently active
               </span>
             ) : (
-              <span className="text-sm text-slate-400 font-medium">
+              <span className="text-sm text-mission-muted-text font-medium">
                 No active meeting
               </span>
             )}
@@ -111,17 +111,17 @@ export const ClassOverview: React.FC = () => {
           {activeMeeting ? (
             <Link
               to={`/teacher/classes/${classId}/live`}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cosmic-cyan to-blue-500 text-slate-900 rounded-lg shadow-lg shadow-cosmic-cyan/20 hover:opacity-90 transition-opacity font-bold text-sm"
+              className="flex items-center gap-2 px-6 py-3 bg-radar-green text-mission-bg rounded-lg hover:bg-strong-green transition-colors font-bold text-sm focus:outline-none focus:ring-2 focus:ring-radar-green focus:ring-offset-2 focus:ring-offset-mission-panel"
             >
-              <Play size={18} className="fill-slate-900" />
+              <Play size={18} className="fill-mission-bg" />
               Resume Meeting
             </Link>
           ) : (
             <button
               onClick={() => setIsMeetingDialogOpen(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cosmic-cyan to-blue-500 text-slate-900 rounded-lg shadow-lg shadow-cosmic-cyan/20 hover:opacity-90 transition-opacity font-bold text-sm"
+              className="flex items-center gap-2 px-6 py-3 bg-radar-green text-mission-bg rounded-lg hover:bg-strong-green transition-colors font-bold text-sm focus:outline-none focus:ring-2 focus:ring-radar-green focus:ring-offset-2 focus:ring-offset-mission-panel"
             >
-              <Play size={18} className="fill-slate-900" />
+              <Play size={18} className="fill-mission-bg" />
               Start New Meeting
             </button>
           )}
@@ -129,7 +129,7 @@ export const ClassOverview: React.FC = () => {
           <Link
             to={`/projector/${classId}`}
             target="_blank"
-            className="flex items-center gap-2 px-4 py-3 bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors font-medium text-sm border border-slate-700"
+            className="flex items-center gap-2 px-4 py-3 bg-mission-panel-elevated text-mission-secondary-text hover:text-white hover:bg-mission-bg rounded-lg transition-colors font-medium text-sm border border-mission-border"
           >
             <ExternalLink size={18} />
             Projector Mode
@@ -141,88 +141,88 @@ export const ClassOverview: React.FC = () => {
         <div className="lg:col-span-2 space-y-6">
           {/* Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-cosmic-panel p-4 rounded-xl border border-slate-800">
-              <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">
+            <div className="bg-mission-panel p-4 rounded-xl border border-mission-border">
+              <p className="text-xs text-mission-muted-text font-semibold uppercase tracking-wider mb-1">
                 Active Students
               </p>
               <p className="text-2xl font-bold text-white">
                 {activeStudents.length}
               </p>
             </div>
-            <div className="bg-cosmic-panel p-4 rounded-xl border border-slate-800">
-              <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">
+            <div className="bg-mission-panel p-4 rounded-xl border border-mission-border">
+              <p className="text-xs text-mission-muted-text font-semibold uppercase tracking-wider mb-1">
                 Total Points
               </p>
-              <p className="text-2xl font-bold text-amber-400">
+              <p className="text-2xl font-bold text-radar-green">
                 {totalClassPoints}
               </p>
             </div>
-            <div className="bg-cosmic-panel p-4 rounded-xl border border-slate-800">
-              <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">
+            <div className="bg-mission-panel p-4 rounded-xl border border-mission-border">
+              <p className="text-xs text-mission-muted-text font-semibold uppercase tracking-wider mb-1">
                 Max Lives
               </p>
-              <p className="text-2xl font-bold text-rose-400">
+              <p className="text-2xl font-bold text-mission-primary-text">
                 {classroom.max_lives}
               </p>
             </div>
-            <div className="bg-cosmic-panel p-4 rounded-xl border border-slate-800">
-              <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">
+            <div className="bg-mission-panel p-4 rounded-xl border border-mission-border">
+              <p className="text-xs text-mission-muted-text font-semibold uppercase tracking-wider mb-1">
                 Meetings
               </p>
-              <p className="text-2xl font-bold text-cosmic-cyan">
+              <p className="text-2xl font-bold text-mission-primary-text">
                 {classroom.current_meeting_number}
               </p>
             </div>
           </div>
 
           {/* Description Panel */}
-          <div className="bg-cosmic-panel p-6 rounded-2xl border border-slate-800">
+          <div className="bg-mission-panel p-6 rounded-2xl border border-mission-border">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold text-white">
                 Class Description
               </h2>
               <Link
                 to={`/teacher/classes/${classId}/settings`}
-                className="text-sm text-cosmic-cyan hover:text-cosmic-cyan/80"
+                className="text-sm text-mission-secondary-text hover:text-white"
               >
                 Edit Description
               </Link>
             </div>
-            <p className="text-slate-300 leading-relaxed">
+            <p className="text-mission-secondary-text leading-relaxed">
               No class description has been added yet.
             </p>
           </div>
 
           {/* Recent Meeting Summary */}
-          <div className="bg-cosmic-panel p-6 rounded-2xl border border-slate-800">
+          <div className="bg-mission-panel p-6 rounded-2xl border border-mission-border">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-display text-lg font-bold text-white">Meeting History</h2>
               {history.length > 0 && (
-                <span className="px-3 py-1 bg-slate-800/50 text-slate-300 rounded-full text-xs font-bold">
+                <span className="px-3 py-1 bg-mission-panel-elevated text-mission-secondary-text rounded-full text-xs font-bold border border-mission-border">
                   {history.length} Completed
                 </span>
               )}
             </div>
             
             {history.length === 0 ? (
-              <div className="bg-slate-900/50 rounded-xl p-6 text-center border border-slate-800 border-dashed">
-                <Activity className="mx-auto text-slate-600 mb-2" size={32} />
-                <p className="text-slate-400 font-medium mb-1">
+              <div className="bg-mission-bg-secondary rounded-xl p-6 text-center border border-mission-border border-dashed">
+                <Activity className="mx-auto text-mission-muted-text mb-2" size={32} />
+                <p className="text-mission-secondary-text font-medium mb-1">
                   No completed meetings yet.
                 </p>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-mission-muted-text">
                   End your first meeting to generate a report.
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="bg-mission-bg-secondary rounded-xl p-4 border border-mission-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-bold text-white">Meeting {history[0].meeting_number}</span>
-                      <span className="text-xs text-slate-400">Most Recent</span>
+                      <span className="text-xs text-mission-muted-text">Most Recent</span>
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-400">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-mission-secondary-text">
                       <div className="flex items-center gap-1">
                         <Calendar size={12} />
                         {new Date(history[0].started_at).toLocaleDateString()}
@@ -240,8 +240,8 @@ export const ClassOverview: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Net Points</div>
-                    <div className={`font-bold ${history[0].net_points > 0 ? 'text-emerald-400' : history[0].net_points < 0 ? 'text-rose-400' : 'text-slate-300'}`}>
+                    <div className="text-xs text-mission-muted-text uppercase tracking-wider font-semibold mb-1">Net Points</div>
+                    <div className={`font-bold ${history[0].net_points > 0 ? 'text-radar-green' : history[0].net_points < 0 ? 'text-mission-danger' : 'text-mission-primary-text'}`}>
                       {history[0].net_points > 0 ? '+' : ''}{history[0].net_points}
                     </div>
                   </div>
@@ -249,7 +249,7 @@ export const ClassOverview: React.FC = () => {
                 
                 <Link
                   to={`/teacher/classes/${classId}/history`}
-                  className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-2.5 bg-mission-panel-elevated hover:bg-mission-bg text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 border border-mission-border hover:border-radar-green/30"
                 >
                   View Meeting History
                   <ArrowRight size={16} />
@@ -261,16 +261,16 @@ export const ClassOverview: React.FC = () => {
 
         <div className="lg:col-span-1 space-y-6">
           {/* Top Students Preview */}
-          <div className="bg-cosmic-panel rounded-2xl border border-slate-800 overflow-hidden">
-            <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+          <div className="bg-mission-panel rounded-2xl border border-mission-border overflow-hidden">
+            <div className="p-5 border-b border-mission-border bg-mission-bg-secondary">
               <h2 className="font-display text-lg font-bold text-white flex items-center gap-2">
-                <Trophy size={18} className="text-amber-400" />
+                <Trophy size={18} className="text-radar-green" />
                 Top Students
               </h2>
             </div>
             <div className="p-2">
               {topStudents.length === 0 ? (
-                <div className="p-4 text-center text-slate-500">
+                <div className="p-4 text-center text-mission-muted-text">
                   No students in this class yet.
                 </div>
               ) : (
@@ -278,27 +278,27 @@ export const ClassOverview: React.FC = () => {
                   {topStudents.map((student, idx) => (
                     <div
                       key={student.id}
-                      className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-800/50 transition-colors"
+                      className="flex items-center justify-between p-3 rounded-lg hover:bg-mission-panel-elevated transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <div
                           className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                             idx === 0
-                              ? "bg-amber-400/20 text-amber-400"
+                              ? "bg-radar-green/20 text-radar-green"
                               : idx === 1
-                                ? "bg-slate-300/20 text-slate-300"
+                                ? "bg-mission-secondary-text/20 text-mission-secondary-text"
                                 : idx === 2
-                                  ? "bg-amber-700/20 text-amber-600"
-                                  : "bg-slate-800 text-slate-500"
+                                  ? "bg-mission-warning/20 text-mission-warning"
+                                  : "bg-mission-panel-elevated text-mission-muted-text"
                           }`}
                         >
                           {idx + 1}
                         </div>
-                        <span className="font-medium text-slate-200">
+                        <span className="font-medium text-mission-primary-text">
                           {student.display_name}
                         </span>
                       </div>
-                      <span className="font-bold text-amber-400">
+                      <span className="font-bold text-radar-green">
                         {student.total_points}
                       </span>
                     </div>
@@ -306,10 +306,10 @@ export const ClassOverview: React.FC = () => {
                 </div>
               )}
             </div>
-            <div className="p-3 border-t border-slate-800">
+            <div className="p-3 border-t border-mission-border">
               <Link
                 to={`/teacher/classes/${classId}/students`}
-                className="flex items-center justify-center gap-2 w-full py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                className="flex items-center justify-center gap-2 w-full py-2 text-sm font-medium text-mission-secondary-text hover:text-white hover:bg-mission-panel-elevated rounded-lg transition-colors"
               >
                 <Users size={16} />
                 View All Students
@@ -319,23 +319,23 @@ export const ClassOverview: React.FC = () => {
           </div>
 
           {/* Student Access Panel */}
-          <div className="bg-cosmic-panel rounded-2xl border border-slate-800 overflow-hidden mt-6">
-            <div className="p-5 border-b border-slate-800 bg-slate-900/50">
+          <div className="bg-mission-panel rounded-2xl border border-mission-border overflow-hidden mt-6">
+            <div className="p-5 border-b border-mission-border bg-mission-bg-secondary">
               <h2 className="font-display text-lg font-bold text-white flex items-center gap-2">
                 Student Access
               </h2>
             </div>
             <div className="p-5 space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-400">Class Join Code</span>
-                <span className="text-lg font-mono font-bold text-cosmic-cyan tracking-wider">
+                <span className="text-sm text-mission-secondary-text">Class Join Code</span>
+                <span className="text-lg font-mono font-bold text-radar-green tracking-wider">
                   {classroom.join_code}
                 </span>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-mission-muted-text">
                 Students can join using this code and their personal PIN at:
                 <br />
-                <span className="text-slate-300 font-mono mt-1 block">
+                <span className="text-mission-primary-text font-mono mt-1 block">
                   gytama-edu.github.io/class-gamification/join
                 </span>
               </p>
@@ -343,7 +343,7 @@ export const ClassOverview: React.FC = () => {
               <div className="flex gap-2">
                  <button 
                    onClick={() => navigator.clipboard.writeText(classroom.join_code)}
-                   className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors"
+                   className="flex-1 py-2 bg-mission-panel-elevated hover:bg-mission-bg border border-mission-border text-mission-secondary-text rounded-lg text-sm font-medium transition-colors"
                  >
                    Copy Code
                  </button>
@@ -359,14 +359,14 @@ export const ClassOverview: React.FC = () => {
                        }
                      }
                    }}
-                   className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors"
+                   className="flex-1 py-2 bg-mission-panel-elevated hover:bg-mission-bg border border-mission-border text-mission-secondary-text rounded-lg text-sm font-medium transition-colors"
                  >
                    Regenerate
                  </button>
               </div>
 
-              <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-                 <span className="text-sm text-slate-400">Access Enabled</span>
+              <div className="pt-4 border-t border-mission-border flex items-center justify-between">
+                 <span className="text-sm text-mission-secondary-text">Access Enabled</span>
                  <button
                    onClick={async () => {
                      try {
@@ -378,7 +378,7 @@ export const ClassOverview: React.FC = () => {
                      }
                    }}
                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                     classroom.student_access_enabled ? 'bg-emerald-500' : 'bg-slate-600'
+                     classroom.student_access_enabled ? 'bg-radar-green' : 'bg-mission-panel-elevated border border-mission-border'
                    }`}
                  >
                    <span

@@ -12,6 +12,7 @@ import {
   User as UserIcon,
   Menu,
   X,
+  History,
 } from "lucide-react";
 import { useAppContext } from "../store";
 import { useAuth } from "../lib/auth/AuthContext";
@@ -79,6 +80,11 @@ export const Layout: React.FC = () => {
           to: `/teacher/classes/${classId}/students`,
           icon: <Users size={20} />,
           label: "Students",
+        },
+        {
+          to: `/teacher/classes/${classId}/history`,
+          icon: <History size={20} />,
+          label: "Meeting History",
         },
         {
           to: `/teacher/classes/${classId}/settings`,

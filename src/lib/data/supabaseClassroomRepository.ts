@@ -439,6 +439,28 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     if (error) throw error;
   }
 
+  async getMeetingHistory(classId: string): Promise<MeetingHistoryItem[]> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase.rpc("get_class_meeting_history", {
+      p_class_id: classId,
+    });
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getMeetingReport(
+    classId: string,
+    meetingId: string,
+  ): Promise<MeetingReport | null> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase.rpc("get_meeting_report", {
+      p_class_id: classId,
+      p_meeting_id: meetingId,
+    });
+    if (error) throw error;
+    return data;
+  }
+
   async restoreDefaultMockData(): Promise<void> {
     // Only applies to mock
   }

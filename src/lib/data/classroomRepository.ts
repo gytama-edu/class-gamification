@@ -1,4 +1,4 @@
-import { Classroom, ClassroomDashboardData, DbStudent, LeaderboardEntry, Meeting, StudentWithCurrentState } from '../types/database';
+import { Classroom, ClassroomDashboardData, DbStudent, LeaderboardEntry, Meeting, StudentWithCurrentState, MeetingHistoryItem, MeetingReport } from '../types/database';
 
 export interface ClassroomRepository {
   getClasses(): Promise<Classroom[]>;
@@ -31,6 +31,9 @@ export interface ClassroomRepository {
   resetStudentLives(classId: string, studentId: string): Promise<void>;
   startNewMeeting(classId: string): Promise<void>;
   endMeeting(classId: string): Promise<void>;
+  
+  getMeetingHistory(classId: string): Promise<MeetingHistoryItem[]>;
+  getMeetingReport(classId: string, meetingId: string): Promise<MeetingReport | null>;
   
   restoreDefaultMockData(): Promise<void>;
 }

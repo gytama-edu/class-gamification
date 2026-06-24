@@ -883,11 +883,166 @@ export class MockClassroomRepository implements ClassroomRepository {
       (m) => m.class_id === classId && m.status === "active",
     );
     if (oldMeeting) {
+      // Ensure all participants have a state
+      const pointEvents = db.point_events.filter(pe => pe.meeting_id === oldMeeting.id);
+      for (const pe of pointEvents) {
+        if (!db.student_meeting_states.find(sms => sms.meeting_id === oldMeeting.id && sms.student_id === pe.student_id)) {
+          db.student_meeting_states.push({
+            id: generateId(),
+            meeting_id: oldMeeting.id,
+            student_id: pe.student_id,
+            lives_remaining: classroom.max_lives,
+          });
+        }
+      }
+
+      const states = db.student_meeting_states.filter(sms => sms.meeting_id === oldMeeting.id);
+      for (const state of states) {
+        const student = db.students.find(s => s.id === state.student_id);
+        if (student) {
+          state.student_name_snapshot = student.display_name;
+          state.points_after = student.total_points;
+          const earned = pointEvents.filter(pe => pe.student_id === student.id).reduce((acc, pe) => acc + pe.points_delta, 0);
+          state.points_before = student.total_points - earned;
+        }
+      }
+
+      // Rank
+      const sortedStates = [...states].sort((a, b) => {
+        if ((b.points_after || 0) !== (a.points_after || 0)) {
+          return (b.points_after || 0) - (a.points_after || 0);
+        }
+        if ((a.student_name_snapshot || '') !== (b.student_name_snapshot || '')) {
+          return (a.student_name_snapshot || '').localeCompare(b.student_name_snapshot || '');
+        }
+        return a.student_id.localeCompare(b.student_id);
+      });
+
+      let rank = 1;
+      let prevPoints: number | null = null;
+      let prevName: string | null = null;
+      for (let i = 0; i < sortedStates.length; i++) {
+        const s = sortedStates[i];
+        if (prevPoints !== null && (s.points_after !== prevPoints || s.student_name_snapshot !== prevName)) {
+           // We're doing strict ranking with tie breakers so there shouldn't be ties if id is included, but just to be safe.
+        }
+        s.final_rank = i + 1; // It's strict ranking basically.
+        prevPoints = s.points_after || 0;
+        prevName = s.student_name_snapshot || '';
+      }
+
       oldMeeting.status = "completed";
       oldMeeting.ended_at = new Date().toISOString();
+      oldMeeting.class_name_snapshot = classroom.name;
+      oldMeeting.level_name_snapshot = classroom.level_name;
+      
       this.saveDb(db);
       notifyMockUpdate(classId);
     }
+  }
+
+  async getMeetingHistory(classId: string): Promise<MeetingHistoryItem[]> {
+    const db = this.getDb();
+    const meetings = db.meetings
+      .filter((m) => m.class_id === classId && m.status === "completed")
+      .sort((a, b) => b.meeting_number - a.meeting_number);
+
+    return meetings.map((m) => {
+      const states = db.student_meeting_states.filter((sms) => sms.meeting_id === m.id);
+      const points = db.point_events.filter((pe) => pe.meeting_id === m.id);
+      const lives = db.life_events.filter((le) => le.meeting_id === m.id);
+
+      const points_awarded = points.filter(p => p.points_delta > 0).reduce((acc, p) => acc + p.points_delta, 0);
+      const points_deducted = Math.abs(points.filter(p => p.points_delta < 0).reduce((acc, p) => acc + p.points_delta, 0));
+      const net_points = points.reduce((acc, p) => acc + p.points_delta, 0);
+      const lives_lost = Math.abs(lives.filter(l => l.lives_delta < 0).reduce((acc, l) => acc + l.lives_delta, 0));
+      const lives_restored = lives.filter(l => l.lives_delta > 0).reduce((acc, l) => acc + l.lives_delta, 0);
+
+      return {
+        id: m.id,
+        meeting_number: m.meeting_number,
+        status: m.status,
+        started_at: m.started_at,
+        ended_at: m.ended_at,
+        participant_count: states.length,
+        points_awarded,
+        points_deducted,
+        net_points,
+        lives_lost,
+        lives_restored
+      };
+    });
+  }
+
+  async getMeetingReport(
+    classId: string,
+    meetingId: string,
+  ): Promise<MeetingReport | null> {
+    const db = this.getDb();
+    const meeting = db.meetings.find(m => m.id === meetingId && m.class_id === classId);
+    if (!meeting) return null;
+    const cls = db.classes.find(c => c.id === classId);
+
+    const states = db.student_meeting_states.filter((sms) => sms.meeting_id === meeting.id);
+    const points = db.point_events.filter((pe) => pe.meeting_id === meeting.id);
+    const lives = db.life_events.filter((le) => le.meeting_id === meeting.id);
+
+    const points_awarded = points.filter(p => p.points_delta > 0).reduce((acc, p) => acc + p.points_delta, 0);
+    const points_deducted = Math.abs(points.filter(p => p.points_delta < 0).reduce((acc, p) => acc + p.points_delta, 0));
+    const net_points = points.reduce((acc, p) => acc + p.points_delta, 0);
+    const lives_lost = Math.abs(lives.filter(l => l.lives_delta < 0).reduce((acc, l) => acc + l.lives_delta, 0));
+    const lives_restored = lives.filter(l => l.lives_delta > 0).reduce((acc, l) => acc + l.lives_delta, 0);
+
+    const students = states.map(sms => {
+      const student = db.students.find(s => s.id === sms.student_id);
+      const sPoints = points.filter(p => p.student_id === sms.student_id);
+      const sLives = lives.filter(l => l.student_id === sms.student_id);
+      
+      const s_points_earned = sPoints.filter(p => p.points_delta > 0).reduce((acc, p) => acc + p.points_delta, 0);
+      const s_points_deducted = Math.abs(sPoints.filter(p => p.points_delta < 0).reduce((acc, p) => acc + p.points_delta, 0));
+      const s_net_points = sPoints.reduce((acc, p) => acc + p.points_delta, 0);
+      const s_lives_lost = Math.abs(sLives.filter(l => l.lives_delta < 0).reduce((acc, l) => acc + l.lives_delta, 0));
+      const s_lives_restored = sLives.filter(l => l.lives_delta > 0).reduce((acc, l) => acc + l.lives_delta, 0);
+
+      return {
+        student_id: sms.student_id,
+        student_name: sms.student_name_snapshot || student?.display_name || 'Unknown',
+        final_rank: sms.final_rank || null,
+        points_before: sms.points_before || 0,
+        points_earned: s_points_earned,
+        points_deducted: s_points_deducted,
+        net_points: s_net_points,
+        points_after: sms.points_after || 0,
+        starting_lives: meeting.max_lives_snapshot,
+        lives_lost: s_lives_lost,
+        lives_restored: s_lives_restored,
+        final_lives: sms.lives_remaining
+      };
+    }).sort((a, b) => {
+      if (a.final_rank !== null && b.final_rank !== null) {
+        return a.final_rank - b.final_rank;
+      }
+      return b.points_after - a.points_after;
+    });
+
+    return {
+      meeting: {
+        id: meeting.id,
+        meeting_number: meeting.meeting_number,
+        class_name_snapshot: meeting.class_name_snapshot || cls?.name || 'Unknown',
+        level_name_snapshot: meeting.level_name_snapshot || cls?.level_name || 'Unknown',
+        started_at: meeting.started_at,
+        ended_at: meeting.ended_at || null,
+        max_lives_snapshot: meeting.max_lives_snapshot,
+        participant_count: states.length,
+        points_awarded,
+        points_deducted,
+        net_points,
+        lives_lost,
+        lives_restored
+      },
+      students
+    };
   }
 
   async restoreDefaultMockData(): Promise<void> {

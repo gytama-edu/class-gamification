@@ -43,6 +43,8 @@ export interface Meeting {
   class_id: string;
   meeting_number: number;
   max_lives_snapshot: number;
+  class_name_snapshot?: string | null;
+  level_name_snapshot?: string | null;
   status: "active" | "completed";
   started_at: string;
   ended_at: string | null;
@@ -54,8 +56,60 @@ export interface StudentMeetingState {
   meeting_id: string;
   student_id: string;
   lives_remaining: number;
+  student_name_snapshot?: string | null;
+  points_before?: number;
+  points_after?: number;
+  final_rank?: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface MeetingHistoryItem {
+  id: string;
+  meeting_number: number;
+  status: "active" | "completed";
+  started_at: string;
+  ended_at: string | null;
+  participant_count: number;
+  points_awarded: number;
+  points_deducted: number;
+  net_points: number;
+  lives_lost: number;
+  lives_restored: number;
+}
+
+export interface MeetingReportStudent {
+  student_id: string;
+  student_name: string;
+  final_rank: number | null;
+  points_before: number;
+  points_earned: number;
+  points_deducted: number;
+  net_points: number;
+  points_after: number;
+  starting_lives: number;
+  lives_lost: number;
+  lives_restored: number;
+  final_lives: number;
+}
+
+export interface MeetingReport {
+  meeting: {
+    id: string;
+    meeting_number: number;
+    class_name_snapshot: string;
+    level_name_snapshot: string;
+    started_at: string;
+    ended_at: string | null;
+    max_lives_snapshot: number;
+    participant_count: number;
+    points_awarded: number;
+    points_deducted: number;
+    net_points: number;
+    lives_lost: number;
+    lives_restored: number;
+  };
+  students: MeetingReportStudent[];
 }
 
 export interface PointEvent {

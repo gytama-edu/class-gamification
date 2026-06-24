@@ -48,6 +48,9 @@ const RootRedirect = () => {
   return <Navigate to="/login" replace />;
 };
 
+import { MeetingHistory } from "./pages/MeetingHistory";
+import { MeetingReport } from "./pages/MeetingReport";
+
 export default function App() {
   return (
     <AuthProvider>
@@ -84,6 +87,14 @@ export default function App() {
               <Route
                 path="/teacher/classes/:classId/students"
                 element={<StudentManagement />}
+              />
+              <Route
+                path="/teacher/classes/:classId/history"
+                element={<MeetingHistory />}
+              />
+              <Route
+                path="/teacher/classes/:classId/history/:meetingId"
+                element={<MeetingReport />}
               />
               <Route
                 path="/teacher/classes/:classId/settings"

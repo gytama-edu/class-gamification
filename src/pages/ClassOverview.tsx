@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Play,
@@ -8,17 +8,27 @@ import {
   ExternalLink,
   Activity,
   ArrowRight,
+  Clock,
+  Calendar,
 } from "lucide-react";
 import { useAppContext } from "../store";
 import { getRepository } from "../lib/data/repository";
 import { NewMeetingDialog } from "../components/NewMeetingDialog";
+import { MeetingHistoryItem } from "../lib/types/database";
 
 export const ClassOverview: React.FC = () => {
   const { classId } = useParams<{ classId: string }>();
   const { dashboardData, isLoadingDashboard, error, startNewMeeting, refreshDashboard } =
     useAppContext();
   const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
+  const [history, setHistory] = useState<MeetingHistoryItem[]>([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (classId && !isLoadingDashboard) {
+      getRepository().getMeetingHistory(classId).then(setHistory).catch(console.error);
+    }
+  }, [classId, isLoadingDashboard]);
 
   if (isLoadingDashboard || !dashboardData) {
     return (
@@ -187,14 +197,65 @@ export const ClassOverview: React.FC = () => {
           <div className="bg-cosmic-panel p-6 rounded-2xl border border-slate-800">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-display text-lg font-bold text-white">Meeting History</h2>
-              <span className="text-sm text-slate-500">Coming soon</span>
+              {history.length > 0 && (
+                <span className="px-3 py-1 bg-slate-800/50 text-slate-300 rounded-full text-xs font-bold">
+                  {history.length} Completed
+                </span>
+              )}
             </div>
-            <div className="bg-slate-900/50 rounded-xl p-6 text-center border border-slate-800 border-dashed">
-              <Activity className="mx-auto text-slate-600 mb-2" size={32} />
-              <p className="text-slate-400 font-medium">
-                Detailed meeting history will be available soon.
-              </p>
-            </div>
+            
+            {history.length === 0 ? (
+              <div className="bg-slate-900/50 rounded-xl p-6 text-center border border-slate-800 border-dashed">
+                <Activity className="mx-auto text-slate-600 mb-2" size={32} />
+                <p className="text-slate-400 font-medium mb-1">
+                  No completed meetings yet.
+                </p>
+                <p className="text-sm text-slate-500">
+                  End your first meeting to generate a report.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-white">Meeting {history[0].meeting_number}</span>
+                      <span className="text-xs text-slate-400">Most Recent</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-400">
+                      <div className="flex items-center gap-1">
+                        <Calendar size={12} />
+                        {new Date(history[0].started_at).toLocaleDateString()}
+                      </div>
+                      {history[0].ended_at && (
+                        <div className="flex items-center gap-1">
+                          <Clock size={12} />
+                          {Math.round((new Date(history[0].ended_at).getTime() - new Date(history[0].started_at).getTime()) / 60000)} mins
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <Users size={12} />
+                        {history[0].participant_count} Students
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Net Points</div>
+                    <div className={`font-bold ${history[0].net_points > 0 ? 'text-emerald-400' : history[0].net_points < 0 ? 'text-rose-400' : 'text-slate-300'}`}>
+                      {history[0].net_points > 0 ? '+' : ''}{history[0].net_points}
+                    </div>
+                  </div>
+                </div>
+                
+                <Link
+                  to={`/teacher/classes/${classId}/history`}
+                  className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  View Meeting History
+                  <ArrowRight size={16} />
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 

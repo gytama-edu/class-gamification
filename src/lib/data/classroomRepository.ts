@@ -12,6 +12,7 @@ export interface ClassroomRepository {
   getStudents(classId: string): Promise<DbStudent[]>;
   addStudent(classId: string, input: { display_name: string }): Promise<DbStudent>;
   updateStudent(studentId: string, input: { display_name?: string; is_active?: boolean }): Promise<void>;
+  deleteStudent(studentId: string): Promise<void>;
   updateStudentAccess(studentId: string, enabled: boolean): Promise<void>;
   generateStudentPin(studentId: string): Promise<string>;
   resetStudentDevice(studentId: string): Promise<void>;

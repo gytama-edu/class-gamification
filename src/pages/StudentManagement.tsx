@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Users, Plus, Edit2, Ban, CheckCircle, RotateCcw } from "lucide-react";
+import { Users, Plus, Edit2, Ban, CheckCircle, RotateCcw, Trash2 } from "lucide-react";
 import { useAppContext } from "../store";
 import { getRepository } from "../lib/data/repository";
 import { DbStudent } from "../lib/types/database";
@@ -15,6 +15,7 @@ export const StudentManagement: React.FC = () => {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [allStudents, setAllStudents] = useState<DbStudent[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
+  const [studentToDelete, setStudentToDelete] = useState<DbStudent | null>(null);
 
   useEffect(() => {
     const loadAllStudents = async () => {
@@ -162,6 +163,26 @@ export const StudentManagement: React.FC = () => {
       alert("Failed to reset device access");
     } finally {
       setProcessingId(null);
+    }
+  };
+
+  const executeDeleteStudent = async () => {
+    if (!studentToDelete) return;
+    const studentId = studentToDelete.id;
+    setProcessingId(studentId);
+    try {
+      const repo = getRepository();
+      await repo.deleteStudent(studentId);
+      setAllStudents((prev) => prev.filter((s) => s.id !== studentId));
+      await refreshDashboard();
+      // Optional: show a toast, but for now we'll just alert or simply close.
+      // alert("Student removed from the class.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete student");
+    } finally {
+      setProcessingId(null);
+      setStudentToDelete(null);
     }
   };
 
@@ -395,7 +416,7 @@ export const StudentManagement: React.FC = () => {
                         <button
                           onClick={() => handleToggleActive(student.id, true)}
                           disabled={processingId === student.id}
-                          className="p-1.5 text-slate-400 hover:text-rose-400 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 transition-colors rounded"
+                          className="p-1.5 text-slate-400 hover:text-amber-400 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 transition-colors rounded"
                           title="Deactivate Student"
                         >
                           <Ban size={14} />
@@ -410,6 +431,14 @@ export const StudentManagement: React.FC = () => {
                           <RotateCcw size={14} />
                         </button>
                       )}
+                      <button
+                        onClick={() => setStudentToDelete(student)}
+                        disabled={processingId === student.id}
+                        className="p-1.5 text-slate-400 hover:text-rose-400 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 transition-colors rounded"
+                        title="Delete Student"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -428,6 +457,34 @@ export const StudentManagement: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {studentToDelete && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-cosmic-panel border border-slate-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <h2 className="text-xl font-bold text-white mb-4">Delete Student?</h2>
+            <p className="text-slate-300 mb-6">
+              This will remove <span className="font-bold text-white">{studentToDelete.display_name}</span> from the active class roster and revoke their student access. Historical meeting records will be preserved.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setStudentToDelete(null)}
+                disabled={processingId === studentToDelete.id}
+                className="px-5 py-2.5 bg-slate-800 text-slate-300 font-bold rounded-xl hover:bg-slate-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeDeleteStudent}
+                disabled={processingId === studentToDelete.id}
+                className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(244,63,94,0.3)] transition-colors"
+              >
+                {processingId === studentToDelete.id ? "Deleting..." : "Delete Student"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

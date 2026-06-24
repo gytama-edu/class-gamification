@@ -361,7 +361,7 @@ export class MockClassroomRepository implements ClassroomRepository {
     const activeMeeting =
       latestMeeting?.status === "active" ? latestMeeting : null;
     const classStudents = db.students.filter(
-      (s) => s.class_id === classId && s.is_active,
+      (s) => s.class_id === classId && s.is_active && !s.deleted_at,
     );
 
     const studentsWithState: StudentWithCurrentState[] = classStudents.map(
@@ -460,7 +460,7 @@ export class MockClassroomRepository implements ClassroomRepository {
 
   async getStudents(classId: string): Promise<DbStudent[]> {
     return this.getDb()
-      .students.filter((s) => s.class_id === classId)
+      .students.filter((s) => s.class_id === classId && !s.deleted_at)
       .map((s) => ({
         ...s,
         has_pin: !!s.access_pin_hash,
@@ -519,6 +519,22 @@ export class MockClassroomRepository implements ClassroomRepository {
         ...input,
         updated_at: new Date().toISOString(),
       };
+      this.saveDb(db);
+      notifyMockUpdate(db.students[idx].class_id);
+    }
+  }
+
+  async deleteStudent(studentId: string): Promise<void> {
+    const db = this.getDb();
+    const idx = db.students.findIndex((s) => s.id === studentId);
+    if (idx !== -1) {
+      db.students[idx] = {
+        ...db.students[idx],
+        deleted_at: new Date().toISOString(),
+        is_active: false,
+        access_enabled: false,
+        student_auth_user_id: null,
+      } as any;
       this.saveDb(db);
       notifyMockUpdate(db.students[idx].class_id);
     }
@@ -619,7 +635,7 @@ export class MockClassroomRepository implements ClassroomRepository {
   } | null> {
     const db = this.getDb();
     const student = db.students.find((s) => s.id === studentId);
-    if (!student || !student.access_enabled) return null;
+    if (!student || !student.access_enabled || student.deleted_at) return null;
 
     const classroom = db.classes.find((c) => c.id === student.class_id);
     if (!classroom) return null;

@@ -34,6 +34,8 @@ export interface DbStudent {
   updated_at: string;
   has_pin?: boolean;
   pin_generated_at?: string | null;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
 }
 
 export interface Meeting {

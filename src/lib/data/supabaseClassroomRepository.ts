@@ -57,6 +57,7 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
         )
         .eq("class_id", classId)
         .eq("is_active", true)
+        .is("deleted_at", null)
         .eq("student_meeting_states.meeting_id", latestMeeting.id);
 
       if (studentsError) throw studentsError;
@@ -71,7 +72,8 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
         .from("students")
         .select("*")
         .eq("class_id", classId)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .is("deleted_at", null);
 
       if (studentsError) throw studentsError;
 
@@ -158,9 +160,10 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     const { data, error } = await supabase
       .from("students")
       .select(
-        "id, class_id, display_name, avatar_key, total_points, is_active, student_auth_user_id, access_enabled, access_activated_at, created_at, updated_at, pin_generated_at",
+        "id, class_id, display_name, avatar_key, total_points, is_active, student_auth_user_id, access_enabled, access_activated_at, created_at, updated_at, pin_generated_at, deleted_at",
       )
       .eq("class_id", classId)
+      .is("deleted_at", null)
       .order("created_at");
     if (error) throw error;
     return (data || []).map((s: any) => ({
@@ -198,6 +201,14 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       p_student_id: studentId,
       p_display_name: input.display_name || null,
       p_is_active: input.is_active !== undefined ? input.is_active : null,
+    });
+    if (error) throw error;
+  }
+
+  async deleteStudent(studentId: string): Promise<void> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { error } = await supabase.rpc("delete_student", {
+      p_student_id: studentId,
     });
     if (error) throw error;
   }

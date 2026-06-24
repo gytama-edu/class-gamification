@@ -51,10 +51,15 @@ const RootRedirect = () => {
 import { MeetingHistory } from "./pages/MeetingHistory";
 import { MeetingReport } from "./pages/MeetingReport";
 
+const configuredBase = import.meta.env.BASE_URL;
+const routerBasename = window.location.pathname.startsWith(configuredBase)
+  ? configuredBase
+  : "/";
+
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <BrowserRouter basename={routerBasename}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

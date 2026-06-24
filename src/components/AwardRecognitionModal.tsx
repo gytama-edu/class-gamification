@@ -108,7 +108,7 @@ export const AwardRecognitionModal: React.FC<AwardRecognitionModalProps> = ({
               Select Icon
             </label>
             <div className="grid grid-cols-6 gap-2">
-              {AvailableIcons.map(({ id, icon: Icon }) => (
+              {AvailableIcons.map(({ id, icon: Icon, label }) => (
                 <button
                   key={id}
                   type="button"

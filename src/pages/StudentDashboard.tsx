@@ -1,8 +1,32 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Star, LogOut, Loader2, Trophy, Award, Zap, Activity, Users, Shield, ShieldCheck, Flag, CalendarCheck, TrendingUp, Medal, Rocket, Radio, Crown } from "lucide-react";
+import {
+  Heart,
+  Star,
+  LogOut,
+  Loader2,
+  Trophy,
+  Award,
+  Zap,
+  Activity,
+  Users,
+  Shield,
+  ShieldCheck,
+  Flag,
+  CalendarCheck,
+  TrendingUp,
+  Medal,
+  Rocket,
+  Radio,
+  Crown,
+} from "lucide-react";
 import { getRepository } from "../lib/data/repository";
-import { DbStudent, Classroom, Meeting, StudentAchievement } from "../lib/types/database";
+import {
+  DbStudent,
+  Classroom,
+  Meeting,
+  StudentAchievement,
+} from "../lib/types/database";
 import { useClassroomRealtime } from "../lib/realtime/useClassroomRealtime";
 
 import { useAuth } from "../lib/auth/AuthContext";
@@ -16,15 +40,15 @@ const IconMap: Record<string, React.FC<any>> = {
   crown: Crown,
   flag: Flag,
   users: Users,
-  'calendar-check': CalendarCheck,
+  "calendar-check": CalendarCheck,
   shield: Shield,
-  'trending-up': TrendingUp,
+  "trending-up": TrendingUp,
   trophy: Trophy,
   medal: Medal,
-  'shield-check': ShieldCheck,
+  "shield-check": ShieldCheck,
   heart: Heart,
   rocket: Rocket,
-  activity: Activity
+  activity: Activity,
 };
 
 export const StudentDashboard: React.FC = () => {
@@ -43,7 +67,7 @@ export const StudentDashboard: React.FC = () => {
 
   const studentId = localStorage.getItem("gytama_student_id");
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!studentId) {
       navigate("/join");
       return;
@@ -55,10 +79,9 @@ export const StudentDashboard: React.FC = () => {
         throw new Error("Could not load student dashboard.");
       }
       setData(dashboardData);
-      
+
       const achs = await repo.getStudentAchievements(studentId);
       setAchievements(achs);
-      
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to load data");
@@ -74,15 +97,17 @@ export const StudentDashboard: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [studentId, navigate]);
 
   useEffect(() => {
     loadData();
-  }, [studentId]);
+  }, [loadData]);
 
-  useClassroomRealtime(data?.classroom.id || null, () => {
-    loadData();
-  });
+  useClassroomRealtime(
+    data?.classroom.id || null,
+    data?.activeMeeting?.id || null,
+    loadData,
+  );
 
   const handleLeave = async () => {
     localStorage.removeItem("gytama_student_id");
@@ -103,7 +128,9 @@ export const StudentDashboard: React.FC = () => {
   if (error || !data) {
     return (
       <div className="min-h-screen bg-mission-bg text-white flex flex-col items-center justify-center p-4">
-        <p className="text-mission-danger mb-4">{error || "Failed to load data"}</p>
+        <p className="text-mission-danger mb-4">
+          {error || "Failed to load data"}
+        </p>
         <button
           onClick={handleLeave}
           className="px-6 py-2 bg-mission-panel border border-mission-border rounded-lg hover:bg-mission-bg"
@@ -187,7 +214,10 @@ export const StudentDashboard: React.FC = () => {
           {/* Points */}
           <div className="bg-mission-panel border border-mission-border p-6 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-radar-green" />
-            <Star size={32} className="mb-2 text-radar-green fill-radar-green" />
+            <Star
+              size={32}
+              className="mb-2 text-radar-green fill-radar-green"
+            />
             <span className="text-xs text-mission-muted-text uppercase tracking-wider font-bold mb-1">
               Points
             </span>
@@ -204,7 +234,9 @@ export const StudentDashboard: React.FC = () => {
               <Trophy size={24} className="text-radar-green" />
             </div>
             <div>
-              <h3 className="text-mission-secondary-text text-sm font-medium">Class Rank</h3>
+              <h3 className="text-mission-secondary-text text-sm font-medium">
+                Class Rank
+              </h3>
               <p className="text-2xl font-bold text-white">#{rank}</p>
             </div>
           </div>
@@ -217,7 +249,9 @@ export const StudentDashboard: React.FC = () => {
         <div className="bg-mission-panel border border-mission-border rounded-2xl overflow-hidden">
           <div className="p-4 border-b border-mission-border bg-mission-background/50 flex items-center gap-3">
             <Award className="text-radar-green" />
-            <h2 className="text-lg font-bold text-white tracking-wide">Achievements</h2>
+            <h2 className="text-lg font-bold text-white tracking-wide">
+              Achievements
+            </h2>
             <span className="ml-auto bg-radar-green/10 text-radar-green text-xs font-bold px-2 py-1 rounded">
               {achievements.length} UNLOCKED
             </span>
@@ -226,29 +260,46 @@ export const StudentDashboard: React.FC = () => {
             {achievements.length === 0 ? (
               <div className="text-center py-8">
                 <Award className="mx-auto text-mission-border mb-3" size={32} />
-                <p className="text-mission-muted-text">No achievements unlocked yet.</p>
-                <p className="text-xs text-mission-muted-text mt-1">Keep participating to earn your first badge!</p>
+                <p className="text-mission-muted-text">
+                  No achievements unlocked yet.
+                </p>
+                <p className="text-xs text-mission-muted-text mt-1">
+                  Keep participating to earn your first badge!
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {achievements.map((ach) => {
                   const Icon = IconMap[ach.icon_key_snapshot] || Award;
                   const tierColor =
-                    ach.tier_snapshot === 'Platinum' ? 'text-blue-400 bg-blue-400/10 border-blue-400/20' :
-                    ach.tier_snapshot === 'Gold' ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' :
-                    ach.tier_snapshot === 'Silver' ? 'text-gray-300 bg-gray-300/10 border-gray-300/20' :
-                    ach.tier_snapshot === 'Special' ? 'text-purple-400 bg-purple-400/10 border-purple-400/20' :
-                    'text-amber-600 bg-amber-600/10 border-amber-600/20'; // Bronze
-                    
+                    ach.tier_snapshot === "Platinum"
+                      ? "text-blue-400 bg-blue-400/10 border-blue-400/20"
+                      : ach.tier_snapshot === "Gold"
+                        ? "text-yellow-400 bg-yellow-400/10 border-yellow-400/20"
+                        : ach.tier_snapshot === "Silver"
+                          ? "text-gray-300 bg-gray-300/10 border-gray-300/20"
+                          : ach.tier_snapshot === "Special"
+                            ? "text-purple-400 bg-purple-400/10 border-purple-400/20"
+                            : "text-amber-600 bg-amber-600/10 border-amber-600/20"; // Bronze
+
                   return (
-                    <div key={ach.id} className="flex gap-3 p-3 rounded-xl bg-mission-background border border-mission-border">
-                      <div className={`w-12 h-12 rounded-lg flex flex-shrink-0 items-center justify-center border ${tierColor}`}>
+                    <div
+                      key={ach.id}
+                      className="flex gap-3 p-3 rounded-xl bg-mission-background border border-mission-border"
+                    >
+                      <div
+                        className={`w-12 h-12 rounded-lg flex flex-shrink-0 items-center justify-center border ${tierColor}`}
+                      >
                         <Icon size={24} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <h4 className="text-sm font-bold text-white truncate">{ach.achievement_name_snapshot}</h4>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${tierColor}`}>
+                          <h4 className="text-sm font-bold text-white truncate">
+                            {ach.achievement_name_snapshot}
+                          </h4>
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${tierColor}`}
+                          >
                             {ach.tier_snapshot}
                           </span>
                         </div>

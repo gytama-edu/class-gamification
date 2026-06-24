@@ -26,7 +26,11 @@ export const Projector: React.FC = () => {
     }
   }, [classId]);
 
-  const { status } = useClassroomRealtime(classId || null, loadData);
+  const { status } = useClassroomRealtime(
+    classId || null,
+    data?.activeMeeting?.id || null,
+    loadData,
+  );
 
   useEffect(() => {
     loadData();
@@ -50,7 +54,9 @@ export const Projector: React.FC = () => {
           <h2 className="text-4xl font-bold text-mission-danger mb-4">
             System Error
           </h2>
-          <p className="text-xl text-mission-primary-text">{error || "Class not found"}</p>
+          <p className="text-xl text-mission-primary-text">
+            {error || "Class not found"}
+          </p>
         </div>
       </div>
     );
@@ -99,11 +105,12 @@ export const Projector: React.FC = () => {
           {data.activeMeeting ? (
             <>
               <p className="text-mission-primary-text font-medium text-lg flex items-center gap-2">
-                <Star className="text-radar-green" size={24} /> Points stay saved.
+                <Star className="text-radar-green" size={24} /> Points stay
+                saved.
               </p>
               <p className="text-mission-primary-text font-medium text-lg flex items-center gap-2 mt-2">
-                <Heart className="text-mission-danger" size={24} /> Lives reset every
-                meeting.
+                <Heart className="text-mission-danger" size={24} /> Lives reset
+                every meeting.
               </p>
             </>
           ) : (
@@ -113,8 +120,8 @@ export const Projector: React.FC = () => {
                 saved.
               </p>
               <p className="text-mission-primary-text font-medium text-lg flex items-center gap-2 mt-2">
-                <Heart className="text-mission-muted-text" size={24} /> The next meeting
-                will begin with refreshed lives.
+                <Heart className="text-mission-muted-text" size={24} /> The next
+                meeting will begin with refreshed lives.
               </p>
             </>
           )}

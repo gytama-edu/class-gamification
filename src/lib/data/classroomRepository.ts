@@ -28,11 +28,11 @@ export interface ClassroomRepository {
   getStudentProfile(studentId: string): Promise<StudentWithCurrentState | null>;
   getLeaderboard(classId: string): Promise<LeaderboardEntry[]>;
 
-  addPoints(classId: string, studentId: string, points: number, reason?: string): Promise<void>;
-  removePoints(classId: string, studentId: string, points: number, reason?: string): Promise<void>;
-  removeLife(classId: string, studentId: string, reason?: string): Promise<void>;
-  restoreLife(classId: string, studentId: string, reason?: string): Promise<void>;
-  resetStudentLives(classId: string, studentId: string): Promise<void>;
+  addPoints(classId: string, studentId: string, points: number, reason?: string): Promise<number>;
+  removePoints(classId: string, studentId: string, points: number, reason?: string): Promise<number>;
+  removeLife(classId: string, studentId: string, reason?: string): Promise<number>;
+  restoreLife(classId: string, studentId: string, reason?: string): Promise<number>;
+  resetStudentLives(classId: string, studentId: string): Promise<number>;
   startNewMeeting(classId: string): Promise<void>;
   endMeeting(classId: string): Promise<void>;
   

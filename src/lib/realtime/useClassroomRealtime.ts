@@ -1,15 +1,21 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "../supabase/client";
 
 export type RealtimeStatus = "Live" | "Connecting" | "Reconnecting" | "Offline";
 
 export function useClassroomRealtime(
   classId: string | null,
+  activeMeetingId: string | null,
   onUpdate: () => void,
 ) {
   const [status, setStatus] = useState<RealtimeStatus>("Connecting");
 
   const isMock = import.meta.env.VITE_DATA_SOURCE !== "supabase";
+
+  const activeMeetingIdRef = useRef(activeMeetingId);
+  useEffect(() => {
+    activeMeetingIdRef.current = activeMeetingId;
+  }, [activeMeetingId]);
 
   useEffect(() => {
     if (!classId) {
@@ -20,8 +26,19 @@ export function useClassroomRealtime(
     let isMounted = true;
     let timeoutId: any;
 
-    const debouncedUpdate = () => {
+    const debouncedUpdate = (payload?: any) => {
       if (!isMounted) return;
+      if (payload && payload.table === "student_meeting_states") {
+        const row = payload.new || payload.old;
+        if (
+          row &&
+          row.meeting_id &&
+          activeMeetingIdRef.current &&
+          row.meeting_id !== activeMeetingIdRef.current
+        ) {
+          return; // Ignore events for other meetings
+        }
+      }
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         if (isMounted) onUpdate();

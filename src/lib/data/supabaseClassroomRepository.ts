@@ -50,37 +50,36 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       latestMeeting?.status === "active" ? latestMeeting : null;
 
     let studentsWithStates: StudentWithCurrentState[] = [];
-    if (latestMeeting) {
-      const { data: studentsData, error: studentsError } = await supabase
-        .from("students")
-        .select(
-          `
-          *,
-          student_meeting_states ( lives_remaining )
-        `,
-        )
-        .eq("class_id", classId)
-        .eq("is_active", true)
-        .is("deleted_at", null)
-        .eq("student_meeting_states.meeting_id", latestMeeting.id);
 
-      if (studentsError) throw studentsError;
+    const { data: studentsData, error: studentsError } = await supabase
+      .from("students")
+      .select("*")
+      .eq("class_id", classId)
+      .eq("is_active", true)
+      .is("deleted_at", null);
+
+    if (studentsError) throw studentsError;
+
+    if (activeMeeting) {
+      const { data: statesData, error: statesError } = await supabase
+        .from("student_meeting_states")
+        .select("student_id, lives_remaining")
+        .eq("meeting_id", activeMeeting.id);
+      
+      if (statesError) throw statesError;
+
+      const stateMap = new Map();
+      statesData.forEach(state => {
+        stateMap.set(state.student_id, state.lives_remaining);
+      });
 
       studentsWithStates = studentsData.map((s: any) => ({
         ...s,
-        lives_remaining:
-          s.student_meeting_states?.[0]?.lives_remaining ?? classroom.max_lives,
+        // If a state is missing during an active meeting, it's a data integrity issue.
+        // It will be safely repaired on next mutation. Display the snapshot value.
+        lives_remaining: stateMap.has(s.id) ? stateMap.get(s.id) : (activeMeeting.max_lives_snapshot ?? classroom.max_lives),
       }));
     } else {
-      const { data: studentsData, error: studentsError } = await supabase
-        .from("students")
-        .select("*")
-        .eq("class_id", classId)
-        .eq("is_active", true)
-        .is("deleted_at", null);
-
-      if (studentsError) throw studentsError;
-
       studentsWithStates = studentsData.map((s: any) => ({
         ...s,
         lives_remaining: classroom.max_lives,
@@ -363,15 +362,16 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     studentId: string,
     points: number,
     reason?: string,
-  ): Promise<void> {
+  ): Promise<number> {
     if (!supabase) throw new Error("Supabase not initialized");
-    const { error } = await supabase.rpc("award_points", {
+    const { data, error } = await supabase.rpc("award_points", {
       p_class_id: classId,
       p_student_id: studentId,
       p_points: points,
       p_reason: reason || null,
     });
     if (error) throw error;
+    return data;
   }
 
   async removePoints(
@@ -379,52 +379,56 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     studentId: string,
     points: number,
     reason?: string,
-  ): Promise<void> {
+  ): Promise<number> {
     if (!supabase) throw new Error("Supabase not initialized");
-    const { error } = await supabase.rpc("remove_points", {
+    const { data, error } = await supabase.rpc("remove_points", {
       p_class_id: classId,
       p_student_id: studentId,
       p_points: points,
       p_reason: reason || null,
     });
     if (error) throw error;
+    return data;
   }
 
   async removeLife(
     classId: string,
     studentId: string,
     reason?: string,
-  ): Promise<void> {
+  ): Promise<number> {
     if (!supabase) throw new Error("Supabase not initialized");
-    const { error } = await supabase.rpc("remove_life", {
+    const { data, error } = await supabase.rpc("remove_life", {
       p_class_id: classId,
       p_student_id: studentId,
       p_reason: reason || null,
     });
     if (error) throw error;
+    return data;
   }
 
   async restoreLife(
     classId: string,
     studentId: string,
     reason?: string,
-  ): Promise<void> {
+  ): Promise<number> {
     if (!supabase) throw new Error("Supabase not initialized");
-    const { error } = await supabase.rpc("restore_life", {
+    const { data, error } = await supabase.rpc("restore_life", {
       p_class_id: classId,
       p_student_id: studentId,
       p_reason: reason || null,
     });
     if (error) throw error;
+    return data;
   }
 
-  async resetStudentLives(classId: string, studentId: string): Promise<void> {
+  async resetStudentLives(classId: string, studentId: string): Promise<number> {
     if (!supabase) throw new Error("Supabase not initialized");
-    const { error } = await supabase.rpc("reset_student_lives", {
+    const { data, error } = await supabase.rpc("reset_student_lives", {
       p_class_id: classId,
       p_student_id: studentId,
     });
     if (error) throw error;
+    return data;
   }
 
   async startNewMeeting(classId: string): Promise<void> {

@@ -760,7 +760,7 @@ export class MockClassroomRepository implements ClassroomRepository {
     studentId: string,
     points: number,
     reason?: string,
-  ): Promise<void> {
+  ): Promise<number> {
     const db = this.getDb();
     const student = db.students.find(
       (s) => s.id === studentId && s.class_id === classId,
@@ -769,7 +769,9 @@ export class MockClassroomRepository implements ClassroomRepository {
       student.total_points += points;
       this.saveDb(db);
       notifyMockUpdate(classId);
+      return student.total_points;
     }
+    return 0;
   }
 
   async removePoints(
@@ -777,7 +779,7 @@ export class MockClassroomRepository implements ClassroomRepository {
     studentId: string,
     points: number,
     reason?: string,
-  ): Promise<void> {
+  ): Promise<number> {
     const db = this.getDb();
     const student = db.students.find(
       (s) => s.id === studentId && s.class_id === classId,
@@ -786,14 +788,16 @@ export class MockClassroomRepository implements ClassroomRepository {
       student.total_points = Math.max(0, student.total_points - points);
       this.saveDb(db);
       notifyMockUpdate(classId);
+      return student.total_points;
     }
+    return 0;
   }
 
   async removeLife(
     classId: string,
     studentId: string,
     reason?: string,
-  ): Promise<void> {
+  ): Promise<number> {
     const db = this.getDb();
     const meeting = db.meetings.find(
       (m) => m.class_id === classId && m.status === "active",
@@ -802,19 +806,23 @@ export class MockClassroomRepository implements ClassroomRepository {
       const state = db.student_meeting_states.find(
         (st) => st.meeting_id === meeting.id && st.student_id === studentId,
       );
-      if (state && state.lives_remaining > 0) {
-        state.lives_remaining -= 1;
-        this.saveDb(db);
-        notifyMockUpdate(classId);
+      if (state) {
+        if (state.lives_remaining > 0) {
+          state.lives_remaining -= 1;
+          this.saveDb(db);
+          notifyMockUpdate(classId);
+        }
+        return state.lives_remaining;
       }
     }
+    return 0;
   }
 
   async restoreLife(
     classId: string,
     studentId: string,
     reason?: string,
-  ): Promise<void> {
+  ): Promise<number> {
     const db = this.getDb();
     const meeting = db.meetings.find(
       (m) => m.class_id === classId && m.status === "active",
@@ -823,15 +831,19 @@ export class MockClassroomRepository implements ClassroomRepository {
       const state = db.student_meeting_states.find(
         (st) => st.meeting_id === meeting.id && st.student_id === studentId,
       );
-      if (state && state.lives_remaining < meeting.max_lives_snapshot) {
-        state.lives_remaining += 1;
-        this.saveDb(db);
-        notifyMockUpdate(classId);
+      if (state) {
+        if (state.lives_remaining < meeting.max_lives_snapshot) {
+          state.lives_remaining += 1;
+          this.saveDb(db);
+          notifyMockUpdate(classId);
+        }
+        return state.lives_remaining;
       }
     }
+    return 0;
   }
 
-  async resetStudentLives(classId: string, studentId: string): Promise<void> {
+  async resetStudentLives(classId: string, studentId: string): Promise<number> {
     const db = this.getDb();
     const meeting = db.meetings.find(
       (m) => m.class_id === classId && m.status === "active",
@@ -844,8 +856,10 @@ export class MockClassroomRepository implements ClassroomRepository {
         state.lives_remaining = meeting.max_lives_snapshot;
         this.saveDb(db);
         notifyMockUpdate(classId);
+        return state.lives_remaining;
       }
     }
+    return 0;
   }
 
   async startNewMeeting(classId: string): Promise<void> {

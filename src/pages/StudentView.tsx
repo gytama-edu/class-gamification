@@ -1,8 +1,31 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Heart, Trophy, ArrowLeft, Star, HeartOff, Award, Zap, Activity, Users, Shield, ShieldCheck, Flag, CalendarCheck, TrendingUp, Medal, Rocket, Radio, Crown } from "lucide-react";
+import {
+  Heart,
+  Trophy,
+  ArrowLeft,
+  Star,
+  HeartOff,
+  Award,
+  Zap,
+  Activity,
+  Users,
+  Shield,
+  ShieldCheck,
+  Flag,
+  CalendarCheck,
+  TrendingUp,
+  Medal,
+  Rocket,
+  Radio,
+  Crown,
+} from "lucide-react";
 import { getRepository } from "../lib/data/repository";
-import { StudentWithCurrentState, Classroom, StudentAchievement } from "../lib/types/database";
+import {
+  StudentWithCurrentState,
+  Classroom,
+  StudentAchievement,
+} from "../lib/types/database";
 import { useClassroomRealtime } from "../lib/realtime/useClassroomRealtime";
 import { ConnectionStatus } from "../components/ConnectionStatus";
 import { AwardRecognitionModal } from "../components/AwardRecognitionModal";
@@ -15,15 +38,15 @@ const IconMap: Record<string, React.FC<any>> = {
   crown: Crown,
   flag: Flag,
   users: Users,
-  'calendar-check': CalendarCheck,
+  "calendar-check": CalendarCheck,
   shield: Shield,
-  'trending-up': TrendingUp,
+  "trending-up": TrendingUp,
   trophy: Trophy,
   medal: Medal,
-  'shield-check': ShieldCheck,
+  "shield-check": ShieldCheck,
   heart: Heart,
   rocket: Rocket,
-  activity: Activity
+  activity: Activity,
 };
 
 export const StudentView: React.FC = () => {
@@ -51,7 +74,7 @@ export const StudentView: React.FC = () => {
         const leaderboard = await repo.getLeaderboard(profile.class_id);
         const idx = leaderboard.findIndex((l) => l.id === studentId);
         setRank(idx + 1);
-        
+
         const achs = await repo.getStudentAchievements(studentId);
         setAchievements(achs);
       }
@@ -64,6 +87,7 @@ export const StudentView: React.FC = () => {
 
   const { status } = useClassroomRealtime(
     student?.class_id || null,
+    activeMeeting?.id || null,
     loadStudent,
   );
 
@@ -260,39 +284,54 @@ export const StudentView: React.FC = () => {
                 AWARD RECOGNITION
               </button>
             </div>
-            
+
             {achievements.length === 0 ? (
               <div className="bg-mission-bg-secondary border border-mission-border rounded-2xl p-8 text-center">
                 <Award className="mx-auto text-mission-border mb-3" size={32} />
-                <p className="text-mission-muted-text">No achievements unlocked yet.</p>
+                <p className="text-mission-muted-text">
+                  No achievements unlocked yet.
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {achievements.map((ach) => {
                   const Icon = IconMap[ach.icon_key_snapshot] || Award;
                   const tierColor =
-                    ach.tier_snapshot === 'Platinum' ? 'text-blue-400 bg-blue-400/10 border-blue-400/20' :
-                    ach.tier_snapshot === 'Gold' ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' :
-                    ach.tier_snapshot === 'Silver' ? 'text-gray-300 bg-gray-300/10 border-gray-300/20' :
-                    ach.tier_snapshot === 'Special' ? 'text-purple-400 bg-purple-400/10 border-purple-400/20' :
-                    'text-amber-600 bg-amber-600/10 border-amber-600/20'; // Bronze
-                    
+                    ach.tier_snapshot === "Platinum"
+                      ? "text-blue-400 bg-blue-400/10 border-blue-400/20"
+                      : ach.tier_snapshot === "Gold"
+                        ? "text-yellow-400 bg-yellow-400/10 border-yellow-400/20"
+                        : ach.tier_snapshot === "Silver"
+                          ? "text-gray-300 bg-gray-300/10 border-gray-300/20"
+                          : ach.tier_snapshot === "Special"
+                            ? "text-purple-400 bg-purple-400/10 border-purple-400/20"
+                            : "text-amber-600 bg-amber-600/10 border-amber-600/20"; // Bronze
+
                   return (
-                    <div key={ach.id} className="flex gap-3 p-4 rounded-xl bg-mission-bg-secondary border border-mission-border hover:border-radar-green/30 transition-colors">
-                      <div className={`w-12 h-12 rounded-lg flex flex-shrink-0 items-center justify-center border ${tierColor}`}>
+                    <div
+                      key={ach.id}
+                      className="flex gap-3 p-4 rounded-xl bg-mission-bg-secondary border border-mission-border hover:border-radar-green/30 transition-colors"
+                    >
+                      <div
+                        className={`w-12 h-12 rounded-lg flex flex-shrink-0 items-center justify-center border ${tierColor}`}
+                      >
                         <Icon size={24} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <h4 className="text-sm font-bold text-white truncate">{ach.achievement_name_snapshot}</h4>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${tierColor}`}>
+                          <h4 className="text-sm font-bold text-white truncate">
+                            {ach.achievement_name_snapshot}
+                          </h4>
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${tierColor}`}
+                          >
                             {ach.tier_snapshot}
                           </span>
                         </div>
                         <p className="text-xs text-mission-muted-text mt-0.5 line-clamp-2">
                           {ach.achievement_description_snapshot}
                         </p>
-                        {ach.source_type === 'manual' && ach.reason && (
+                        {ach.source_type === "manual" && ach.reason && (
                           <p className="text-xs text-radar-green/80 mt-1.5 italic">
                             "{ach.reason}"
                           </p>

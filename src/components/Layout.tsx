@@ -27,6 +27,9 @@ export const Layout: React.FC = () => {
     isLoadingClasses,
     refreshDashboard,
     refreshClasses,
+    dashboardData,
+    toastMessage,
+    setToastMessage,
   } = useAppContext();
   const { teacherProfile, signOut } = useAuth();
   const navigate = useNavigate();
@@ -37,8 +40,11 @@ export const Layout: React.FC = () => {
     refreshClasses();
   }, [refreshDashboard, refreshClasses]);
 
+  const activeMeetingId = dashboardData?.activeMeeting?.id || null;
+
   const { status } = useClassroomRealtime(
     classId || null,
+    activeMeetingId,
     handleRealtimeUpdate,
   );
 
@@ -99,7 +105,11 @@ export const Layout: React.FC = () => {
       <div className="p-6 flex flex-col gap-4 border-b border-mission-border">
         <div className="flex items-center gap-3">
           <div className="h-10 shrink-0 flex items-center justify-start">
-            <img src={missionControlLogo} alt="Mission Control" className="h-full w-auto max-w-[80px] object-contain rounded" />
+            <img
+              src={missionControlLogo}
+              alt="Mission Control"
+              className="h-full w-auto max-w-[80px] object-contain rounded"
+            />
           </div>
           <div>
             <h1 className="font-display font-bold text-lg leading-tight tracking-tight text-white uppercase">
@@ -193,7 +203,9 @@ export const Layout: React.FC = () => {
               <p className="text-sm font-semibold text-mission-primary-text truncate">
                 {teacherProfile?.full_name || "Teacher"}
               </p>
-              <p className="text-xs text-mission-muted-text truncate">Instructor</p>
+              <p className="text-xs text-mission-muted-text truncate">
+                Instructor
+              </p>
             </div>
           </div>
           <button
@@ -237,7 +249,13 @@ export const Layout: React.FC = () => {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 bg-mission-bg relative overflow-hidden">
         {/* Radar Background Texture */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0V0zm20 20h20v20H20V20zM0 20h20v20H0V20z' fill='%2339FF88' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`, backgroundSize: '20px 20px' }}></div>
+        <div
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0V0zm20 20h20v20H20V20zM0 20h20v20H0V20z' fill='%2339FF88' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+            backgroundSize: "20px 20px",
+          }}
+        ></div>
 
         {/* Mobile Top Bar */}
         <header className="md:hidden flex items-center justify-between p-4 border-b border-mission-border bg-mission-panel/90 backdrop-blur-md relative z-10 shrink-0">
@@ -260,8 +278,20 @@ export const Layout: React.FC = () => {
             <Outlet />
           </div>
         </div>
+
+        {/* Global Toast */}
+        {toastMessage && (
+          <div className="fixed bottom-4 right-4 z-50 bg-mission-danger text-white px-6 py-3 rounded-xl shadow-lg border border-mission-danger/50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5">
+            <div className="flex-1 font-medium">{toastMessage}</div>
+            <button
+              onClick={() => setToastMessage(null)}
+              className="text-white/80 hover:text-white"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        )}
       </main>
     </div>
   );
 };
-

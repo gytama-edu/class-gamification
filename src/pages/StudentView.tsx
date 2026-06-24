@@ -129,7 +129,8 @@ export const StudentView: React.FC = () => {
     );
   }
 
-  const livesPercentage = (student.lives_remaining / classroom.max_lives) * 100;
+  const safeLives = Number.isFinite(Number(student.lives_remaining)) ? Number(student.lives_remaining) : 0;
+  const livesPercentage = (safeLives / classroom.max_lives) * 100;
 
   return (
     <div className="max-w-2xl mx-auto py-8 animate-in fade-in duration-500">
@@ -203,7 +204,7 @@ export const StudentView: React.FC = () => {
                   Current Lives
                 </h3>
                 <span className="text-xl font-bold text-white">
-                  {student.lives_remaining}{" "}
+                  {safeLives}{" "}
                   <span className="text-mission-muted-text text-sm">
                     / {classroom.max_lives}
                   </span>
@@ -226,7 +227,7 @@ export const StudentView: React.FC = () => {
               <div className="flex flex-wrap gap-1 mt-4">
                 {Array.from({ length: classroom.max_lives }).map((_, i) => (
                   <div key={i}>
-                    {i < student.lives_remaining ? (
+                    {i < safeLives ? (
                       <Heart
                         size={20}
                         className="text-mission-danger fill-mission-danger"
@@ -250,7 +251,7 @@ export const StudentView: React.FC = () => {
 
               <div className="flex items-baseline gap-2 mb-6">
                 <span className="text-4xl font-bold text-radar-green font-mono">
-                  {student.total_points.toLocaleString()}
+                  {(Number.isFinite(Number(student.total_points)) ? Number(student.total_points) : 0).toLocaleString()}
                 </span>
                 <span className="text-mission-muted-text font-medium">pts</span>
               </div>

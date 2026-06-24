@@ -204,7 +204,7 @@ export const StudentDashboard: React.FC = () => {
               Lives
             </span>
             <div className="text-4xl font-black text-white">
-              {isMeetingLive ? lives_remaining : classroom.max_lives}
+              {isMeetingLive ? (Number.isFinite(Number(lives_remaining)) ? Number(lives_remaining) : 0) : classroom.max_lives}
               <span className="text-xl text-mission-muted-text">
                 /{classroom.max_lives}
               </span>
@@ -222,7 +222,7 @@ export const StudentDashboard: React.FC = () => {
               Points
             </span>
             <div className="text-4xl font-black text-white">
-              {student.total_points}
+              {(Number.isFinite(Number(student.total_points)) ? Number(student.total_points) : 0).toLocaleString()}
             </div>
           </div>
         </div>

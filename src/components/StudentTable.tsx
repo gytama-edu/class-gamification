@@ -91,7 +91,7 @@ export const StudentTable: React.FC = () => {
                     <div className="flex items-center">
                       <div className="inline-flex items-center gap-[5px]">
                         {Array.from({
-                          length: Math.min(5, student.lives_remaining),
+                          length: Math.max(0, Math.min(5, Number.isFinite(Number(student.lives_remaining)) ? Number(student.lives_remaining) : 0)),
                         }).map((_, i) => (
                           <Heart
                             key={i}
@@ -99,27 +99,27 @@ export const StudentTable: React.FC = () => {
                             className="text-mission-danger fill-mission-danger shrink-0"
                           />
                         ))}
-                        {student.lives_remaining === 0 && (
+                        {(Number.isFinite(Number(student.lives_remaining)) ? Number(student.lives_remaining) : 0) <= 0 && (
                           <HeartOff
                             size={16}
                             className="text-mission-muted-text shrink-0"
                           />
                         )}
                       </div>
-                      {student.lives_remaining > 5 && (
+                      {(Number.isFinite(Number(student.lives_remaining)) ? Number(student.lives_remaining) : 0) > 5 && (
                         <span className="ml-[12px] text-xs font-bold text-mission-danger">
-                          +{student.lives_remaining - 5}
+                          +{(Number.isFinite(Number(student.lives_remaining)) ? Number(student.lives_remaining) : 0) - 5}
                         </span>
                       )}
                     </div>
                     <span className="text-sm font-medium text-mission-secondary-text w-12 text-center whitespace-nowrap">
-                      {student.lives_remaining} /{" "}
+                      {Number.isFinite(Number(student.lives_remaining)) ? Number(student.lives_remaining) : 0} /{" "}
                       {dashboardData.classroom.max_lives}
                     </span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right font-mono font-bold text-radar-green text-lg">
-                  {student.total_points.toLocaleString()}
+                  {(Number.isFinite(Number(student.total_points)) ? Number(student.total_points) : 0).toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center justify-center gap-2 opacity-100 md:opacity-40 group-hover:opacity-100 transition-opacity">
@@ -173,7 +173,7 @@ export const StudentTable: React.FC = () => {
                                 removeLife(classId, student.id),
                               )
                             }
-                            disabled={student.lives_remaining <= 0}
+                            disabled={(Number.isFinite(Number(student.lives_remaining)) ? Number(student.lives_remaining) : 0) <= 0}
                             title="Remove 1 Life"
                             className="p-1.5 text-mission-secondary-text hover:text-mission-danger hover:bg-mission-bg disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
                           >
@@ -186,7 +186,7 @@ export const StudentTable: React.FC = () => {
                               )
                             }
                             disabled={
-                              student.lives_remaining >=
+                              (Number.isFinite(Number(student.lives_remaining)) ? Number(student.lives_remaining) : 0) >=
                               dashboardData.classroom.max_lives
                             }
                             title="Restore 1 Life"
@@ -201,7 +201,7 @@ export const StudentTable: React.FC = () => {
                               )
                             }
                             disabled={
-                              student.lives_remaining ===
+                              (Number.isFinite(Number(student.lives_remaining)) ? Number(student.lives_remaining) : 0) ===
                               dashboardData.classroom.max_lives
                             }
                             title="Reset Lives to Max"

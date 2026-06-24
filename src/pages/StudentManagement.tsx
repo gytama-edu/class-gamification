@@ -339,7 +339,7 @@ export const StudentManagement: React.FC = () => {
                     {student.display_name}
                   </td>
                   <td className="px-6 py-4 font-mono text-radar-green">
-                    {student.total_points.toLocaleString()}
+                    {(Number.isFinite(Number(student.total_points)) ? Number(student.total_points) : 0).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 text-center">
                     {student.is_active ? (

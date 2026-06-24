@@ -204,7 +204,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         points,
         "teacher awarded",
       );
-      updateStudentLocalState(studentId, { total_points: newTotal });
+      if (Number.isFinite(newTotal)) {
+        updateStudentLocalState(studentId, { total_points: newTotal });
+      }
     } catch (err: any) {
       console.error(err);
       setToastMessage(err.message || "Failed to add points.");
@@ -225,7 +227,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         points,
         "teacher deducted",
       );
-      updateStudentLocalState(studentId, { total_points: newTotal });
+      if (Number.isFinite(newTotal)) {
+        updateStudentLocalState(studentId, { total_points: newTotal });
+      }
     } catch (err: any) {
       console.error(err);
       setToastMessage(err.message || "Failed to remove points.");
@@ -241,7 +245,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         studentId,
         "teacher removed",
       );
-      updateStudentLocalState(studentId, { lives_remaining: newLives });
+      if (Number.isFinite(newLives)) {
+        updateStudentLocalState(studentId, { lives_remaining: newLives });
+      }
     } catch (err: any) {
       console.error(err);
       setToastMessage(err.message || "Failed to remove life.");
@@ -257,7 +263,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         studentId,
         "teacher restored",
       );
-      updateStudentLocalState(studentId, { lives_remaining: newLives });
+      if (Number.isFinite(newLives)) {
+        updateStudentLocalState(studentId, { lives_remaining: newLives });
+      }
     } catch (err: any) {
       console.error(err);
       setToastMessage(err.message || "Failed to restore life.");
@@ -269,7 +277,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const resetStudentLives = async (classId: string, studentId: string) => {
     try {
       const newLives = await repo.resetStudentLives(classId, studentId);
-      updateStudentLocalState(studentId, { lives_remaining: newLives });
+      if (Number.isFinite(newLives)) {
+        updateStudentLocalState(studentId, { lives_remaining: newLives });
+      }
     } catch (err: any) {
       console.error(err);
       setToastMessage(err.message || "Failed to reset lives.");

@@ -74,7 +74,7 @@ export const TeacherDashboard: React.FC = () => {
     );
   }
 
-  const totalClassPoints = students.reduce((acc, s) => acc + s.total_points, 0);
+  const totalClassPoints = students.reduce((acc, s) => acc + (Number.isFinite(Number(s.total_points)) ? Number(s.total_points) : 0), 0);
 
   return (
     <div className="space-y-6 pb-20 animate-in fade-in duration-300 relative">

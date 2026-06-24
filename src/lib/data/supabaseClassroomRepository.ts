@@ -357,6 +357,18 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       .sort((a, b) => b.total_points - a.total_points);
   }
 
+  // Helper to parse numeric returns safely
+  private parseMutationNumber(data: any, label: string): number {
+    if (data === null || data === undefined) {
+      throw new Error(`The server did not return the updated ${label}.`);
+    }
+    const num = Number(data);
+    if (!Number.isFinite(num)) {
+      throw new Error(`The server returned an invalid ${label}.`);
+    }
+    return num;
+  }
+
   async addPoints(
     classId: string,
     studentId: string,
@@ -371,7 +383,7 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       p_reason: reason || null,
     });
     if (error) throw error;
-    return data;
+    return this.parseMutationNumber(data, "point total");
   }
 
   async removePoints(
@@ -388,7 +400,7 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       p_reason: reason || null,
     });
     if (error) throw error;
-    return data;
+    return this.parseMutationNumber(data, "point total");
   }
 
   async removeLife(
@@ -403,7 +415,7 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       p_reason: reason || null,
     });
     if (error) throw error;
-    return data;
+    return this.parseMutationNumber(data, "lives remaining");
   }
 
   async restoreLife(
@@ -418,7 +430,7 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       p_reason: reason || null,
     });
     if (error) throw error;
-    return data;
+    return this.parseMutationNumber(data, "lives remaining");
   }
 
   async resetStudentLives(classId: string, studentId: string): Promise<number> {
@@ -428,7 +440,7 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       p_student_id: studentId,
     });
     if (error) throw error;
-    return data;
+    return this.parseMutationNumber(data, "lives remaining");
   }
 
   async startNewMeeting(classId: string): Promise<void> {

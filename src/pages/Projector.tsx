@@ -62,9 +62,11 @@ export const Projector: React.FC = () => {
     );
   }
 
+  const getSafePoints = (points: any) => Number.isFinite(Number(points)) ? Number(points) : 0;
+
   // Sort students by points descending
   const sortedStudents = [...data.students].sort(
-    (a, b) => b.total_points - a.total_points,
+    (a, b) => getSafePoints(b.total_points) - getSafePoints(a.total_points),
   );
   const topThree = sortedStudents.slice(0, 3);
   const rest = sortedStudents.slice(3);
@@ -148,7 +150,7 @@ export const Projector: React.FC = () => {
                     {topThree[1].display_name}
                   </h3>
                   <p className="text-2xl font-mono font-bold text-radar-green mt-2">
-                    {topThree[1].total_points}
+                    {getSafePoints(topThree[1].total_points).toLocaleString()}
                   </p>
                 </div>
                 <div className="w-full h-[200px] bg-gradient-to-t from-mission-muted-text/20 to-mission-muted-text/5 rounded-t-lg border-x border-t border-mission-muted-text/30"></div>
@@ -166,7 +168,7 @@ export const Projector: React.FC = () => {
                     {topThree[0].display_name}
                   </h3>
                   <p className="text-3xl font-mono font-bold text-radar-green mt-2">
-                    {topThree[0].total_points}
+                    {getSafePoints(topThree[0].total_points).toLocaleString()}
                   </p>
                 </div>
                 <div className="w-full h-[260px] bg-gradient-to-t from-radar-green/30 to-radar-green/10 rounded-t-lg border-x border-t border-radar-green/40"></div>
@@ -184,7 +186,7 @@ export const Projector: React.FC = () => {
                     {topThree[2].display_name}
                   </h3>
                   <p className="text-2xl font-mono font-bold text-radar-green mt-2">
-                    {topThree[2].total_points}
+                    {getSafePoints(topThree[2].total_points).toLocaleString()}
                   </p>
                 </div>
                 <div className="w-full h-[160px] bg-gradient-to-t from-mission-warning/30 to-mission-warning/10 rounded-t-lg border-x border-t border-mission-warning/40"></div>
@@ -223,7 +225,7 @@ export const Projector: React.FC = () => {
                   <td className="py-5">
                     <div className="flex justify-center items-center gap-1">
                       {Array.from({
-                        length: Math.min(5, student.lives_remaining),
+                        length: Math.max(0, Math.min(5, Number.isFinite(Number(student.lives_remaining)) ? Number(student.lives_remaining) : 0)),
                       }).map((_, i) => (
                         <Heart
                           key={i}
@@ -231,16 +233,16 @@ export const Projector: React.FC = () => {
                           className="text-mission-danger fill-mission-danger"
                         />
                       ))}
-                      {student.lives_remaining > 5 && (
+                      {(Number.isFinite(Number(student.lives_remaining)) ? Number(student.lives_remaining) : 0) > 5 && (
                         <span className="text-xl font-bold text-mission-danger ml-2">
-                          +{student.lives_remaining - 5}
+                          +{(Number.isFinite(Number(student.lives_remaining)) ? Number(student.lives_remaining) : 0) - 5}
                         </span>
                       )}
                     </div>
                   </td>
                   <td className="py-5 text-right">
                     <span className="text-3xl font-mono font-bold text-radar-green">
-                      {student.total_points}
+                      {getSafePoints(student.total_points).toLocaleString()}
                     </span>
                   </td>
                 </tr>

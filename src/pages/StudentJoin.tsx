@@ -71,7 +71,7 @@ export const StudentJoin: React.FC = () => {
         </div>
 
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold tracking-tight text-white mb-2">
+          <h1 className="font-display text-2xl font-bold tracking-tight text-white mb-2">
             Join Your Class
           </h1>
           <p className="text-slate-400">

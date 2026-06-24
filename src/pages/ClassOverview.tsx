@@ -73,7 +73,7 @@ export const ClassOverview: React.FC = () => {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-cosmic-panel p-6 rounded-2xl border border-slate-800">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-white tracking-tight">
+            <h1 className="font-display text-3xl font-bold text-white tracking-tight">
               {classroom.name}
             </h1>
             <span className="px-3 py-1 bg-cosmic-purple/10 text-cosmic-purple border border-cosmic-purple/20 rounded-full text-xs font-bold uppercase tracking-wider">
@@ -186,7 +186,7 @@ export const ClassOverview: React.FC = () => {
           {/* Recent Meeting Summary */}
           <div className="bg-cosmic-panel p-6 rounded-2xl border border-slate-800">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-white">Meeting History</h2>
+              <h2 className="font-display text-lg font-bold text-white">Meeting History</h2>
               <span className="text-sm text-slate-500">Coming soon</span>
             </div>
             <div className="bg-slate-900/50 rounded-xl p-6 text-center border border-slate-800 border-dashed">
@@ -202,7 +202,7 @@ export const ClassOverview: React.FC = () => {
           {/* Top Students Preview */}
           <div className="bg-cosmic-panel rounded-2xl border border-slate-800 overflow-hidden">
             <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <h2 className="font-display text-lg font-bold text-white flex items-center gap-2">
                 <Trophy size={18} className="text-amber-400" />
                 Top Students
               </h2>
@@ -260,7 +260,7 @@ export const ClassOverview: React.FC = () => {
           {/* Student Access Panel */}
           <div className="bg-cosmic-panel rounded-2xl border border-slate-800 overflow-hidden mt-6">
             <div className="p-5 border-b border-slate-800 bg-slate-900/50">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <h2 className="font-display text-lg font-bold text-white flex items-center gap-2">
                 Student Access
               </h2>
             </div>

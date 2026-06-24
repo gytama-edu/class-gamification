@@ -1,6 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --color-cosmic-navy: #0B1120;
   --color-cosmic-panel: #141E33;
   --color-cosmic-panel-hover: #1E293B;
@@ -12,3 +16,4 @@ body {
   background-color: var(--color-cosmic-navy);
   color: white;
 }
+

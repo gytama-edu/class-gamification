@@ -106,7 +106,7 @@ export const StudentDashboard: React.FC = () => {
       {/* Top Bar */}
       <div className="w-full max-w-md flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="font-display text-2xl font-bold tracking-tight text-white">
             {student.display_name}
           </h1>
           <p className="text-sm text-slate-400">

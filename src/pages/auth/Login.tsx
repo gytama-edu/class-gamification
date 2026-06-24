@@ -63,7 +63,7 @@ export const Login: React.FC = () => {
           <div className="bg-slate-800/50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-700">
             <Rocket className="text-cosmic-cyan" size={32} />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight mb-2">
+          <h1 className="font-display text-2xl font-bold tracking-tight mb-2">
             Welcome Back
           </h1>
           <p className="text-slate-400 text-sm">

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Play,
   Power,
@@ -6,7 +6,6 @@ import {
   Users,
   Trophy,
   ExternalLink,
-  RotateCcw,
 } from "lucide-react";
 import { useAppContext } from "../store";
 import { StudentTable } from "../components/StudentTable";
@@ -78,19 +77,26 @@ export const TeacherDashboard: React.FC = () => {
   const totalClassPoints = students.reduce((acc, s) => acc + s.total_points, 0);
 
   return (
-    <div className="space-y-6 pb-20 animate-in fade-in duration-500">
-      {/* Header section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 pb-20 animate-in fade-in duration-300 relative">
+      {/* Sticky Meeting Control Bar */}
+      <div className="sticky top-0 z-30 -mx-4 md:-mx-8 px-4 md:px-8 py-4 mb-6 bg-cosmic-navy/90 backdrop-blur-md border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-1">
+          <h1 className="font-display text-2xl font-bold tracking-tight text-white mb-1">
             {classroom.name}
           </h1>
-          <p className="text-slate-400 font-medium flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded text-xs bg-cosmic-purple/20 text-cosmic-purple border border-cosmic-purple/30">
-              {classroom.level_name}
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-2 text-xs text-emerald-400 font-medium">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+              </span>
+              Meeting Live
             </span>
-            Meeting #{classroom.current_meeting_number}
-          </p>
+            <span className="text-slate-500 text-xs">•</span>
+            <span className="text-slate-400 font-medium text-xs">
+              Meeting #{classroom.current_meeting_number}
+            </span>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -99,32 +105,22 @@ export const TeacherDashboard: React.FC = () => {
             target="_blank"
             className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 hover:border-slate-600 transition-colors font-medium text-sm"
           >
-            <ExternalLink size={18} />
-            Projector Mode
+            <ExternalLink size={16} />
+            Projector
           </Link>
 
           <button
-            onClick={() => setIsMeetingDialogOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cosmic-cyan to-blue-500 text-slate-900 rounded-lg shadow-lg shadow-cosmic-cyan/20 hover:opacity-90 transition-opacity font-bold text-sm"
+            onClick={() => setIsEndMeetingDialogOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded-lg hover:bg-rose-500/20 transition-colors font-bold text-sm shadow-[0_0_15px_rgba(244,63,94,0.1)]"
           >
-            <Play size={18} className="fill-slate-900" />
-            Start New Meeting
+            <Power size={18} />
+            End Meeting
           </button>
-
-          {activeMeeting && (
-            <button
-              onClick={() => setIsEndMeetingDialogOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded-lg hover:bg-rose-500/20 transition-colors font-bold text-sm"
-            >
-              <Power size={18} />
-              End Meeting
-            </button>
-          )}
         </div>
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-cosmic-panel p-5 rounded-2xl border border-slate-800 flex items-center gap-4 relative overflow-hidden">
           <div className="bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
             <Users size={24} className="text-blue-400" />
@@ -149,7 +145,7 @@ export const TeacherDashboard: React.FC = () => {
           <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-500/5 rounded-full blur-xl"></div>
         </div>
 
-        <div className="bg-cosmic-panel p-5 rounded-2xl border border-slate-800 flex items-center justify-between gap-4 relative overflow-hidden">
+        <div className="bg-cosmic-panel p-5 rounded-2xl border border-slate-800 flex items-center justify-between gap-4 relative overflow-hidden sm:col-span-2 md:col-span-1">
           <div className="flex items-center gap-4">
             <div className="bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">
               <Settings2 size={24} className="text-rose-400" />
@@ -182,18 +178,13 @@ export const TeacherDashboard: React.FC = () => {
 
       {/* Main Table Area */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Student Roster</h2>
+        <div className="flex items-center justify-between mb-4 mt-8">
+          <h2 className="font-display text-lg font-semibold text-white">Student Roster</h2>
         </div>
-        <StudentTable />
+        <div className="bg-cosmic-panel rounded-2xl border border-slate-800 overflow-hidden">
+           <StudentTable />
+        </div>
       </div>
-
-      <NewMeetingDialog
-        isOpen={isMeetingDialogOpen}
-        hasActiveMeeting={!!activeMeeting}
-        onClose={() => setIsMeetingDialogOpen(false)}
-        onConfirm={() => startNewMeeting(classId!)}
-      />
 
       <EndMeetingDialog
         isOpen={isEndMeetingDialogOpen}

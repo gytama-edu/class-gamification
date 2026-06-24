@@ -1,4 +1,8 @@
-import { Classroom, ClassroomDashboardData, DbStudent, LeaderboardEntry, Meeting, StudentWithCurrentState, MeetingHistoryItem, MeetingReport } from '../types/database';
+import { 
+  Classroom, ClassroomDashboardData, DbStudent, LeaderboardEntry, 
+  Meeting, StudentWithCurrentState, MeetingHistoryItem, MeetingReport,
+  StudentAchievement, TeacherRecognitionInput
+} from '../types/database';
 
 export interface ClassroomRepository {
   getClasses(): Promise<Classroom[]>;
@@ -34,6 +38,11 @@ export interface ClassroomRepository {
   
   getMeetingHistory(classId: string): Promise<MeetingHistoryItem[]>;
   getMeetingReport(classId: string, meetingId: string): Promise<MeetingReport | null>;
+  
+  getStudentAchievements(studentId: string): Promise<StudentAchievement[]>;
+  getClassAchievementSummary(classId: string): Promise<{ student_id: string; achievement: StudentAchievement }[]>;
+  evaluateClassAchievements(classId: string): Promise<void>;
+  awardTeacherRecognition(studentId: string, input: TeacherRecognitionInput): Promise<StudentAchievement>;
   
   restoreDefaultMockData(): Promise<void>;
 }

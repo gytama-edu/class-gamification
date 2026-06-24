@@ -1,10 +1,30 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Heart, Trophy, ArrowLeft, Star, HeartOff } from "lucide-react";
+import { Heart, Trophy, ArrowLeft, Star, HeartOff, Award, Zap, Activity, Users, Shield, ShieldCheck, Flag, CalendarCheck, TrendingUp, Medal, Rocket, Radio, Crown } from "lucide-react";
 import { getRepository } from "../lib/data/repository";
-import { StudentWithCurrentState, Classroom } from "../lib/types/database";
+import { StudentWithCurrentState, Classroom, StudentAchievement } from "../lib/types/database";
 import { useClassroomRealtime } from "../lib/realtime/useClassroomRealtime";
 import { ConnectionStatus } from "../components/ConnectionStatus";
+import { AwardRecognitionModal } from "../components/AwardRecognitionModal";
+
+const IconMap: Record<string, React.FC<any>> = {
+  radio: Radio,
+  zap: Zap,
+  star: Star,
+  award: Award,
+  crown: Crown,
+  flag: Flag,
+  users: Users,
+  'calendar-check': CalendarCheck,
+  shield: Shield,
+  'trending-up': TrendingUp,
+  trophy: Trophy,
+  medal: Medal,
+  'shield-check': ShieldCheck,
+  heart: Heart,
+  rocket: Rocket,
+  activity: Activity
+};
 
 export const StudentView: React.FC = () => {
   const { studentId } = useParams<{ studentId: string }>();
@@ -13,7 +33,9 @@ export const StudentView: React.FC = () => {
   const [classroom, setClassroom] = useState<Classroom | null>(null);
   const [activeMeeting, setActiveMeeting] = useState<any>(null);
   const [rank, setRank] = useState<number>(0);
+  const [achievements, setAchievements] = useState<StudentAchievement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAwardModalOpen, setIsAwardModalOpen] = useState(false);
 
   const loadStudent = useCallback(async () => {
     if (!studentId) return;
@@ -29,6 +51,9 @@ export const StudentView: React.FC = () => {
         const leaderboard = await repo.getLeaderboard(profile.class_id);
         const idx = leaderboard.findIndex((l) => l.id === studentId);
         setRank(idx + 1);
+        
+        const achs = await repo.getStudentAchievements(studentId);
+        setAchievements(achs);
       }
     } catch (err) {
       console.error(err);
@@ -214,8 +239,81 @@ export const StudentView: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Achievements Section */}
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Award className="text-radar-green" />
+                  Achievements
+                </h3>
+                <span className="bg-radar-green/10 text-radar-green text-xs font-bold px-2 py-1 rounded">
+                  {achievements.length} UNLOCKED
+                </span>
+              </div>
+              <button
+                onClick={() => setIsAwardModalOpen(true)}
+                className="text-xs font-bold px-3 py-1.5 bg-purple-600/10 text-purple-400 border border-purple-500/30 hover:bg-purple-600 hover:text-white transition-colors rounded flex items-center gap-1.5"
+              >
+                <Star size={14} />
+                AWARD RECOGNITION
+              </button>
+            </div>
+            
+            {achievements.length === 0 ? (
+              <div className="bg-mission-bg-secondary border border-mission-border rounded-2xl p-8 text-center">
+                <Award className="mx-auto text-mission-border mb-3" size={32} />
+                <p className="text-mission-muted-text">No achievements unlocked yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {achievements.map((ach) => {
+                  const Icon = IconMap[ach.icon_key_snapshot] || Award;
+                  const tierColor =
+                    ach.tier_snapshot === 'Platinum' ? 'text-blue-400 bg-blue-400/10 border-blue-400/20' :
+                    ach.tier_snapshot === 'Gold' ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' :
+                    ach.tier_snapshot === 'Silver' ? 'text-gray-300 bg-gray-300/10 border-gray-300/20' :
+                    ach.tier_snapshot === 'Special' ? 'text-purple-400 bg-purple-400/10 border-purple-400/20' :
+                    'text-amber-600 bg-amber-600/10 border-amber-600/20'; // Bronze
+                    
+                  return (
+                    <div key={ach.id} className="flex gap-3 p-4 rounded-xl bg-mission-bg-secondary border border-mission-border hover:border-radar-green/30 transition-colors">
+                      <div className={`w-12 h-12 rounded-lg flex flex-shrink-0 items-center justify-center border ${tierColor}`}>
+                        <Icon size={24} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="text-sm font-bold text-white truncate">{ach.achievement_name_snapshot}</h4>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${tierColor}`}>
+                            {ach.tier_snapshot}
+                          </span>
+                        </div>
+                        <p className="text-xs text-mission-muted-text mt-0.5 line-clamp-2">
+                          {ach.achievement_description_snapshot}
+                        </p>
+                        {ach.source_type === 'manual' && ach.reason && (
+                          <p className="text-xs text-radar-green/80 mt-1.5 italic">
+                            "{ach.reason}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      <AwardRecognitionModal
+        isOpen={isAwardModalOpen}
+        onClose={() => setIsAwardModalOpen(false)}
+        studentId={student.id}
+        studentName={student.display_name}
+        onAwarded={loadStudent}
+      />
     </div>
   );
 };

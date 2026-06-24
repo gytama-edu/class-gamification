@@ -137,6 +137,50 @@ export interface StudentWithCurrentState extends DbStudent {
   lives_remaining: number;
 }
 
+export interface AchievementDefinition {
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  category: string;
+  tier: "Bronze" | "Silver" | "Gold" | "Platinum" | "Special" | string;
+  icon_key: string;
+  is_active: boolean;
+  is_automatic: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface StudentAchievement {
+  id: string;
+  class_id: string;
+  student_id: string;
+  achievement_definition_id: string | null;
+  achievement_key_snapshot: string;
+  achievement_name_snapshot: string;
+  achievement_description_snapshot: string;
+  category_snapshot: string;
+  tier_snapshot: string;
+  icon_key_snapshot: string;
+  source_type: string;
+  source_meeting_id: string | null;
+  awarded_by: string | null;
+  reason: string | null;
+  earned_at: string;
+  created_at: string;
+}
+
+export interface AchievementSummary {
+  student_id: string;
+  achievements: StudentAchievement[];
+}
+
+export interface TeacherRecognitionInput {
+  title: string;
+  reason: string | null;
+  iconKey: string;
+}
+
 export interface ClassroomDashboardData {
   classroom: Classroom;
   activeMeeting: Meeting | null;

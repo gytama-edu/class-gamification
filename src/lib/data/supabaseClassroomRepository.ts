@@ -8,7 +8,9 @@ import {
   Meeting,
   StudentWithCurrentState,
   MeetingHistoryItem,
-  MeetingReport
+  MeetingReport,
+  StudentAchievement,
+  TeacherRecognitionInput
 } from "../types/database";
 
 export class SupabaseClassroomRepository implements ClassroomRepository {
@@ -461,6 +463,62 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     });
     if (error) throw error;
     return data;
+  }
+
+  async getStudentAchievements(studentId: string): Promise<StudentAchievement[]> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase
+      .from("student_achievements")
+      .select("*")
+      .eq("student_id", studentId)
+      .order("earned_at", { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getClassAchievementSummary(classId: string): Promise<{ student_id: string; achievement: StudentAchievement }[]> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase
+      .from("student_achievements")
+      .select("*")
+      .eq("class_id", classId)
+      .order("earned_at", { ascending: false });
+    if (error) throw error;
+    return (data || []).map(a => ({ student_id: a.student_id, achievement: a }));
+  }
+
+  async evaluateClassAchievements(classId: string): Promise<void> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { error } = await supabase.rpc("evaluate_class_achievements", {
+      p_class_id: classId
+    });
+    if (error) throw error;
+  }
+
+  async awardTeacherRecognition(studentId: string, input: TeacherRecognitionInput): Promise<StudentAchievement> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase.rpc("award_teacher_recognition", {
+      p_student_id: studentId,
+      p_title: input.title,
+      p_reason: input.reason,
+      p_icon_key: input.iconKey
+    });
+    if (error) throw error;
+    
+    // The RPC returns the new achievement data, but we want the full record.
+    // However, it's safer to just fetch it if needed, or return the partial data if it matches.
+    // The instructions say "Return the created achievement". We'll just fetch the full row using the ID.
+    const newId = data?.id;
+    if (newId) {
+      const { data: fullRecord, error: fetchError } = await supabase
+        .from("student_achievements")
+        .select("*")
+        .eq("id", newId)
+        .single();
+      if (!fetchError && fullRecord) return fullRecord;
+    }
+    
+    return data as any;
   }
 
   async restoreDefaultMockData(): Promise<void> {

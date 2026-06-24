@@ -7,7 +7,10 @@ import {
   Meeting,
   StudentWithCurrentState,
   MeetingHistoryItem,
-  MeetingReport
+  MeetingReport,
+  AchievementDefinition,
+  StudentAchievement,
+  TeacherRecognitionInput
 } from "../types/database";
 import { notifyMockUpdate } from "../realtime/useClassroomRealtime";
 
@@ -30,9 +33,10 @@ interface MockDB {
   }[];
   point_events: any[];
   life_events: any[];
+  student_achievements: StudentAchievement[];
 }
 
-const CURRENT_SCHEMA_VERSION = 2;
+const CURRENT_SCHEMA_VERSION = 3;
 
 function generateId() {
   return crypto.randomUUID
@@ -184,6 +188,7 @@ function getInitialMockDB(): MockDB {
     student_meeting_states: states,
     point_events: [],
     life_events: [],
+    student_achievements: [],
   };
 }
 
@@ -329,6 +334,13 @@ export class MockClassroomRepository implements ClassroomRepository {
             }
           });
           parsed.schema_version = 2;
+          this.saveDb(parsed);
+        }
+
+        if (parsed.schema_version < 3) {
+          console.info("Migrating to schema version 3 (Adding achievements)...");
+          parsed.student_achievements = parsed.student_achievements || [];
+          parsed.schema_version = 3;
           this.saveDb(parsed);
         }
 
@@ -891,12 +903,24 @@ export class MockClassroomRepository implements ClassroomRepository {
     if (oldMeeting) {
       // Ensure all participants have a state
       const pointEvents = db.point_events.filter(pe => pe.meeting_id === oldMeeting.id);
+      const lifeEvents = db.life_events.filter(le => le.meeting_id === oldMeeting.id);
+      
       for (const pe of pointEvents) {
         if (!db.student_meeting_states.find(sms => sms.meeting_id === oldMeeting.id && sms.student_id === pe.student_id)) {
           db.student_meeting_states.push({
             id: generateId(),
             meeting_id: oldMeeting.id,
             student_id: pe.student_id,
+            lives_remaining: classroom.max_lives,
+          });
+        }
+      }
+      for (const le of lifeEvents) {
+        if (!db.student_meeting_states.find(sms => sms.meeting_id === oldMeeting.id && sms.student_id === le.student_id)) {
+          db.student_meeting_states.push({
+            id: generateId(),
+            meeting_id: oldMeeting.id,
+            student_id: le.student_id,
             lives_remaining: classroom.max_lives,
           });
         }
@@ -943,6 +967,13 @@ export class MockClassroomRepository implements ClassroomRepository {
       oldMeeting.level_name_snapshot = classroom.level_name;
       
       this.saveDb(db);
+      
+      try {
+        await this.evaluateClassAchievements(classId);
+      } catch (err) {
+        console.error("Failed to evaluate achievements in mock mode", err);
+      }
+      
       notifyMockUpdate(classId);
     }
   }
@@ -1049,6 +1080,93 @@ export class MockClassroomRepository implements ClassroomRepository {
       },
       students
     };
+  }
+
+  async getStudentAchievements(studentId: string): Promise<StudentAchievement[]> {
+    const db = this.getDb();
+    return db.student_achievements
+      .filter((a) => a.student_id === studentId)
+      .sort((a, b) => new Date(b.earned_at).getTime() - new Date(a.earned_at).getTime());
+  }
+
+  async getClassAchievementSummary(classId: string): Promise<{ student_id: string; achievement: StudentAchievement }[]> {
+    const db = this.getDb();
+    return db.student_achievements
+      .filter((a) => a.class_id === classId)
+      .sort((a, b) => new Date(b.earned_at).getTime() - new Date(a.earned_at).getTime())
+      .map(a => ({ student_id: a.student_id, achievement: a }));
+  }
+
+  async evaluateClassAchievements(classId: string): Promise<void> {
+    // In mock mode, we won't fully implement all the automatic checks.
+    // Real implementation requires replicating the entire PL/pgSQL logic.
+    // For now, we will just return since mock mode doesn't strictly need automatic achievements to work precisely,
+    // or we could add a basic evaluation here if required. Let's do a simple points check as a placeholder.
+    const db = this.getDb();
+    let updated = false;
+
+    const students = db.students.filter(s => s.class_id === classId);
+    
+    // Very simple placeholder: award 'first_point' if points > 0
+    students.forEach(s => {
+      if (s.total_points > 0) {
+        const hasFirstPoint = db.student_achievements.some(a => a.student_id === s.id && a.achievement_key_snapshot === 'first_point');
+        if (!hasFirstPoint) {
+          db.student_achievements.push({
+            id: generateId(),
+            class_id: classId,
+            student_id: s.id,
+            achievement_definition_id: generateId(),
+            achievement_key_snapshot: 'first_point',
+            achievement_name_snapshot: 'First Signal',
+            achievement_description_snapshot: 'Earn your first Mission Point.',
+            category_snapshot: 'Points',
+            tier_snapshot: 'Bronze',
+            icon_key_snapshot: 'radio',
+            source_type: 'automatic',
+            source_meeting_id: null,
+            awarded_by: null,
+            reason: null,
+            earned_at: new Date().toISOString(),
+            created_at: new Date().toISOString()
+          });
+          updated = true;
+        }
+      }
+    });
+
+    if (updated) {
+      this.saveDb(db);
+    }
+  }
+
+  async awardTeacherRecognition(studentId: string, input: TeacherRecognitionInput): Promise<StudentAchievement> {
+    const db = this.getDb();
+    const student = db.students.find(s => s.id === studentId);
+    if (!student) throw new Error("Student not found");
+
+    const achievement: StudentAchievement = {
+      id: generateId(),
+      class_id: student.class_id,
+      student_id: studentId,
+      achievement_definition_id: null,
+      achievement_key_snapshot: 'teacher_recognition',
+      achievement_name_snapshot: input.title,
+      achievement_description_snapshot: 'Receive special recognition from your teacher.',
+      category_snapshot: 'Special',
+      tier_snapshot: 'Special',
+      icon_key_snapshot: input.iconKey,
+      source_type: 'manual',
+      source_meeting_id: null,
+      awarded_by: 'mock-teacher-id',
+      reason: input.reason || null,
+      earned_at: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    };
+
+    db.student_achievements.push(achievement);
+    this.saveDb(db);
+    return achievement;
   }
 
   async restoreDefaultMockData(): Promise<void> {

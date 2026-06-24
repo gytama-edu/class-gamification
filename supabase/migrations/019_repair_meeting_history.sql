@@ -1,17 +1,5 @@
--- manual_phase_1i_meeting_history.sql
--- Paste this entire file into your Supabase SQL Editor and run it.
-
+-- supabase/migrations/019_repair_meeting_history.sql
 BEGIN;
-
-ALTER TABLE public.meetings 
-ADD COLUMN IF NOT EXISTS class_name_snapshot TEXT,
-ADD COLUMN IF NOT EXISTS level_name_snapshot TEXT;
-
-ALTER TABLE public.student_meeting_states 
-ADD COLUMN IF NOT EXISTS student_name_snapshot TEXT,
-ADD COLUMN IF NOT EXISTS points_before INTEGER,
-ADD COLUMN IF NOT EXISTS points_after INTEGER,
-ADD COLUMN IF NOT EXISTS final_rank INTEGER;
 
 CREATE OR REPLACE FUNCTION public.end_meeting(p_class_id UUID)
 RETURNS VOID
@@ -43,7 +31,8 @@ BEGIN
         RAISE EXCEPTION 'No active meeting';
     END IF;
 
-    -- Ensure all participating students have a state
+    -- Ensure all participating students have a state.
+    -- A student participated if they have points or life events.
     INSERT INTO public.student_meeting_states (meeting_id, student_id, lives_remaining)
     SELECT pe.meeting_id, pe.student_id, v_class.max_lives
     FROM public.point_events pe
@@ -85,11 +74,18 @@ BEGIN
         ended_at = NOW()
     WHERE id = v_meeting_id;
 
+    -- Evaluate achievements for the class (safe failure)
+    BEGIN
+        PERFORM public.evaluate_class_achievements(p_class_id);
+    EXCEPTION WHEN OTHERS THEN
+        -- Log or ignore achievement evaluation errors so meeting still ends successfully
+    END;
 END;
 $$;
 REVOKE ALL ON FUNCTION public.end_meeting(UUID) FROM public, anon;
 GRANT EXECUTE ON FUNCTION public.end_meeting(UUID) TO authenticated;
 
+-- get_class_meeting_history
 CREATE OR REPLACE FUNCTION public.get_class_meeting_history(p_class_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -138,6 +134,7 @@ $$;
 REVOKE ALL ON FUNCTION public.get_class_meeting_history(UUID) FROM public, anon;
 GRANT EXECUTE ON FUNCTION public.get_class_meeting_history(UUID) TO authenticated;
 
+-- get_meeting_report
 CREATE OR REPLACE FUNCTION public.get_meeting_report(p_class_id UUID, p_meeting_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -213,9 +210,47 @@ $$;
 REVOKE ALL ON FUNCTION public.get_meeting_report(UUID, UUID) FROM public, anon;
 GRANT EXECUTE ON FUNCTION public.get_meeting_report(UUID, UUID) TO authenticated;
 
+-- Historical repair
+UPDATE public.meetings m
+SET class_name_snapshot = COALESCE(m.class_name_snapshot, c.name),
+    level_name_snapshot = COALESCE(m.level_name_snapshot, c.level_name)
+FROM public.classes c
+WHERE m.class_id = c.id
+  AND m.status = 'completed'
+  AND (m.class_name_snapshot IS NULL OR m.level_name_snapshot IS NULL);
+
+UPDATE public.student_meeting_states sms
+SET student_name_snapshot = COALESCE(sms.student_name_snapshot, s.display_name)
+FROM public.students s
+WHERE sms.student_id = s.id
+  AND sms.student_name_snapshot IS NULL;
+
+-- Repair points_before, points_after for completed meetings where they are missing
+UPDATE public.student_meeting_states sms
+SET points_after = s.total_points,
+    points_before = s.total_points - COALESCE((
+            SELECT SUM(points_delta) FROM public.point_events pe 
+            WHERE pe.meeting_id = sms.meeting_id AND pe.student_id = sms.student_id
+        ), 0)
+FROM public.students s
+JOIN public.meetings m ON m.id = sms.meeting_id
+WHERE sms.student_id = s.id
+  AND m.status = 'completed'
+  AND sms.points_after IS NULL;
+
+-- Recalculate rank for completed meetings where rank is missing or we just repaired points
+WITH RankedStudents AS (
+    SELECT id, 
+           RANK() OVER (PARTITION BY meeting_id ORDER BY points_after DESC NULLS LAST, student_name_snapshot ASC, student_id ASC) as new_rank
+    FROM public.student_meeting_states
+    WHERE meeting_id IN (SELECT id FROM public.meetings WHERE status = 'completed')
+)
+UPDATE public.student_meeting_states sms
+SET final_rank = rs.new_rank
+FROM RankedStudents rs
+WHERE sms.id = rs.id
+  AND sms.final_rank IS DISTINCT FROM rs.new_rank;
+
 NOTIFY pgrst, 'reload schema';
 
 COMMIT;
-
--- Verify creation:
--- SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.proname IN ('get_class_meeting_history', 'get_meeting_report');

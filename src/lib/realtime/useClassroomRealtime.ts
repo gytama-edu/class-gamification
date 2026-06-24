@@ -125,6 +125,16 @@ export function useClassroomRealtime(
       )
       .on(
         "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "student_achievements",
+          filter: `class_id=eq.${classId}`,
+        },
+        debouncedUpdate,
+      )
+      .on(
+        "postgres_changes",
         { event: "*", schema: "public", table: "student_meeting_states" },
         debouncedUpdate,
       )

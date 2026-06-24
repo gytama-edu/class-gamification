@@ -50,7 +50,15 @@ BEGIN
     WHERE id = p_student_id;
 
     RETURN jsonb_build_object(
-        'student', v_student,
+        'student', jsonb_build_object(
+            'id', v_student.id,
+            'class_id', v_student.class_id,
+            'display_name', v_student.display_name,
+            'avatar_key', v_student.avatar_key,
+            'total_points', v_student.total_points,
+            'is_active', v_student.is_active,
+            'has_pin', v_student.pin_generated_at IS NOT NULL
+        ),
         'classroom', v_class,
         'activeMeeting', v_meeting,
         'lives_remaining', COALESCE(v_state.lives_remaining, 0),

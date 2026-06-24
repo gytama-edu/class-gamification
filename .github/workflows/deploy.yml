@@ -36,8 +36,16 @@ jobs:
 
       - name: Build project
         env:
-          VITE_DATA_SOURCE: mock
+          VITE_DATA_SOURCE: supabase
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
+          if [ "$VITE_DATA_SOURCE" = "supabase" ]; then
+            if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+              echo "Error: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be provided as GitHub secrets when VITE_DATA_SOURCE=supabase."
+              exit 1
+            fi
+          fi
           npm run build
           cp dist/index.html dist/404.html
 

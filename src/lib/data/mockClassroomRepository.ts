@@ -655,8 +655,14 @@ export class MockClassroomRepository implements ClassroomRepository {
 
     const rank = sorted.findIndex((s) => s.id === studentId) + 1;
 
+    const mappedStudent = {
+      ...student,
+      has_pin: !!student.access_pin_hash,
+      access_pin_hash: null,
+    };
+
     return {
-      student,
+      student: mappedStudent,
       classroom,
       activeMeeting,
       lives_remaining,
@@ -694,7 +700,13 @@ export class MockClassroomRepository implements ClassroomRepository {
       if (state) lives_remaining = state.lives_remaining;
     }
 
-    return { ...student, lives_remaining };
+    const mappedStudent = {
+      ...student,
+      has_pin: !!student.access_pin_hash,
+      access_pin_hash: null,
+    };
+
+    return { ...mappedStudent, lives_remaining };
   }
 
   async getLeaderboard(classId: string): Promise<LeaderboardEntry[]> {

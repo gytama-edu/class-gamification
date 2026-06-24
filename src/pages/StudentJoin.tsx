@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Rocket, LogIn, AlertCircle } from "lucide-react";
 import { getRepository } from "../lib/data/repository";
+import { supabase } from "../lib/supabase/client";
 
 export const StudentJoin: React.FC = () => {
   const [classCode, setClassCode] = useState("");
@@ -9,6 +10,9 @@ export const StudentJoin: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  const isSupabaseMode = import.meta.env.VITE_DATA_SOURCE === "supabase";
+  const isSupabaseConfigured = isSupabaseMode ? !!supabase : true;
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,14 +79,28 @@ export const StudentJoin: React.FC = () => {
           </p>
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-start gap-3 text-rose-400 text-sm">
+        {!isSupabaseConfigured ? (
+          <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3 text-amber-400 text-sm">
             <AlertCircle size={18} className="shrink-0 mt-0.5" />
-            <p>{error}</p>
+            <p>Supabase is not configured for this deployment.</p>
           </div>
-        )}
+        ) : (
+          <>
+            {!isSupabaseMode && import.meta.env.DEV && (
+              <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-start gap-3 text-blue-400 text-sm">
+                <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                <p>Demo mode: Student access works only in this browser.</p>
+              </div>
+            )}
 
-        <form onSubmit={handleJoin} className="space-y-5">
+            {error && (
+              <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-start gap-3 text-rose-400 text-sm">
+                <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                <p>{error}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleJoin} className="space-y-5">
           <div className="space-y-2">
             <label
               htmlFor="classCode"
@@ -137,6 +155,8 @@ export const StudentJoin: React.FC = () => {
             )}
           </button>
         </form>
+          </>
+        )}
 
         <div className="mt-8 text-center border-t border-slate-800 pt-6">
           <p className="text-sm text-slate-500">

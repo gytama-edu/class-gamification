@@ -240,8 +240,12 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     const normalizedCode = classCode.trim().toUpperCase();
     const normalizedPin = pin.trim();
 
-    // Ensure we have an anonymous session
+    // Ensure we have an anonymous session and not a teacher session
     const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData.session && !sessionData.session.user.is_anonymous) {
+      throw new Error("Open student access in another browser or private window.");
+    }
+
     if (!sessionData.session) {
       const { error: authError } = await supabase.auth.signInAnonymously();
       if (authError) throw authError;
@@ -291,11 +295,16 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     if (!supabase) throw new Error("Supabase not initialized");
     const { data: student, error } = await supabase
       .from("students")
-      .select("*")
+      .select("id, class_id, display_name, avatar_key, total_points, is_active, student_auth_user_id, access_enabled, access_activated_at, created_at, updated_at, pin_generated_at")
       .eq("id", studentId)
       .single();
     if (error) throw error;
     if (!student) return null;
+
+    const mappedStudent = {
+      ...student,
+      has_pin: !!student.pin_generated_at,
+    };
 
     const { data: latestMeeting } = await supabase
       .from("meetings")
@@ -317,7 +326,7 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     }
 
     return {
-      ...student,
+      ...mappedStudent,
       lives_remaining,
     };
   }

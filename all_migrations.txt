@@ -1,0 +1,1158 @@
+supabase/migrations/001_initial_schema.sql:-- 001_initial_schema.sql
+supabase/migrations/001_initial_schema.sql:-- Create core tables for GYTama EDU Classes Gamification
+supabase/migrations/001_initial_schema.sql:
+supabase/migrations/001_initial_schema.sql:CREATE TABLE public.classes (
+supabase/migrations/001_initial_schema.sql:  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+supabase/migrations/001_initial_schema.sql:  name text NOT NULL,
+supabase/migrations/001_initial_schema.sql:  level_name text NOT NULL,
+supabase/migrations/001_initial_schema.sql:  max_lives integer NOT NULL,
+supabase/migrations/001_initial_schema.sql:  current_meeting_number integer NOT NULL DEFAULT 0,
+supabase/migrations/001_initial_schema.sql:  created_at timestamptz NOT NULL DEFAULT now(),
+supabase/migrations/001_initial_schema.sql:  updated_at timestamptz NOT NULL DEFAULT now()
+supabase/migrations/001_initial_schema.sql:);
+supabase/migrations/001_initial_schema.sql:
+supabase/migrations/001_initial_schema.sql:CREATE TABLE public.students (
+supabase/migrations/001_initial_schema.sql:  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+supabase/migrations/001_initial_schema.sql:  class_id uuid NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+supabase/migrations/001_initial_schema.sql:  display_name text NOT NULL,
+supabase/migrations/001_initial_schema.sql:  avatar_key text,
+supabase/migrations/001_initial_schema.sql:  total_points integer NOT NULL DEFAULT 0,
+supabase/migrations/001_initial_schema.sql:  is_active boolean NOT NULL DEFAULT true,
+supabase/migrations/001_initial_schema.sql:  created_at timestamptz NOT NULL DEFAULT now(),
+supabase/migrations/001_initial_schema.sql:  updated_at timestamptz NOT NULL DEFAULT now()
+supabase/migrations/001_initial_schema.sql:);
+supabase/migrations/001_initial_schema.sql:
+supabase/migrations/001_initial_schema.sql:CREATE TABLE public.meetings (
+supabase/migrations/001_initial_schema.sql:  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+supabase/migrations/001_initial_schema.sql:  class_id uuid NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+supabase/migrations/001_initial_schema.sql:  meeting_number integer NOT NULL,
+supabase/migrations/001_initial_schema.sql:  max_lives_snapshot integer NOT NULL,
+supabase/migrations/001_initial_schema.sql:  status text NOT NULL DEFAULT 'active',
+supabase/migrations/001_initial_schema.sql:  started_at timestamptz NOT NULL DEFAULT now(),
+supabase/migrations/001_initial_schema.sql:  ended_at timestamptz,
+supabase/migrations/001_initial_schema.sql:  created_at timestamptz NOT NULL DEFAULT now()
+supabase/migrations/001_initial_schema.sql:);
+supabase/migrations/001_initial_schema.sql:
+supabase/migrations/001_initial_schema.sql:CREATE TABLE public.student_meeting_states (
+supabase/migrations/001_initial_schema.sql:  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+supabase/migrations/001_initial_schema.sql:  meeting_id uuid NOT NULL REFERENCES public.meetings(id) ON DELETE CASCADE,
+supabase/migrations/001_initial_schema.sql:  student_id uuid NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+supabase/migrations/001_initial_schema.sql:  lives_remaining integer NOT NULL,
+supabase/migrations/001_initial_schema.sql:  created_at timestamptz NOT NULL DEFAULT now(),
+supabase/migrations/001_initial_schema.sql:  updated_at timestamptz NOT NULL DEFAULT now()
+supabase/migrations/001_initial_schema.sql:);
+supabase/migrations/001_initial_schema.sql:
+supabase/migrations/001_initial_schema.sql:CREATE TABLE public.point_events (
+supabase/migrations/001_initial_schema.sql:  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+supabase/migrations/001_initial_schema.sql:  class_id uuid NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+supabase/migrations/001_initial_schema.sql:  student_id uuid NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+supabase/migrations/001_initial_schema.sql:  meeting_id uuid REFERENCES public.meetings(id) ON DELETE SET NULL,
+supabase/migrations/001_initial_schema.sql:  points_delta integer NOT NULL,
+supabase/migrations/001_initial_schema.sql:  reason text,
+supabase/migrations/001_initial_schema.sql:  created_at timestamptz NOT NULL DEFAULT now()
+supabase/migrations/001_initial_schema.sql:);
+supabase/migrations/001_initial_schema.sql:
+supabase/migrations/001_initial_schema.sql:CREATE TABLE public.life_events (
+supabase/migrations/001_initial_schema.sql:  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+supabase/migrations/001_initial_schema.sql:  class_id uuid NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+supabase/migrations/001_initial_schema.sql:  student_id uuid NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+supabase/migrations/001_initial_schema.sql:  meeting_id uuid NOT NULL REFERENCES public.meetings(id) ON DELETE CASCADE,
+supabase/migrations/001_initial_schema.sql:  lives_delta integer NOT NULL,
+supabase/migrations/001_initial_schema.sql:  reason text,
+supabase/migrations/001_initial_schema.sql:  created_at timestamptz NOT NULL DEFAULT now()
+supabase/migrations/001_initial_schema.sql:);
+supabase/migrations/002_constraints_and_indexes.sql:-- 002_constraints_and_indexes.sql
+supabase/migrations/002_constraints_and_indexes.sql:-- Add check constraints, unique constraints, and indexes
+supabase/migrations/002_constraints_and_indexes.sql:
+supabase/migrations/002_constraints_and_indexes.sql:-- Constraints for classes
+supabase/migrations/002_constraints_and_indexes.sql:ALTER TABLE public.classes
+supabase/migrations/002_constraints_and_indexes.sql:  ADD CONSTRAINT classes_max_lives_check CHECK (max_lives >= 1 AND max_lives <= 20),
+supabase/migrations/002_constraints_and_indexes.sql:  ADD CONSTRAINT classes_current_meeting_number_check CHECK (current_meeting_number >= 0);
+supabase/migrations/002_constraints_and_indexes.sql:
+supabase/migrations/002_constraints_and_indexes.sql:-- Constraints for students
+supabase/migrations/002_constraints_and_indexes.sql:ALTER TABLE public.students
+supabase/migrations/002_constraints_and_indexes.sql:  ADD CONSTRAINT students_total_points_check CHECK (total_points >= 0);
+supabase/migrations/002_constraints_and_indexes.sql:
+supabase/migrations/002_constraints_and_indexes.sql:-- Constraints for meetings
+supabase/migrations/002_constraints_and_indexes.sql:ALTER TABLE public.meetings
+supabase/migrations/002_constraints_and_indexes.sql:  ADD CONSTRAINT meetings_max_lives_snapshot_check CHECK (max_lives_snapshot >= 1 AND max_lives_snapshot <= 20),
+supabase/migrations/002_constraints_and_indexes.sql:  ADD CONSTRAINT meetings_status_check CHECK (status IN ('active', 'completed')),
+supabase/migrations/002_constraints_and_indexes.sql:  ADD CONSTRAINT meetings_meeting_number_unique UNIQUE (class_id, meeting_number);
+supabase/migrations/002_constraints_and_indexes.sql:
+supabase/migrations/002_constraints_and_indexes.sql:-- Unique partial index to ensure only one active meeting per class
+supabase/migrations/002_constraints_and_indexes.sql:CREATE UNIQUE INDEX meetings_one_active_per_class_idx ON public.meetings (class_id) WHERE status = 'active';
+supabase/migrations/002_constraints_and_indexes.sql:
+supabase/migrations/002_constraints_and_indexes.sql:-- Constraints for student_meeting_states
+supabase/migrations/002_constraints_and_indexes.sql:ALTER TABLE public.student_meeting_states
+supabase/migrations/002_constraints_and_indexes.sql:  ADD CONSTRAINT student_meeting_states_lives_remaining_check CHECK (lives_remaining >= 0),
+supabase/migrations/002_constraints_and_indexes.sql:  ADD CONSTRAINT student_meeting_states_unique_student_meeting UNIQUE (meeting_id, student_id);
+supabase/migrations/002_constraints_and_indexes.sql:
+supabase/migrations/002_constraints_and_indexes.sql:-- Indexes for foreign keys and common queries
+supabase/migrations/002_constraints_and_indexes.sql:CREATE INDEX students_class_id_idx ON public.students(class_id);
+supabase/migrations/002_constraints_and_indexes.sql:CREATE INDEX meetings_class_id_idx ON public.meetings(class_id);
+supabase/migrations/002_constraints_and_indexes.sql:CREATE INDEX student_meeting_states_meeting_id_idx ON public.student_meeting_states(meeting_id);
+supabase/migrations/002_constraints_and_indexes.sql:CREATE INDEX student_meeting_states_student_id_idx ON public.student_meeting_states(student_id);
+supabase/migrations/002_constraints_and_indexes.sql:CREATE INDEX point_events_class_id_idx ON public.point_events(class_id);
+supabase/migrations/002_constraints_and_indexes.sql:CREATE INDEX point_events_student_id_idx ON public.point_events(student_id);
+supabase/migrations/002_constraints_and_indexes.sql:CREATE INDEX point_events_meeting_id_idx ON public.point_events(meeting_id);
+supabase/migrations/002_constraints_and_indexes.sql:CREATE INDEX life_events_class_id_idx ON public.life_events(class_id);
+supabase/migrations/002_constraints_and_indexes.sql:CREATE INDEX life_events_student_id_idx ON public.life_events(student_id);
+supabase/migrations/002_constraints_and_indexes.sql:CREATE INDEX life_events_meeting_id_idx ON public.life_events(meeting_id);
+supabase/migrations/002_constraints_and_indexes.sql:
+supabase/migrations/002_constraints_and_indexes.sql:-- Triggers for updated_at
+supabase/migrations/002_constraints_and_indexes.sql:CREATE OR REPLACE FUNCTION set_updated_at()
+supabase/migrations/002_constraints_and_indexes.sql:RETURNS TRIGGER AS $$
+supabase/migrations/002_constraints_and_indexes.sql:BEGIN
+supabase/migrations/002_constraints_and_indexes.sql:  NEW.updated_at = now();
+supabase/migrations/002_constraints_and_indexes.sql:  RETURN NEW;
+supabase/migrations/002_constraints_and_indexes.sql:END;
+supabase/migrations/002_constraints_and_indexes.sql:$$ LANGUAGE plpgsql;
+supabase/migrations/002_constraints_and_indexes.sql:
+supabase/migrations/002_constraints_and_indexes.sql:CREATE TRIGGER classes_updated_at
+supabase/migrations/002_constraints_and_indexes.sql:  BEFORE UPDATE ON public.classes
+supabase/migrations/002_constraints_and_indexes.sql:  FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
+supabase/migrations/002_constraints_and_indexes.sql:
+supabase/migrations/002_constraints_and_indexes.sql:CREATE TRIGGER students_updated_at
+supabase/migrations/002_constraints_and_indexes.sql:  BEFORE UPDATE ON public.students
+supabase/migrations/002_constraints_and_indexes.sql:  FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
+supabase/migrations/002_constraints_and_indexes.sql:
+supabase/migrations/002_constraints_and_indexes.sql:CREATE TRIGGER student_meeting_states_updated_at
+supabase/migrations/002_constraints_and_indexes.sql:  BEFORE UPDATE ON public.student_meeting_states
+supabase/migrations/002_constraints_and_indexes.sql:  FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
+supabase/migrations/003_rls.sql:-- 003_rls.sql
+supabase/migrations/003_rls.sql:-- Enable RLS on all tables and create placeholder policies for Phase 1B
+supabase/migrations/003_rls.sql:
+supabase/migrations/003_rls.sql:ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
+supabase/migrations/003_rls.sql:ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
+supabase/migrations/003_rls.sql:ALTER TABLE public.meetings ENABLE ROW LEVEL SECURITY;
+supabase/migrations/003_rls.sql:ALTER TABLE public.student_meeting_states ENABLE ROW LEVEL SECURITY;
+supabase/migrations/003_rls.sql:ALTER TABLE public.point_events ENABLE ROW LEVEL SECURITY;
+supabase/migrations/003_rls.sql:ALTER TABLE public.life_events ENABLE ROW LEVEL SECURITY;
+supabase/migrations/003_rls.sql:
+supabase/migrations/003_rls.sql:-- Note: In Phase 1B, we are accessing data mostly from the server using the service_role key
+supabase/migrations/003_rls.sql:-- or via public read access if necessary. For now, we will add authenticated-only placeholder policies
+supabase/migrations/003_rls.sql:-- and prevent public anonymous writes.
+supabase/migrations/003_rls.sql:
+supabase/migrations/003_rls.sql:-- Classes: authenticated users can read (to be locked down to teachers later)
+supabase/migrations/003_rls.sql:CREATE POLICY "Classes are viewable by authenticated users" 
+supabase/migrations/003_rls.sql:ON public.classes FOR SELECT TO authenticated USING (true);
+supabase/migrations/003_rls.sql:
+supabase/migrations/003_rls.sql:-- Students: authenticated users can read
+supabase/migrations/003_rls.sql:CREATE POLICY "Students are viewable by authenticated users" 
+supabase/migrations/003_rls.sql:ON public.students FOR SELECT TO authenticated USING (true);
+supabase/migrations/003_rls.sql:
+supabase/migrations/003_rls.sql:-- Meetings: authenticated users can read
+supabase/migrations/003_rls.sql:CREATE POLICY "Meetings are viewable by authenticated users" 
+supabase/migrations/003_rls.sql:ON public.meetings FOR SELECT TO authenticated USING (true);
+supabase/migrations/003_rls.sql:
+supabase/migrations/003_rls.sql:-- Student Meeting States: authenticated users can read
+supabase/migrations/003_rls.sql:CREATE POLICY "Student meeting states are viewable by authenticated users" 
+supabase/migrations/003_rls.sql:ON public.student_meeting_states FOR SELECT TO authenticated USING (true);
+supabase/migrations/003_rls.sql:
+supabase/migrations/003_rls.sql:-- Events: authenticated users can read
+supabase/migrations/003_rls.sql:CREATE POLICY "Point events are viewable by authenticated users" 
+supabase/migrations/003_rls.sql:ON public.point_events FOR SELECT TO authenticated USING (true);
+supabase/migrations/003_rls.sql:
+supabase/migrations/003_rls.sql:CREATE POLICY "Life events are viewable by authenticated users" 
+supabase/migrations/003_rls.sql:ON public.life_events FOR SELECT TO authenticated USING (true);
+supabase/migrations/003_rls.sql:
+supabase/migrations/003_rls.sql:-- Note: No INSERT, UPDATE, or DELETE policies are created for the public/anon roles.
+supabase/migrations/003_rls.sql:-- The service_role key will be used by the repository layer to bypass RLS for Phase 1B,
+supabase/migrations/003_rls.sql:-- or proper teacher policies will be implemented in a later phase.
+supabase/migrations/004_archive_classes.sql:-- 004_archive_classes.sql
+supabase/migrations/004_archive_classes.sql:ALTER TABLE public.classes ADD COLUMN is_archived boolean NOT NULL DEFAULT false;
+supabase/migrations/005_mutations_rpc.sql:-- 005_mutations_rpc.sql
+supabase/migrations/005_mutations_rpc.sql:-- Server-side functions to safely perform mutations without broad anonymous write policies
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:-- 1. Create Class
+supabase/migrations/005_mutations_rpc.sql:CREATE OR REPLACE FUNCTION create_class(p_name text, p_level_name text, p_max_lives integer)
+supabase/migrations/005_mutations_rpc.sql:RETURNS uuid AS $$
+supabase/migrations/005_mutations_rpc.sql:DECLARE
+supabase/migrations/005_mutations_rpc.sql:  v_class_id uuid;
+supabase/migrations/005_mutations_rpc.sql:BEGIN
+supabase/migrations/005_mutations_rpc.sql:  INSERT INTO public.classes (name, level_name, max_lives, current_meeting_number)
+supabase/migrations/005_mutations_rpc.sql:  VALUES (p_name, p_level_name, p_max_lives, 0)
+supabase/migrations/005_mutations_rpc.sql:  RETURNING id INTO v_class_id;
+supabase/migrations/005_mutations_rpc.sql:  RETURN v_class_id;
+supabase/migrations/005_mutations_rpc.sql:END;
+supabase/migrations/005_mutations_rpc.sql:$$ LANGUAGE plpgsql SECURITY DEFINER;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:-- 2. Update Class
+supabase/migrations/005_mutations_rpc.sql:CREATE OR REPLACE FUNCTION update_class(p_class_id uuid, p_name text, p_level_name text, p_max_lives integer)
+supabase/migrations/005_mutations_rpc.sql:RETURNS void AS $$
+supabase/migrations/005_mutations_rpc.sql:BEGIN
+supabase/migrations/005_mutations_rpc.sql:  UPDATE public.classes
+supabase/migrations/005_mutations_rpc.sql:  SET name = COALESCE(p_name, name),
+supabase/migrations/005_mutations_rpc.sql:      level_name = COALESCE(p_level_name, level_name),
+supabase/migrations/005_mutations_rpc.sql:      max_lives = COALESCE(p_max_lives, max_lives),
+supabase/migrations/005_mutations_rpc.sql:      updated_at = now()
+supabase/migrations/005_mutations_rpc.sql:  WHERE id = p_class_id;
+supabase/migrations/005_mutations_rpc.sql:END;
+supabase/migrations/005_mutations_rpc.sql:$$ LANGUAGE plpgsql SECURITY DEFINER;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:-- 3. Archive Class
+supabase/migrations/005_mutations_rpc.sql:CREATE OR REPLACE FUNCTION archive_class(p_class_id uuid)
+supabase/migrations/005_mutations_rpc.sql:RETURNS void AS $$
+supabase/migrations/005_mutations_rpc.sql:BEGIN
+supabase/migrations/005_mutations_rpc.sql:  UPDATE public.classes
+supabase/migrations/005_mutations_rpc.sql:  SET is_archived = true, updated_at = now()
+supabase/migrations/005_mutations_rpc.sql:  WHERE id = p_class_id;
+supabase/migrations/005_mutations_rpc.sql:END;
+supabase/migrations/005_mutations_rpc.sql:$$ LANGUAGE plpgsql SECURITY DEFINER;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:-- 4. Add Student
+supabase/migrations/005_mutations_rpc.sql:CREATE OR REPLACE FUNCTION add_student(p_class_id uuid, p_display_name text)
+supabase/migrations/005_mutations_rpc.sql:RETURNS uuid AS $$
+supabase/migrations/005_mutations_rpc.sql:DECLARE
+supabase/migrations/005_mutations_rpc.sql:  v_student_id uuid;
+supabase/migrations/005_mutations_rpc.sql:  v_meeting_id uuid;
+supabase/migrations/005_mutations_rpc.sql:  v_max_lives integer;
+supabase/migrations/005_mutations_rpc.sql:BEGIN
+supabase/migrations/005_mutations_rpc.sql:  INSERT INTO public.students (class_id, display_name)
+supabase/migrations/005_mutations_rpc.sql:  VALUES (p_class_id, p_display_name)
+supabase/migrations/005_mutations_rpc.sql:  RETURNING id INTO v_student_id;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  -- If there is an active meeting, add them to it with max lives
+supabase/migrations/005_mutations_rpc.sql:  SELECT id, max_lives_snapshot INTO v_meeting_id, v_max_lives
+supabase/migrations/005_mutations_rpc.sql:  FROM public.meetings
+supabase/migrations/005_mutations_rpc.sql:  WHERE class_id = p_class_id AND status = 'active';
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  IF FOUND THEN
+supabase/migrations/005_mutations_rpc.sql:    INSERT INTO public.student_meeting_states (meeting_id, student_id, lives_remaining)
+supabase/migrations/005_mutations_rpc.sql:    VALUES (v_meeting_id, v_student_id, v_max_lives);
+supabase/migrations/005_mutations_rpc.sql:  END IF;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  RETURN v_student_id;
+supabase/migrations/005_mutations_rpc.sql:END;
+supabase/migrations/005_mutations_rpc.sql:$$ LANGUAGE plpgsql SECURITY DEFINER;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:-- 5. Update Student
+supabase/migrations/005_mutations_rpc.sql:CREATE OR REPLACE FUNCTION update_student(p_student_id uuid, p_display_name text, p_is_active boolean)
+supabase/migrations/005_mutations_rpc.sql:RETURNS void AS $$
+supabase/migrations/005_mutations_rpc.sql:BEGIN
+supabase/migrations/005_mutations_rpc.sql:  UPDATE public.students
+supabase/migrations/005_mutations_rpc.sql:  SET display_name = COALESCE(p_display_name, display_name),
+supabase/migrations/005_mutations_rpc.sql:      is_active = COALESCE(p_is_active, is_active),
+supabase/migrations/005_mutations_rpc.sql:      updated_at = now()
+supabase/migrations/005_mutations_rpc.sql:  WHERE id = p_student_id;
+supabase/migrations/005_mutations_rpc.sql:END;
+supabase/migrations/005_mutations_rpc.sql:$$ LANGUAGE plpgsql SECURITY DEFINER;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:-- 6. Award Points
+supabase/migrations/005_mutations_rpc.sql:CREATE OR REPLACE FUNCTION award_points(p_class_id uuid, p_student_id uuid, p_points integer, p_reason text)
+supabase/migrations/005_mutations_rpc.sql:RETURNS void AS $$
+supabase/migrations/005_mutations_rpc.sql:DECLARE
+supabase/migrations/005_mutations_rpc.sql:  v_meeting_id uuid;
+supabase/migrations/005_mutations_rpc.sql:BEGIN
+supabase/migrations/005_mutations_rpc.sql:  SELECT id INTO v_meeting_id FROM public.meetings WHERE class_id = p_class_id AND status = 'active';
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  UPDATE public.students
+supabase/migrations/005_mutations_rpc.sql:  SET total_points = total_points + p_points, updated_at = now()
+supabase/migrations/005_mutations_rpc.sql:  WHERE id = p_student_id AND class_id = p_class_id;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  INSERT INTO public.point_events (class_id, student_id, meeting_id, points_delta, reason)
+supabase/migrations/005_mutations_rpc.sql:  VALUES (p_class_id, p_student_id, v_meeting_id, p_points, p_reason);
+supabase/migrations/005_mutations_rpc.sql:END;
+supabase/migrations/005_mutations_rpc.sql:$$ LANGUAGE plpgsql SECURITY DEFINER;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:-- 7. Remove Points
+supabase/migrations/005_mutations_rpc.sql:CREATE OR REPLACE FUNCTION remove_points(p_class_id uuid, p_student_id uuid, p_points integer, p_reason text)
+supabase/migrations/005_mutations_rpc.sql:RETURNS void AS $$
+supabase/migrations/005_mutations_rpc.sql:DECLARE
+supabase/migrations/005_mutations_rpc.sql:  v_meeting_id uuid;
+supabase/migrations/005_mutations_rpc.sql:  v_current_points integer;
+supabase/migrations/005_mutations_rpc.sql:  v_deduct integer;
+supabase/migrations/005_mutations_rpc.sql:BEGIN
+supabase/migrations/005_mutations_rpc.sql:  SELECT id INTO v_meeting_id FROM public.meetings WHERE class_id = p_class_id AND status = 'active';
+supabase/migrations/005_mutations_rpc.sql:  SELECT total_points INTO v_current_points FROM public.students WHERE id = p_student_id FOR UPDATE;
+supabase/migrations/005_mutations_rpc.sql:  
+supabase/migrations/005_mutations_rpc.sql:  v_deduct := LEAST(v_current_points, p_points);
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  UPDATE public.students
+supabase/migrations/005_mutations_rpc.sql:  SET total_points = total_points - v_deduct, updated_at = now()
+supabase/migrations/005_mutations_rpc.sql:  WHERE id = p_student_id AND class_id = p_class_id;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  INSERT INTO public.point_events (class_id, student_id, meeting_id, points_delta, reason)
+supabase/migrations/005_mutations_rpc.sql:  VALUES (p_class_id, p_student_id, v_meeting_id, -v_deduct, p_reason);
+supabase/migrations/005_mutations_rpc.sql:END;
+supabase/migrations/005_mutations_rpc.sql:$$ LANGUAGE plpgsql SECURITY DEFINER;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:-- 8. Remove Life
+supabase/migrations/005_mutations_rpc.sql:CREATE OR REPLACE FUNCTION remove_life(p_class_id uuid, p_student_id uuid, p_reason text)
+supabase/migrations/005_mutations_rpc.sql:RETURNS void AS $$
+supabase/migrations/005_mutations_rpc.sql:DECLARE
+supabase/migrations/005_mutations_rpc.sql:  v_meeting_id uuid;
+supabase/migrations/005_mutations_rpc.sql:  v_current_lives integer;
+supabase/migrations/005_mutations_rpc.sql:BEGIN
+supabase/migrations/005_mutations_rpc.sql:  SELECT id INTO v_meeting_id FROM public.meetings WHERE class_id = p_class_id AND status = 'active';
+supabase/migrations/005_mutations_rpc.sql:  IF NOT FOUND THEN RETURN; END IF;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  SELECT lives_remaining INTO v_current_lives FROM public.student_meeting_states
+supabase/migrations/005_mutations_rpc.sql:  WHERE meeting_id = v_meeting_id AND student_id = p_student_id FOR UPDATE;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  IF v_current_lives > 0 THEN
+supabase/migrations/005_mutations_rpc.sql:    UPDATE public.student_meeting_states
+supabase/migrations/005_mutations_rpc.sql:    SET lives_remaining = lives_remaining - 1, updated_at = now()
+supabase/migrations/005_mutations_rpc.sql:    WHERE meeting_id = v_meeting_id AND student_id = p_student_id;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:    INSERT INTO public.life_events (class_id, student_id, meeting_id, lives_delta, reason)
+supabase/migrations/005_mutations_rpc.sql:    VALUES (p_class_id, p_student_id, v_meeting_id, -1, p_reason);
+supabase/migrations/005_mutations_rpc.sql:  END IF;
+supabase/migrations/005_mutations_rpc.sql:END;
+supabase/migrations/005_mutations_rpc.sql:$$ LANGUAGE plpgsql SECURITY DEFINER;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:-- 9. Restore Life
+supabase/migrations/005_mutations_rpc.sql:CREATE OR REPLACE FUNCTION restore_life(p_class_id uuid, p_student_id uuid, p_reason text)
+supabase/migrations/005_mutations_rpc.sql:RETURNS void AS $$
+supabase/migrations/005_mutations_rpc.sql:DECLARE
+supabase/migrations/005_mutations_rpc.sql:  v_meeting_id uuid;
+supabase/migrations/005_mutations_rpc.sql:  v_max_lives integer;
+supabase/migrations/005_mutations_rpc.sql:  v_current_lives integer;
+supabase/migrations/005_mutations_rpc.sql:BEGIN
+supabase/migrations/005_mutations_rpc.sql:  SELECT id, max_lives_snapshot INTO v_meeting_id, v_max_lives FROM public.meetings WHERE class_id = p_class_id AND status = 'active';
+supabase/migrations/005_mutations_rpc.sql:  IF NOT FOUND THEN RETURN; END IF;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  SELECT lives_remaining INTO v_current_lives FROM public.student_meeting_states
+supabase/migrations/005_mutations_rpc.sql:  WHERE meeting_id = v_meeting_id AND student_id = p_student_id FOR UPDATE;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  IF v_current_lives < v_max_lives THEN
+supabase/migrations/005_mutations_rpc.sql:    UPDATE public.student_meeting_states
+supabase/migrations/005_mutations_rpc.sql:    SET lives_remaining = lives_remaining + 1, updated_at = now()
+supabase/migrations/005_mutations_rpc.sql:    WHERE meeting_id = v_meeting_id AND student_id = p_student_id;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:    INSERT INTO public.life_events (class_id, student_id, meeting_id, lives_delta, reason)
+supabase/migrations/005_mutations_rpc.sql:    VALUES (p_class_id, p_student_id, v_meeting_id, 1, p_reason);
+supabase/migrations/005_mutations_rpc.sql:  END IF;
+supabase/migrations/005_mutations_rpc.sql:END;
+supabase/migrations/005_mutations_rpc.sql:$$ LANGUAGE plpgsql SECURITY DEFINER;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:-- 10. Reset Student Lives
+supabase/migrations/005_mutations_rpc.sql:CREATE OR REPLACE FUNCTION reset_student_lives(p_class_id uuid, p_student_id uuid)
+supabase/migrations/005_mutations_rpc.sql:RETURNS void AS $$
+supabase/migrations/005_mutations_rpc.sql:DECLARE
+supabase/migrations/005_mutations_rpc.sql:  v_meeting_id uuid;
+supabase/migrations/005_mutations_rpc.sql:  v_max_lives integer;
+supabase/migrations/005_mutations_rpc.sql:  v_current_lives integer;
+supabase/migrations/005_mutations_rpc.sql:BEGIN
+supabase/migrations/005_mutations_rpc.sql:  SELECT id, max_lives_snapshot INTO v_meeting_id, v_max_lives FROM public.meetings WHERE class_id = p_class_id AND status = 'active';
+supabase/migrations/005_mutations_rpc.sql:  IF NOT FOUND THEN RETURN; END IF;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  SELECT lives_remaining INTO v_current_lives FROM public.student_meeting_states
+supabase/migrations/005_mutations_rpc.sql:  WHERE meeting_id = v_meeting_id AND student_id = p_student_id FOR UPDATE;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  IF v_current_lives < v_max_lives THEN
+supabase/migrations/005_mutations_rpc.sql:    UPDATE public.student_meeting_states
+supabase/migrations/005_mutations_rpc.sql:    SET lives_remaining = v_max_lives, updated_at = now()
+supabase/migrations/005_mutations_rpc.sql:    WHERE meeting_id = v_meeting_id AND student_id = p_student_id;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:    INSERT INTO public.life_events (class_id, student_id, meeting_id, lives_delta, reason)
+supabase/migrations/005_mutations_rpc.sql:    VALUES (p_class_id, p_student_id, v_meeting_id, v_max_lives - v_current_lives, 'reset');
+supabase/migrations/005_mutations_rpc.sql:  END IF;
+supabase/migrations/005_mutations_rpc.sql:END;
+supabase/migrations/005_mutations_rpc.sql:$$ LANGUAGE plpgsql SECURITY DEFINER;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:-- 11. Start New Meeting
+supabase/migrations/005_mutations_rpc.sql:CREATE OR REPLACE FUNCTION start_new_meeting(p_class_id uuid)
+supabase/migrations/005_mutations_rpc.sql:RETURNS void AS $$
+supabase/migrations/005_mutations_rpc.sql:DECLARE
+supabase/migrations/005_mutations_rpc.sql:  v_max_lives integer;
+supabase/migrations/005_mutations_rpc.sql:  v_meeting_number integer;
+supabase/migrations/005_mutations_rpc.sql:  v_new_meeting_id uuid;
+supabase/migrations/005_mutations_rpc.sql:BEGIN
+supabase/migrations/005_mutations_rpc.sql:  -- Complete current active meeting
+supabase/migrations/005_mutations_rpc.sql:  UPDATE public.meetings
+supabase/migrations/005_mutations_rpc.sql:  SET status = 'completed', ended_at = now()
+supabase/migrations/005_mutations_rpc.sql:  WHERE class_id = p_class_id AND status = 'active';
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  -- Get class info
+supabase/migrations/005_mutations_rpc.sql:  SELECT max_lives, current_meeting_number INTO v_max_lives, v_meeting_number
+supabase/migrations/005_mutations_rpc.sql:  FROM public.classes
+supabase/migrations/005_mutations_rpc.sql:  WHERE id = p_class_id FOR UPDATE;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  -- Increment meeting number
+supabase/migrations/005_mutations_rpc.sql:  UPDATE public.classes
+supabase/migrations/005_mutations_rpc.sql:  SET current_meeting_number = current_meeting_number + 1, updated_at = now()
+supabase/migrations/005_mutations_rpc.sql:  WHERE id = p_class_id;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  -- Create new meeting
+supabase/migrations/005_mutations_rpc.sql:  INSERT INTO public.meetings (class_id, meeting_number, max_lives_snapshot, status)
+supabase/migrations/005_mutations_rpc.sql:  VALUES (p_class_id, v_meeting_number + 1, v_max_lives, 'active')
+supabase/migrations/005_mutations_rpc.sql:  RETURNING id INTO v_new_meeting_id;
+supabase/migrations/005_mutations_rpc.sql:
+supabase/migrations/005_mutations_rpc.sql:  -- Create student states
+supabase/migrations/005_mutations_rpc.sql:  INSERT INTO public.student_meeting_states (meeting_id, student_id, lives_remaining)
+supabase/migrations/005_mutations_rpc.sql:  SELECT v_new_meeting_id, id, v_max_lives
+supabase/migrations/005_mutations_rpc.sql:  FROM public.students
+supabase/migrations/005_mutations_rpc.sql:  WHERE class_id = p_class_id AND is_active = true;
+supabase/migrations/005_mutations_rpc.sql:END;
+supabase/migrations/005_mutations_rpc.sql:$$ LANGUAGE plpgsql SECURITY DEFINER;
+supabase/migrations/006_auth_and_ownership.sql:-- 006_auth_and_ownership.sql
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:-- 1. Create Teacher Profiles Table
+supabase/migrations/006_auth_and_ownership.sql:CREATE TABLE IF NOT EXISTS public.teacher_profiles (
+supabase/migrations/006_auth_and_ownership.sql:  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+supabase/migrations/006_auth_and_ownership.sql:  full_name TEXT NOT NULL,
+supabase/migrations/006_auth_and_ownership.sql:  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+supabase/migrations/006_auth_and_ownership.sql:  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+supabase/migrations/006_auth_and_ownership.sql:);
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:-- 2. Add owner_id to classes table
+supabase/migrations/006_auth_and_ownership.sql:-- In case there are existing rows, we need to handle them. We will temporarily allow NULL,
+supabase/migrations/006_auth_and_ownership.sql:-- assign existing classes to a default owner (if available) or just let them be NULL,
+supabase/migrations/006_auth_and_ownership.sql:-- but the requirement says owner_id uuid not null.
+supabase/migrations/006_auth_and_ownership.sql:-- For a safe migration, we'll make it nullable first, or we can use a dummy UUID if we must, 
+supabase/migrations/006_auth_and_ownership.sql:-- but it's better to make it nullable, or wipe existing if we are doing a fresh start.
+supabase/migrations/006_auth_and_ownership.sql:-- Given this is development, we'll try to add owner_id allowing NULL, then update it.
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:ALTER TABLE public.classes 
+supabase/migrations/006_auth_and_ownership.sql:ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:-- We can't enforce NOT NULL right away if there are existing rows without an owner.
+supabase/migrations/006_auth_and_ownership.sql:-- Since this is just a dev environment, we'll leave it as nullable but enforce it in app logic,
+supabase/migrations/006_auth_and_ownership.sql:-- OR we can try to delete existing classes that don't have an owner if we want to enforce NOT NULL.
+supabase/migrations/006_auth_and_ownership.sql:-- Let's just delete existing classes to ensure data integrity since they belong to nobody.
+supabase/migrations/006_auth_and_ownership.sql:DELETE FROM public.classes WHERE owner_id IS NULL;
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:ALTER TABLE public.classes ALTER COLUMN owner_id SET NOT NULL;
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:-- 3. Enable RLS on teacher_profiles
+supabase/migrations/006_auth_and_ownership.sql:ALTER TABLE public.teacher_profiles ENABLE ROW LEVEL SECURITY;
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can view their own profile" 
+supabase/migrations/006_auth_and_ownership.sql:ON public.teacher_profiles FOR SELECT 
+supabase/migrations/006_auth_and_ownership.sql:TO authenticated 
+supabase/migrations/006_auth_and_ownership.sql:USING (auth.uid() = id);
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can update their own profile" 
+supabase/migrations/006_auth_and_ownership.sql:ON public.teacher_profiles FOR UPDATE 
+supabase/migrations/006_auth_and_ownership.sql:TO authenticated 
+supabase/migrations/006_auth_and_ownership.sql:USING (auth.uid() = id);
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can insert their own profile" 
+supabase/migrations/006_auth_and_ownership.sql:ON public.teacher_profiles FOR INSERT 
+supabase/migrations/006_auth_and_ownership.sql:TO authenticated 
+supabase/migrations/006_auth_and_ownership.sql:WITH CHECK (auth.uid() = id);
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:-- 4. Update RLS on classes
+supabase/migrations/006_auth_and_ownership.sql:-- First, drop existing policies on classes
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable read access for all users" ON public.classes;
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable insert access for all users" ON public.classes;
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable update access for all users" ON public.classes;
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable delete access for all users" ON public.classes;
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can select their own classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.classes FOR SELECT
+supabase/migrations/006_auth_and_ownership.sql:TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:USING (owner_id = auth.uid());
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can insert their own classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.classes FOR INSERT
+supabase/migrations/006_auth_and_ownership.sql:TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:WITH CHECK (owner_id = auth.uid());
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can update their own classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.classes FOR UPDATE
+supabase/migrations/006_auth_and_ownership.sql:TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:USING (owner_id = auth.uid());
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:-- 5. Update RLS on dependent tables
+supabase/migrations/006_auth_and_ownership.sql:-- Students
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable read access for all users" ON public.students;
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable insert access for all users" ON public.students;
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable update access for all users" ON public.students;
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can select students of their classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.students FOR SELECT TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:USING (class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid()));
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can insert students to their classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.students FOR INSERT TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:WITH CHECK (class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid()));
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can update students of their classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.students FOR UPDATE TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:USING (class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid()));
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:-- Meetings
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable read access for all users" ON public.meetings;
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable insert access for all users" ON public.meetings;
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable update access for all users" ON public.meetings;
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can select meetings of their classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.meetings FOR SELECT TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:USING (class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid()));
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can insert meetings to their classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.meetings FOR INSERT TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:WITH CHECK (class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid()));
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can update meetings of their classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.meetings FOR UPDATE TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:USING (class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid()));
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:-- Student Meeting States
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable read access for all users" ON public.student_meeting_states;
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable insert access for all users" ON public.student_meeting_states;
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable update access for all users" ON public.student_meeting_states;
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can select states of their classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.student_meeting_states FOR SELECT TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:USING (meeting_id IN (SELECT id FROM public.meetings WHERE class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid())));
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can insert states of their classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.student_meeting_states FOR INSERT TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:WITH CHECK (meeting_id IN (SELECT id FROM public.meetings WHERE class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid())));
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can update states of their classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.student_meeting_states FOR UPDATE TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:USING (meeting_id IN (SELECT id FROM public.meetings WHERE class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid())));
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:-- Point Events
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable read access for all users" ON public.point_events;
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable insert access for all users" ON public.point_events;
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can select point events of their classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.point_events FOR SELECT TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:USING (class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid()));
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can insert point events of their classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.point_events FOR INSERT TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:WITH CHECK (class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid()));
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:-- Life Events
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable read access for all users" ON public.life_events;
+supabase/migrations/006_auth_and_ownership.sql:DROP POLICY IF EXISTS "Enable insert access for all users" ON public.life_events;
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can select life events of their classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.life_events FOR SELECT TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:USING (class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid()));
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:CREATE POLICY "Teachers can insert life events of their classes"
+supabase/migrations/006_auth_and_ownership.sql:ON public.life_events FOR INSERT TO authenticated
+supabase/migrations/006_auth_and_ownership.sql:WITH CHECK (class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid()));
+supabase/migrations/006_auth_and_ownership.sql:
+supabase/migrations/006_auth_and_ownership.sql:-- Also need to check if mutations_rpc.sql exists and update SECURITY DEFINER if any, 
+supabase/migrations/006_auth_and_ownership.sql:-- but typically we just let RLS handle it if they are SECURITY INVOKER.
+supabase/migrations/006_auth_and_ownership.sql:-- If any functions were created with SECURITY DEFINER, we should be careful.
+supabase/migrations/006_auth_and_ownership.sql:-- By default, functions are SECURITY INVOKER.
+supabase/migrations/007_update_rpcs_for_auth.sql:-- 007_update_rpcs_for_auth.sql
+supabase/migrations/007_update_rpcs_for_auth.sql:
+supabase/migrations/007_update_rpcs_for_auth.sql:-- Drop the existing create_class function to recreate it with the owner_id constraint handling
+supabase/migrations/007_update_rpcs_for_auth.sql:DROP FUNCTION IF EXISTS public.create_class(text, text, integer);
+supabase/migrations/007_update_rpcs_for_auth.sql:
+supabase/migrations/007_update_rpcs_for_auth.sql:CREATE OR REPLACE FUNCTION public.create_class(p_name TEXT, p_level_name TEXT, p_max_lives INTEGER)
+supabase/migrations/007_update_rpcs_for_auth.sql:RETURNS UUID
+supabase/migrations/007_update_rpcs_for_auth.sql:LANGUAGE plpgsql
+supabase/migrations/007_update_rpcs_for_auth.sql:SECURITY INVOKER
+supabase/migrations/007_update_rpcs_for_auth.sql:AS $$
+supabase/migrations/007_update_rpcs_for_auth.sql:DECLARE
+supabase/migrations/007_update_rpcs_for_auth.sql:    v_class_id UUID;
+supabase/migrations/007_update_rpcs_for_auth.sql:    v_owner_id UUID;
+supabase/migrations/007_update_rpcs_for_auth.sql:BEGIN
+supabase/migrations/007_update_rpcs_for_auth.sql:    v_owner_id := auth.uid();
+supabase/migrations/007_update_rpcs_for_auth.sql:    
+supabase/migrations/007_update_rpcs_for_auth.sql:    IF v_owner_id IS NULL THEN
+supabase/migrations/007_update_rpcs_for_auth.sql:        RAISE EXCEPTION 'Must be authenticated to create a class';
+supabase/migrations/007_update_rpcs_for_auth.sql:    END IF;
+supabase/migrations/007_update_rpcs_for_auth.sql:
+supabase/migrations/007_update_rpcs_for_auth.sql:    INSERT INTO public.classes (name, level_name, max_lives, current_meeting_number, owner_id)
+supabase/migrations/007_update_rpcs_for_auth.sql:    VALUES (p_name, p_level_name, p_max_lives, 0, v_owner_id)
+supabase/migrations/007_update_rpcs_for_auth.sql:    RETURNING id INTO v_class_id;
+supabase/migrations/007_update_rpcs_for_auth.sql:    
+supabase/migrations/007_update_rpcs_for_auth.sql:    RETURN v_class_id;
+supabase/migrations/007_update_rpcs_for_auth.sql:END;
+supabase/migrations/007_update_rpcs_for_auth.sql:$$;
+supabase/migrations/007_update_rpcs_for_auth.sql:
+supabase/migrations/007_update_rpcs_for_auth.sql:-- Note: Other RPCs like update_class, archive_class, add_student, etc. 
+supabase/migrations/007_update_rpcs_for_auth.sql:-- usually rely on RLS if they are SECURITY INVOKER.
+supabase/migrations/007_update_rpcs_for_auth.sql:-- Since they do an UPDATE or INSERT on tables with RLS enabled and use SECURITY INVOKER, 
+supabase/migrations/007_update_rpcs_for_auth.sql:-- they will automatically respect the RLS policies and fail if the user doesn't own the class.
+supabase/migrations/007_update_rpcs_for_auth.sql:-- However, we must ensure all of them are SECURITY INVOKER. 
+supabase/migrations/007_update_rpcs_for_auth.sql:-- By default, functions in Postgres are SECURITY INVOKER.
+supabase/migrations/007_update_rpcs_for_auth.sql:-- We'll explicitly recreate them as SECURITY INVOKER just to be absolutely sure.
+supabase/migrations/007_update_rpcs_for_auth.sql:
+supabase/migrations/007_update_rpcs_for_auth.sql:CREATE OR REPLACE FUNCTION public.update_class(p_class_id UUID, p_name TEXT, p_level_name TEXT, p_max_lives INTEGER)
+supabase/migrations/007_update_rpcs_for_auth.sql:RETURNS VOID
+supabase/migrations/007_update_rpcs_for_auth.sql:LANGUAGE plpgsql
+supabase/migrations/007_update_rpcs_for_auth.sql:SECURITY INVOKER
+supabase/migrations/007_update_rpcs_for_auth.sql:AS $$
+supabase/migrations/007_update_rpcs_for_auth.sql:BEGIN
+supabase/migrations/007_update_rpcs_for_auth.sql:    UPDATE public.classes
+supabase/migrations/007_update_rpcs_for_auth.sql:    SET 
+supabase/migrations/007_update_rpcs_for_auth.sql:        name = COALESCE(p_name, name),
+supabase/migrations/007_update_rpcs_for_auth.sql:        level_name = COALESCE(p_level_name, level_name),
+supabase/migrations/007_update_rpcs_for_auth.sql:        max_lives = COALESCE(p_max_lives, max_lives),
+supabase/migrations/007_update_rpcs_for_auth.sql:        updated_at = NOW()
+supabase/migrations/007_update_rpcs_for_auth.sql:    WHERE id = p_class_id;
+supabase/migrations/007_update_rpcs_for_auth.sql:END;
+supabase/migrations/007_update_rpcs_for_auth.sql:$$;
+supabase/migrations/007_update_rpcs_for_auth.sql:
+supabase/migrations/007_update_rpcs_for_auth.sql:CREATE OR REPLACE FUNCTION public.archive_class(p_class_id UUID)
+supabase/migrations/007_update_rpcs_for_auth.sql:RETURNS VOID
+supabase/migrations/007_update_rpcs_for_auth.sql:LANGUAGE plpgsql
+supabase/migrations/007_update_rpcs_for_auth.sql:SECURITY INVOKER
+supabase/migrations/007_update_rpcs_for_auth.sql:AS $$
+supabase/migrations/007_update_rpcs_for_auth.sql:BEGIN
+supabase/migrations/007_update_rpcs_for_auth.sql:    UPDATE public.classes
+supabase/migrations/007_update_rpcs_for_auth.sql:    SET is_archived = TRUE, updated_at = NOW()
+supabase/migrations/007_update_rpcs_for_auth.sql:    WHERE id = p_class_id;
+supabase/migrations/007_update_rpcs_for_auth.sql:END;
+supabase/migrations/007_update_rpcs_for_auth.sql:$$;
+supabase/migrations/007_update_rpcs_for_auth.sql:
+supabase/migrations/007_update_rpcs_for_auth.sql:-- add_student, update_student, award_points, remove_points, remove_life, restore_life, reset_student_lives, start_new_meeting
+supabase/migrations/007_update_rpcs_for_auth.sql:-- all act on tables that have RLS policies ensuring the user owns the classroom.
+supabase/migrations/007_update_rpcs_for_auth.sql:-- Since RLS policies are applied for SECURITY INVOKER functions, we are safe.
+supabase/migrations/008_realtime_setup.sql:BEGIN;
+supabase/migrations/008_realtime_setup.sql:
+supabase/migrations/008_realtime_setup.sql:-- Check and create publication if it doesn't exist
+supabase/migrations/008_realtime_setup.sql:DO $$
+supabase/migrations/008_realtime_setup.sql:BEGIN
+supabase/migrations/008_realtime_setup.sql:    IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+supabase/migrations/008_realtime_setup.sql:        CREATE PUBLICATION supabase_realtime;
+supabase/migrations/008_realtime_setup.sql:    END IF;
+supabase/migrations/008_realtime_setup.sql:END
+supabase/migrations/008_realtime_setup.sql:$$;
+supabase/migrations/008_realtime_setup.sql:
+supabase/migrations/008_realtime_setup.sql:-- Add tables to publication, catching errors if they are already in the publication
+supabase/migrations/008_realtime_setup.sql:DO $$
+supabase/migrations/008_realtime_setup.sql:BEGIN
+supabase/migrations/008_realtime_setup.sql:    ALTER PUBLICATION supabase_realtime ADD TABLE classes;
+supabase/migrations/008_realtime_setup.sql:EXCEPTION WHEN duplicate_object THEN NULL;
+supabase/migrations/008_realtime_setup.sql:END $$;
+supabase/migrations/008_realtime_setup.sql:
+supabase/migrations/008_realtime_setup.sql:DO $$
+supabase/migrations/008_realtime_setup.sql:BEGIN
+supabase/migrations/008_realtime_setup.sql:    ALTER PUBLICATION supabase_realtime ADD TABLE students;
+supabase/migrations/008_realtime_setup.sql:EXCEPTION WHEN duplicate_object THEN NULL;
+supabase/migrations/008_realtime_setup.sql:END $$;
+supabase/migrations/008_realtime_setup.sql:
+supabase/migrations/008_realtime_setup.sql:DO $$
+supabase/migrations/008_realtime_setup.sql:BEGIN
+supabase/migrations/008_realtime_setup.sql:    ALTER PUBLICATION supabase_realtime ADD TABLE meetings;
+supabase/migrations/008_realtime_setup.sql:EXCEPTION WHEN duplicate_object THEN NULL;
+supabase/migrations/008_realtime_setup.sql:END $$;
+supabase/migrations/008_realtime_setup.sql:
+supabase/migrations/008_realtime_setup.sql:DO $$
+supabase/migrations/008_realtime_setup.sql:BEGIN
+supabase/migrations/008_realtime_setup.sql:    ALTER PUBLICATION supabase_realtime ADD TABLE student_meeting_states;
+supabase/migrations/008_realtime_setup.sql:EXCEPTION WHEN duplicate_object THEN NULL;
+supabase/migrations/008_realtime_setup.sql:END $$;
+supabase/migrations/008_realtime_setup.sql:
+supabase/migrations/008_realtime_setup.sql:DO $$
+supabase/migrations/008_realtime_setup.sql:BEGIN
+supabase/migrations/008_realtime_setup.sql:    ALTER PUBLICATION supabase_realtime ADD TABLE point_events;
+supabase/migrations/008_realtime_setup.sql:EXCEPTION WHEN duplicate_object THEN NULL;
+supabase/migrations/008_realtime_setup.sql:END $$;
+supabase/migrations/008_realtime_setup.sql:
+supabase/migrations/008_realtime_setup.sql:DO $$
+supabase/migrations/008_realtime_setup.sql:BEGIN
+supabase/migrations/008_realtime_setup.sql:    ALTER PUBLICATION supabase_realtime ADD TABLE life_events;
+supabase/migrations/008_realtime_setup.sql:EXCEPTION WHEN duplicate_object THEN NULL;
+supabase/migrations/008_realtime_setup.sql:END $$;
+supabase/migrations/008_realtime_setup.sql:
+supabase/migrations/008_realtime_setup.sql:COMMIT;
+supabase/migrations/009_end_meeting_rpc.sql:BEGIN;
+supabase/migrations/009_end_meeting_rpc.sql:
+supabase/migrations/009_end_meeting_rpc.sql:CREATE OR REPLACE FUNCTION public.end_meeting(p_class_id UUID)
+supabase/migrations/009_end_meeting_rpc.sql:RETURNS VOID
+supabase/migrations/009_end_meeting_rpc.sql:LANGUAGE plpgsql
+supabase/migrations/009_end_meeting_rpc.sql:SECURITY INVOKER
+supabase/migrations/009_end_meeting_rpc.sql:AS $$
+supabase/migrations/009_end_meeting_rpc.sql:BEGIN
+supabase/migrations/009_end_meeting_rpc.sql:    UPDATE public.meetings
+supabase/migrations/009_end_meeting_rpc.sql:    SET status = 'completed',
+supabase/migrations/009_end_meeting_rpc.sql:        ended_at = NOW()
+supabase/migrations/009_end_meeting_rpc.sql:    WHERE class_id = p_class_id
+supabase/migrations/009_end_meeting_rpc.sql:      AND status = 'active';
+supabase/migrations/009_end_meeting_rpc.sql:END;
+supabase/migrations/009_end_meeting_rpc.sql:$$;
+supabase/migrations/009_end_meeting_rpc.sql:
+supabase/migrations/009_end_meeting_rpc.sql:COMMIT;
+supabase/migrations/010_student_auth_schema.sql:-- 010_student_auth_schema.sql
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:BEGIN;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:CREATE EXTENSION IF NOT EXISTS pgcrypto;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:-- Add student auth fields
+supabase/migrations/010_student_auth_schema.sql:ALTER TABLE public.classes 
+supabase/migrations/010_student_auth_schema.sql:  ADD COLUMN IF NOT EXISTS join_code text UNIQUE,
+supabase/migrations/010_student_auth_schema.sql:  ADD COLUMN IF NOT EXISTS student_access_enabled boolean NOT NULL DEFAULT true;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:ALTER TABLE public.students
+supabase/migrations/010_student_auth_schema.sql:  ADD COLUMN IF NOT EXISTS student_auth_user_id uuid,
+supabase/migrations/010_student_auth_schema.sql:  ADD COLUMN IF NOT EXISTS access_pin_hash text,
+supabase/migrations/010_student_auth_schema.sql:  ADD COLUMN IF NOT EXISTS access_enabled boolean NOT NULL DEFAULT true,
+supabase/migrations/010_student_auth_schema.sql:  ADD COLUMN IF NOT EXISTS access_activated_at timestamptz;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:-- Function to generate random string
+supabase/migrations/010_student_auth_schema.sql:CREATE OR REPLACE FUNCTION public.generate_join_code() RETURNS text AS $$
+supabase/migrations/010_student_auth_schema.sql:DECLARE
+supabase/migrations/010_student_auth_schema.sql:    chars text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; -- Excluded I, O, 1, 0
+supabase/migrations/010_student_auth_schema.sql:    result text := '';
+supabase/migrations/010_student_auth_schema.sql:    i integer := 0;
+supabase/migrations/010_student_auth_schema.sql:BEGIN
+supabase/migrations/010_student_auth_schema.sql:    FOR i IN 1..6 LOOP
+supabase/migrations/010_student_auth_schema.sql:        result := result || substr(chars, floor(random() * length(chars) + 1)::integer, 1);
+supabase/migrations/010_student_auth_schema.sql:    END LOOP;
+supabase/migrations/010_student_auth_schema.sql:    RETURN result;
+supabase/migrations/010_student_auth_schema.sql:END;
+supabase/migrations/010_student_auth_schema.sql:$$ LANGUAGE plpgsql VOLATILE;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:-- Trigger function to safely ensure join codes on insert
+supabase/migrations/010_student_auth_schema.sql:CREATE OR REPLACE FUNCTION public.set_default_join_code() RETURNS trigger AS $$
+supabase/migrations/010_student_auth_schema.sql:BEGIN
+supabase/migrations/010_student_auth_schema.sql:    IF NEW.join_code IS NULL THEN
+supabase/migrations/010_student_auth_schema.sql:        NEW.join_code := public.generate_join_code();
+supabase/migrations/010_student_auth_schema.sql:    END IF;
+supabase/migrations/010_student_auth_schema.sql:    RETURN NEW;
+supabase/migrations/010_student_auth_schema.sql:END;
+supabase/migrations/010_student_auth_schema.sql:$$ LANGUAGE plpgsql;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:DROP TRIGGER IF EXISTS ensure_join_code ON public.classes;
+supabase/migrations/010_student_auth_schema.sql:CREATE TRIGGER ensure_join_code
+supabase/migrations/010_student_auth_schema.sql:BEFORE INSERT ON public.classes
+supabase/migrations/010_student_auth_schema.sql:FOR EACH ROW
+supabase/migrations/010_student_auth_schema.sql:EXECUTE FUNCTION public.set_default_join_code();
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:-- Set join codes for existing classes
+supabase/migrations/010_student_auth_schema.sql:UPDATE public.classes SET join_code = public.generate_join_code() WHERE join_code IS NULL;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:-- Secure join function
+supabase/migrations/010_student_auth_schema.sql:CREATE OR REPLACE FUNCTION public.join_class_as_student(
+supabase/migrations/010_student_auth_schema.sql:  p_class_code text,
+supabase/migrations/010_student_auth_schema.sql:  p_student_pin text
+supabase/migrations/010_student_auth_schema.sql:)
+supabase/migrations/010_student_auth_schema.sql:RETURNS jsonb
+supabase/migrations/010_student_auth_schema.sql:LANGUAGE plpgsql
+supabase/migrations/010_student_auth_schema.sql:SECURITY DEFINER
+supabase/migrations/010_student_auth_schema.sql:AS $$
+supabase/migrations/010_student_auth_schema.sql:DECLARE
+supabase/migrations/010_student_auth_schema.sql:    v_class_id uuid;
+supabase/migrations/010_student_auth_schema.sql:    v_student record;
+supabase/migrations/010_student_auth_schema.sql:    v_user_id uuid := auth.uid();
+supabase/migrations/010_student_auth_schema.sql:BEGIN
+supabase/migrations/010_student_auth_schema.sql:    IF v_user_id IS NULL THEN
+supabase/migrations/010_student_auth_schema.sql:        RAISE EXCEPTION 'Not authenticated';
+supabase/migrations/010_student_auth_schema.sql:    END IF;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:    -- Find class by code (case insensitive)
+supabase/migrations/010_student_auth_schema.sql:    SELECT id INTO v_class_id
+supabase/migrations/010_student_auth_schema.sql:    FROM public.classes
+supabase/migrations/010_student_auth_schema.sql:    WHERE upper(join_code) = upper(p_class_code)
+supabase/migrations/010_student_auth_schema.sql:      AND student_access_enabled = true;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:    IF v_class_id IS NULL THEN
+supabase/migrations/010_student_auth_schema.sql:        RAISE EXCEPTION 'The class code or PIN is incorrect.';
+supabase/migrations/010_student_auth_schema.sql:    END IF;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:    -- Find student by PIN hash
+supabase/migrations/010_student_auth_schema.sql:    -- We expect the PIN to match exactly one active, access-enabled student in this class
+supabase/migrations/010_student_auth_schema.sql:    SELECT * INTO v_student
+supabase/migrations/010_student_auth_schema.sql:    FROM public.students
+supabase/migrations/010_student_auth_schema.sql:    WHERE class_id = v_class_id
+supabase/migrations/010_student_auth_schema.sql:      AND is_active = true
+supabase/migrations/010_student_auth_schema.sql:      AND access_enabled = true
+supabase/migrations/010_student_auth_schema.sql:      AND access_pin_hash IS NOT NULL
+supabase/migrations/010_student_auth_schema.sql:      AND access_pin_hash = crypt(p_student_pin, access_pin_hash);
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:    IF v_student IS NULL THEN
+supabase/migrations/010_student_auth_schema.sql:        RAISE EXCEPTION 'The class code or PIN is incorrect.';
+supabase/migrations/010_student_auth_schema.sql:    END IF;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:    -- Check if student is already linked to another user
+supabase/migrations/010_student_auth_schema.sql:    IF v_student.student_auth_user_id IS NOT NULL AND v_student.student_auth_user_id != v_user_id THEN
+supabase/migrations/010_student_auth_schema.sql:        RAISE EXCEPTION 'This student account is already linked to another device.';
+supabase/migrations/010_student_auth_schema.sql:    END IF;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:    -- Link student
+supabase/migrations/010_student_auth_schema.sql:    UPDATE public.students
+supabase/migrations/010_student_auth_schema.sql:    SET student_auth_user_id = v_user_id,
+supabase/migrations/010_student_auth_schema.sql:        access_activated_at = COALESCE(access_activated_at, now())
+supabase/migrations/010_student_auth_schema.sql:    WHERE id = v_student.id;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:    RETURN jsonb_build_object(
+supabase/migrations/010_student_auth_schema.sql:        'student_id', v_student.id,
+supabase/migrations/010_student_auth_schema.sql:        'class_id', v_class_id
+supabase/migrations/010_student_auth_schema.sql:    );
+supabase/migrations/010_student_auth_schema.sql:END;
+supabase/migrations/010_student_auth_schema.sql:$$;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:-- RLS policies for students reading their own data
+supabase/migrations/010_student_auth_schema.sql:-- We need to ensure students can read their own row, their class, and their meeting states
+supabase/migrations/010_student_auth_schema.sql:-- The current policies in 006_auth_and_ownership.sql are mostly for teachers.
+supabase/migrations/010_student_auth_schema.sql:-- We will add policies for students here.
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:-- Allow students to read the class they belong to
+supabase/migrations/010_student_auth_schema.sql:CREATE POLICY "Students can read their own class"
+supabase/migrations/010_student_auth_schema.sql:ON public.classes
+supabase/migrations/010_student_auth_schema.sql:FOR SELECT
+supabase/migrations/010_student_auth_schema.sql:USING (
+supabase/migrations/010_student_auth_schema.sql:  id IN (
+supabase/migrations/010_student_auth_schema.sql:    SELECT class_id FROM public.students WHERE student_auth_user_id = auth.uid()
+supabase/migrations/010_student_auth_schema.sql:  )
+supabase/migrations/010_student_auth_schema.sql:);
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:-- Allow students to read their own student record
+supabase/migrations/010_student_auth_schema.sql:CREATE POLICY "Students can read their own record"
+supabase/migrations/010_student_auth_schema.sql:ON public.students
+supabase/migrations/010_student_auth_schema.sql:FOR SELECT
+supabase/migrations/010_student_auth_schema.sql:USING (
+supabase/migrations/010_student_auth_schema.sql:  student_auth_user_id = auth.uid()
+supabase/migrations/010_student_auth_schema.sql:);
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:-- Allow students to read meetings for their class
+supabase/migrations/010_student_auth_schema.sql:CREATE POLICY "Students can read meetings for their class"
+supabase/migrations/010_student_auth_schema.sql:ON public.meetings
+supabase/migrations/010_student_auth_schema.sql:FOR SELECT
+supabase/migrations/010_student_auth_schema.sql:USING (
+supabase/migrations/010_student_auth_schema.sql:  class_id IN (
+supabase/migrations/010_student_auth_schema.sql:    SELECT class_id FROM public.students WHERE student_auth_user_id = auth.uid()
+supabase/migrations/010_student_auth_schema.sql:  )
+supabase/migrations/010_student_auth_schema.sql:);
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:-- Allow students to read their own meeting states
+supabase/migrations/010_student_auth_schema.sql:CREATE POLICY "Students can read their own meeting states"
+supabase/migrations/010_student_auth_schema.sql:ON public.student_meeting_states
+supabase/migrations/010_student_auth_schema.sql:FOR SELECT
+supabase/migrations/010_student_auth_schema.sql:USING (
+supabase/migrations/010_student_auth_schema.sql:  student_id IN (
+supabase/migrations/010_student_auth_schema.sql:    SELECT id FROM public.students WHERE student_auth_user_id = auth.uid()
+supabase/migrations/010_student_auth_schema.sql:  )
+supabase/migrations/010_student_auth_schema.sql:);
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:-- Note: We also need to add policies for realtime updates (e.g. students reading other students' ranks).
+supabase/migrations/010_student_auth_schema.sql:-- The instructions say: "A student must only be able to access: Their own student record, their own meeting-state record, their class's basic public information, their rank result, the active meeting status. A student must not be able to access: Another student's full profile..."
+supabase/migrations/010_student_auth_schema.sql:-- So we need a secure RPC for getting the student's dashboard data which calculates rank without exposing other students.
+supabase/migrations/010_student_auth_schema.sql:-- OR they can fetch the whole roster but only basic info? "Do not expose the full roster unless deliberately enabled later."
+supabase/migrations/010_student_auth_schema.sql:-- Ok, we will create an RPC for the student dashboard.
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:CREATE OR REPLACE FUNCTION public.get_student_dashboard_data(p_student_id uuid)
+supabase/migrations/010_student_auth_schema.sql:RETURNS jsonb
+supabase/migrations/010_student_auth_schema.sql:LANGUAGE plpgsql
+supabase/migrations/010_student_auth_schema.sql:SECURITY DEFINER
+supabase/migrations/010_student_auth_schema.sql:AS $$
+supabase/migrations/010_student_auth_schema.sql:DECLARE
+supabase/migrations/010_student_auth_schema.sql:    v_student record;
+supabase/migrations/010_student_auth_schema.sql:    v_class record;
+supabase/migrations/010_student_auth_schema.sql:    v_meeting record;
+supabase/migrations/010_student_auth_schema.sql:    v_state record;
+supabase/migrations/010_student_auth_schema.sql:    v_rank integer;
+supabase/migrations/010_student_auth_schema.sql:    v_user_id uuid := auth.uid();
+supabase/migrations/010_student_auth_schema.sql:BEGIN
+supabase/migrations/010_student_auth_schema.sql:    -- Verify the student belongs to the auth user
+supabase/migrations/010_student_auth_schema.sql:    SELECT * INTO v_student FROM public.students WHERE id = p_student_id AND student_auth_user_id = v_user_id;
+supabase/migrations/010_student_auth_schema.sql:    IF v_student IS NULL THEN
+supabase/migrations/010_student_auth_schema.sql:        RAISE EXCEPTION 'Not authorized';
+supabase/migrations/010_student_auth_schema.sql:    END IF;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:    -- Get class info
+supabase/migrations/010_student_auth_schema.sql:    SELECT id, name, level_name, max_lives, current_meeting_number INTO v_class
+supabase/migrations/010_student_auth_schema.sql:    FROM public.classes WHERE id = v_student.class_id;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:    -- Get active meeting
+supabase/migrations/010_student_auth_schema.sql:    SELECT id, meeting_number, status INTO v_meeting
+supabase/migrations/010_student_auth_schema.sql:    FROM public.meetings
+supabase/migrations/010_student_auth_schema.sql:    WHERE class_id = v_class.id
+supabase/migrations/010_student_auth_schema.sql:    ORDER BY meeting_number DESC LIMIT 1;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:    -- Get student state
+supabase/migrations/010_student_auth_schema.sql:    IF v_meeting IS NOT NULL THEN
+supabase/migrations/010_student_auth_schema.sql:        SELECT lives_remaining INTO v_state
+supabase/migrations/010_student_auth_schema.sql:        FROM public.student_meeting_states
+supabase/migrations/010_student_auth_schema.sql:        WHERE student_id = p_student_id AND meeting_id = v_meeting.id;
+supabase/migrations/010_student_auth_schema.sql:    END IF;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:    -- Calculate rank
+supabase/migrations/010_student_auth_schema.sql:    SELECT rank INTO v_rank FROM (
+supabase/migrations/010_student_auth_schema.sql:        SELECT id, RANK() OVER (ORDER BY total_points DESC, display_name ASC) as rank
+supabase/migrations/010_student_auth_schema.sql:        FROM public.students
+supabase/migrations/010_student_auth_schema.sql:        WHERE class_id = v_class.id AND is_active = true
+supabase/migrations/010_student_auth_schema.sql:    ) ranks
+supabase/migrations/010_student_auth_schema.sql:    WHERE id = p_student_id;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:    RETURN jsonb_build_object(
+supabase/migrations/010_student_auth_schema.sql:        'student', v_student,
+supabase/migrations/010_student_auth_schema.sql:        'classroom', v_class,
+supabase/migrations/010_student_auth_schema.sql:        'activeMeeting', v_meeting,
+supabase/migrations/010_student_auth_schema.sql:        'lives_remaining', COALESCE(v_state.lives_remaining, 0),
+supabase/migrations/010_student_auth_schema.sql:        'rank', v_rank
+supabase/migrations/010_student_auth_schema.sql:    );
+supabase/migrations/010_student_auth_schema.sql:END;
+supabase/migrations/010_student_auth_schema.sql:$$;
+supabase/migrations/010_student_auth_schema.sql:
+supabase/migrations/010_student_auth_schema.sql:COMMIT;
+supabase/migrations/011_student_access_rpcs.sql:-- 011_student_access_rpcs.sql
+supabase/migrations/011_student_access_rpcs.sql:
+supabase/migrations/011_student_access_rpcs.sql:BEGIN;
+supabase/migrations/011_student_access_rpcs.sql:
+supabase/migrations/011_student_access_rpcs.sql:CREATE OR REPLACE FUNCTION public.regenerate_class_join_code(p_class_id uuid)
+supabase/migrations/011_student_access_rpcs.sql:RETURNS text
+supabase/migrations/011_student_access_rpcs.sql:LANGUAGE plpgsql
+supabase/migrations/011_student_access_rpcs.sql:SECURITY DEFINER
+supabase/migrations/011_student_access_rpcs.sql:AS $$
+supabase/migrations/011_student_access_rpcs.sql:DECLARE
+supabase/migrations/011_student_access_rpcs.sql:    v_new_code text;
+supabase/migrations/011_student_access_rpcs.sql:BEGIN
+supabase/migrations/011_student_access_rpcs.sql:    -- Ensure user owns the class
+supabase/migrations/011_student_access_rpcs.sql:    IF NOT EXISTS (SELECT 1 FROM public.classes WHERE id = p_class_id AND owner_id = auth.uid()) THEN
+supabase/migrations/011_student_access_rpcs.sql:        RAISE EXCEPTION 'Not authorized';
+supabase/migrations/011_student_access_rpcs.sql:    END IF;
+supabase/migrations/011_student_access_rpcs.sql:
+supabase/migrations/011_student_access_rpcs.sql:    v_new_code := public.generate_join_code();
+supabase/migrations/011_student_access_rpcs.sql:
+supabase/migrations/011_student_access_rpcs.sql:    UPDATE public.classes
+supabase/migrations/011_student_access_rpcs.sql:    SET join_code = v_new_code
+supabase/migrations/011_student_access_rpcs.sql:    WHERE id = p_class_id;
+supabase/migrations/011_student_access_rpcs.sql:
+supabase/migrations/011_student_access_rpcs.sql:    RETURN v_new_code;
+supabase/migrations/011_student_access_rpcs.sql:END;
+supabase/migrations/011_student_access_rpcs.sql:$$;
+supabase/migrations/011_student_access_rpcs.sql:
+supabase/migrations/011_student_access_rpcs.sql:CREATE OR REPLACE FUNCTION public.generate_student_pin(p_student_id uuid)
+supabase/migrations/011_student_access_rpcs.sql:RETURNS text
+supabase/migrations/011_student_access_rpcs.sql:LANGUAGE plpgsql
+supabase/migrations/011_student_access_rpcs.sql:SECURITY DEFINER
+supabase/migrations/011_student_access_rpcs.sql:AS $$
+supabase/migrations/011_student_access_rpcs.sql:DECLARE
+supabase/migrations/011_student_access_rpcs.sql:    v_pin text;
+supabase/migrations/011_student_access_rpcs.sql:    i integer;
+supabase/migrations/011_student_access_rpcs.sql:BEGIN
+supabase/migrations/011_student_access_rpcs.sql:    -- Ensure user owns the student's class
+supabase/migrations/011_student_access_rpcs.sql:    IF NOT EXISTS (
+supabase/migrations/011_student_access_rpcs.sql:        SELECT 1 FROM public.students s
+supabase/migrations/011_student_access_rpcs.sql:        JOIN public.classes c ON s.class_id = c.id
+supabase/migrations/011_student_access_rpcs.sql:        WHERE s.id = p_student_id AND c.owner_id = auth.uid()
+supabase/migrations/011_student_access_rpcs.sql:    ) THEN
+supabase/migrations/011_student_access_rpcs.sql:        RAISE EXCEPTION 'Not authorized';
+supabase/migrations/011_student_access_rpcs.sql:    END IF;
+supabase/migrations/011_student_access_rpcs.sql:
+supabase/migrations/011_student_access_rpcs.sql:    -- Generate a random 4-digit PIN
+supabase/migrations/011_student_access_rpcs.sql:    v_pin := '';
+supabase/migrations/011_student_access_rpcs.sql:    FOR i IN 1..4 LOOP
+supabase/migrations/011_student_access_rpcs.sql:        v_pin := v_pin || floor(random() * 10)::text;
+supabase/migrations/011_student_access_rpcs.sql:    END LOOP;
+supabase/migrations/011_student_access_rpcs.sql:
+supabase/migrations/011_student_access_rpcs.sql:    -- Hash and store the PIN
+supabase/migrations/011_student_access_rpcs.sql:    UPDATE public.students
+supabase/migrations/011_student_access_rpcs.sql:    SET access_pin_hash = crypt(v_pin, gen_salt('bf', 8)),
+supabase/migrations/011_student_access_rpcs.sql:        pin_generated_at = now()
+supabase/migrations/011_student_access_rpcs.sql:    WHERE id = p_student_id;
+supabase/migrations/011_student_access_rpcs.sql:
+supabase/migrations/011_student_access_rpcs.sql:    -- Return the cleartext PIN to the teacher
+supabase/migrations/011_student_access_rpcs.sql:    RETURN v_pin;
+supabase/migrations/011_student_access_rpcs.sql:END;
+supabase/migrations/011_student_access_rpcs.sql:$$;
+supabase/migrations/011_student_access_rpcs.sql:
+supabase/migrations/011_student_access_rpcs.sql:CREATE OR REPLACE FUNCTION public.reset_student_device(p_student_id uuid)
+supabase/migrations/011_student_access_rpcs.sql:RETURNS void
+supabase/migrations/011_student_access_rpcs.sql:LANGUAGE plpgsql
+supabase/migrations/011_student_access_rpcs.sql:SECURITY DEFINER
+supabase/migrations/011_student_access_rpcs.sql:AS $$
+supabase/migrations/011_student_access_rpcs.sql:BEGIN
+supabase/migrations/011_student_access_rpcs.sql:    -- Ensure user owns the student's class
+supabase/migrations/011_student_access_rpcs.sql:    IF NOT EXISTS (
+supabase/migrations/011_student_access_rpcs.sql:        SELECT 1 FROM public.students s
+supabase/migrations/011_student_access_rpcs.sql:        JOIN public.classes c ON s.class_id = c.id
+supabase/migrations/011_student_access_rpcs.sql:        WHERE s.id = p_student_id AND c.owner_id = auth.uid()
+supabase/migrations/011_student_access_rpcs.sql:    ) THEN
+supabase/migrations/011_student_access_rpcs.sql:        RAISE EXCEPTION 'Not authorized';
+supabase/migrations/011_student_access_rpcs.sql:    END IF;
+supabase/migrations/011_student_access_rpcs.sql:
+supabase/migrations/011_student_access_rpcs.sql:    UPDATE public.students
+supabase/migrations/011_student_access_rpcs.sql:    SET student_auth_user_id = NULL
+supabase/migrations/011_student_access_rpcs.sql:    WHERE id = p_student_id;
+supabase/migrations/011_student_access_rpcs.sql:END;
+supabase/migrations/011_student_access_rpcs.sql:$$;
+supabase/migrations/011_student_access_rpcs.sql:
+supabase/migrations/011_student_access_rpcs.sql:COMMIT;
+supabase/migrations/012_update_student_dashboard_rpc.sql:-- 012_update_student_dashboard_rpc.sql
+supabase/migrations/012_update_student_dashboard_rpc.sql:BEGIN;
+supabase/migrations/012_update_student_dashboard_rpc.sql:
+supabase/migrations/012_update_student_dashboard_rpc.sql:CREATE OR REPLACE FUNCTION public.get_student_dashboard_data(p_student_id uuid)
+supabase/migrations/012_update_student_dashboard_rpc.sql:RETURNS jsonb
+supabase/migrations/012_update_student_dashboard_rpc.sql:LANGUAGE plpgsql
+supabase/migrations/012_update_student_dashboard_rpc.sql:SECURITY DEFINER
+supabase/migrations/012_update_student_dashboard_rpc.sql:AS $$
+supabase/migrations/012_update_student_dashboard_rpc.sql:DECLARE
+supabase/migrations/012_update_student_dashboard_rpc.sql:    v_student record;
+supabase/migrations/012_update_student_dashboard_rpc.sql:    v_class record;
+supabase/migrations/012_update_student_dashboard_rpc.sql:    v_meeting record;
+supabase/migrations/012_update_student_dashboard_rpc.sql:    v_state record;
+supabase/migrations/012_update_student_dashboard_rpc.sql:    v_rank integer;
+supabase/migrations/012_update_student_dashboard_rpc.sql:    v_user_id uuid := auth.uid();
+supabase/migrations/012_update_student_dashboard_rpc.sql:BEGIN
+supabase/migrations/012_update_student_dashboard_rpc.sql:    -- Verify the student belongs to the auth user and access is enabled
+supabase/migrations/012_update_student_dashboard_rpc.sql:    SELECT * INTO v_student FROM public.students 
+supabase/migrations/012_update_student_dashboard_rpc.sql:    WHERE id = p_student_id 
+supabase/migrations/012_update_student_dashboard_rpc.sql:      AND student_auth_user_id = v_user_id
+supabase/migrations/012_update_student_dashboard_rpc.sql:      AND access_enabled = true;
+supabase/migrations/012_update_student_dashboard_rpc.sql:      
+supabase/migrations/012_update_student_dashboard_rpc.sql:    IF v_student IS NULL THEN
+supabase/migrations/012_update_student_dashboard_rpc.sql:        RAISE EXCEPTION 'Not authorized or access revoked';
+supabase/migrations/012_update_student_dashboard_rpc.sql:    END IF;
+supabase/migrations/012_update_student_dashboard_rpc.sql:
+supabase/migrations/012_update_student_dashboard_rpc.sql:    -- Get class info
+supabase/migrations/012_update_student_dashboard_rpc.sql:    SELECT id, name, level_name, max_lives, current_meeting_number INTO v_class
+supabase/migrations/012_update_student_dashboard_rpc.sql:    FROM public.classes WHERE id = v_student.class_id;
+supabase/migrations/012_update_student_dashboard_rpc.sql:
+supabase/migrations/012_update_student_dashboard_rpc.sql:    -- Get active meeting
+supabase/migrations/012_update_student_dashboard_rpc.sql:    SELECT id, meeting_number, status INTO v_meeting
+supabase/migrations/012_update_student_dashboard_rpc.sql:    FROM public.meetings
+supabase/migrations/012_update_student_dashboard_rpc.sql:    WHERE class_id = v_class.id
+supabase/migrations/012_update_student_dashboard_rpc.sql:    ORDER BY meeting_number DESC LIMIT 1;
+supabase/migrations/012_update_student_dashboard_rpc.sql:
+supabase/migrations/012_update_student_dashboard_rpc.sql:    -- Get student state
+supabase/migrations/012_update_student_dashboard_rpc.sql:    IF v_meeting IS NOT NULL THEN
+supabase/migrations/012_update_student_dashboard_rpc.sql:        SELECT lives_remaining INTO v_state
+supabase/migrations/012_update_student_dashboard_rpc.sql:        FROM public.student_meeting_states
+supabase/migrations/012_update_student_dashboard_rpc.sql:        WHERE student_id = p_student_id AND meeting_id = v_meeting.id;
+supabase/migrations/012_update_student_dashboard_rpc.sql:    END IF;
+supabase/migrations/012_update_student_dashboard_rpc.sql:
+supabase/migrations/012_update_student_dashboard_rpc.sql:    -- Calculate rank
+supabase/migrations/012_update_student_dashboard_rpc.sql:    SELECT rank INTO v_rank FROM (
+supabase/migrations/012_update_student_dashboard_rpc.sql:        SELECT id, RANK() OVER (ORDER BY total_points DESC, display_name ASC) as rank
+supabase/migrations/012_update_student_dashboard_rpc.sql:        FROM public.students
+supabase/migrations/012_update_student_dashboard_rpc.sql:        WHERE class_id = v_class.id AND is_active = true
+supabase/migrations/012_update_student_dashboard_rpc.sql:    ) ranks
+supabase/migrations/012_update_student_dashboard_rpc.sql:    WHERE id = p_student_id;
+supabase/migrations/012_update_student_dashboard_rpc.sql:
+supabase/migrations/012_update_student_dashboard_rpc.sql:    RETURN jsonb_build_object(
+supabase/migrations/012_update_student_dashboard_rpc.sql:        'student', jsonb_build_object(
+supabase/migrations/012_update_student_dashboard_rpc.sql:            'id', v_student.id,
+supabase/migrations/012_update_student_dashboard_rpc.sql:            'class_id', v_student.class_id,
+supabase/migrations/012_update_student_dashboard_rpc.sql:            'display_name', v_student.display_name,
+supabase/migrations/012_update_student_dashboard_rpc.sql:            'avatar_key', v_student.avatar_key,
+supabase/migrations/012_update_student_dashboard_rpc.sql:            'total_points', v_student.total_points,
+supabase/migrations/012_update_student_dashboard_rpc.sql:            'is_active', v_student.is_active,
+supabase/migrations/012_update_student_dashboard_rpc.sql:            'has_pin', v_student.pin_generated_at IS NOT NULL
+supabase/migrations/012_update_student_dashboard_rpc.sql:        ),
+supabase/migrations/012_update_student_dashboard_rpc.sql:        'classroom', v_class,
+supabase/migrations/012_update_student_dashboard_rpc.sql:        'activeMeeting', v_meeting,
+supabase/migrations/012_update_student_dashboard_rpc.sql:        'lives_remaining', COALESCE(v_state.lives_remaining, 0),
+supabase/migrations/012_update_student_dashboard_rpc.sql:        'rank', v_rank
+supabase/migrations/012_update_student_dashboard_rpc.sql:    );
+supabase/migrations/012_update_student_dashboard_rpc.sql:END;
+supabase/migrations/012_update_student_dashboard_rpc.sql:$$;
+supabase/migrations/012_update_student_dashboard_rpc.sql:
+supabase/migrations/012_update_student_dashboard_rpc.sql:COMMIT;
+supabase/migrations/013_unique_pin_rpc.sql:BEGIN;
+supabase/migrations/013_unique_pin_rpc.sql:
+supabase/migrations/013_unique_pin_rpc.sql:CREATE OR REPLACE FUNCTION public.generate_student_pin(p_student_id uuid)
+supabase/migrations/013_unique_pin_rpc.sql:RETURNS text
+supabase/migrations/013_unique_pin_rpc.sql:LANGUAGE plpgsql
+supabase/migrations/013_unique_pin_rpc.sql:SECURITY DEFINER
+supabase/migrations/013_unique_pin_rpc.sql:AS $$
+supabase/migrations/013_unique_pin_rpc.sql:DECLARE
+supabase/migrations/013_unique_pin_rpc.sql:    v_pin text;
+supabase/migrations/013_unique_pin_rpc.sql:    v_class_id uuid;
+supabase/migrations/013_unique_pin_rpc.sql:    v_is_unique boolean;
+supabase/migrations/013_unique_pin_rpc.sql:BEGIN
+supabase/migrations/013_unique_pin_rpc.sql:    -- Ensure user owns the student's class
+supabase/migrations/013_unique_pin_rpc.sql:    SELECT c.id INTO v_class_id
+supabase/migrations/013_unique_pin_rpc.sql:    FROM public.students s
+supabase/migrations/013_unique_pin_rpc.sql:    JOIN public.classes c ON s.class_id = c.id
+supabase/migrations/013_unique_pin_rpc.sql:    WHERE s.id = p_student_id AND c.owner_id = auth.uid();
+supabase/migrations/013_unique_pin_rpc.sql:
+supabase/migrations/013_unique_pin_rpc.sql:    IF v_class_id IS NULL THEN
+supabase/migrations/013_unique_pin_rpc.sql:        RAISE EXCEPTION 'Not authorized';
+supabase/migrations/013_unique_pin_rpc.sql:    END IF;
+supabase/migrations/013_unique_pin_rpc.sql:
+supabase/migrations/013_unique_pin_rpc.sql:    -- Generate a unique 4-digit PIN for the class
+supabase/migrations/013_unique_pin_rpc.sql:    LOOP
+supabase/migrations/013_unique_pin_rpc.sql:        v_pin := lpad(floor(random() * 10000)::text, 4, '0');
+supabase/migrations/013_unique_pin_rpc.sql:        
+supabase/migrations/013_unique_pin_rpc.sql:        -- Check if it's unique
+supabase/migrations/013_unique_pin_rpc.sql:        SELECT NOT EXISTS (
+supabase/migrations/013_unique_pin_rpc.sql:            SELECT 1 FROM public.students
+supabase/migrations/013_unique_pin_rpc.sql:            WHERE class_id = v_class_id AND access_pin_hash IS NOT NULL AND access_pin_hash = crypt(v_pin, access_pin_hash)
+supabase/migrations/013_unique_pin_rpc.sql:        ) INTO v_is_unique;
+supabase/migrations/013_unique_pin_rpc.sql:
+supabase/migrations/013_unique_pin_rpc.sql:        EXIT WHEN v_is_unique;
+supabase/migrations/013_unique_pin_rpc.sql:    END LOOP;
+supabase/migrations/013_unique_pin_rpc.sql:
+supabase/migrations/013_unique_pin_rpc.sql:    -- Hash and store the PIN
+supabase/migrations/013_unique_pin_rpc.sql:    UPDATE public.students
+supabase/migrations/013_unique_pin_rpc.sql:    SET access_pin_hash = crypt(v_pin, gen_salt('bf', 8)),
+supabase/migrations/013_unique_pin_rpc.sql:        pin_generated_at = now()
+supabase/migrations/013_unique_pin_rpc.sql:    WHERE id = p_student_id;
+supabase/migrations/013_unique_pin_rpc.sql:
+supabase/migrations/013_unique_pin_rpc.sql:    -- Return the cleartext PIN to the teacher
+supabase/migrations/013_unique_pin_rpc.sql:    RETURN v_pin;
+supabase/migrations/013_unique_pin_rpc.sql:END;
+supabase/migrations/013_unique_pin_rpc.sql:$$;
+supabase/migrations/013_unique_pin_rpc.sql:
+supabase/migrations/013_unique_pin_rpc.sql:COMMIT;
+supabase/migrations/014_update_join_rpc.sql:BEGIN;
+supabase/migrations/014_update_join_rpc.sql:
+supabase/migrations/014_update_join_rpc.sql:CREATE OR REPLACE FUNCTION public.join_class_as_student(
+supabase/migrations/014_update_join_rpc.sql:  p_class_code text,
+supabase/migrations/014_update_join_rpc.sql:  p_student_pin text
+supabase/migrations/014_update_join_rpc.sql:)
+supabase/migrations/014_update_join_rpc.sql:RETURNS jsonb
+supabase/migrations/014_update_join_rpc.sql:LANGUAGE plpgsql
+supabase/migrations/014_update_join_rpc.sql:SECURITY DEFINER
+supabase/migrations/014_update_join_rpc.sql:AS $$
+supabase/migrations/014_update_join_rpc.sql:DECLARE
+supabase/migrations/014_update_join_rpc.sql:    v_class_id uuid;
+supabase/migrations/014_update_join_rpc.sql:    v_student record;
+supabase/migrations/014_update_join_rpc.sql:    v_user_id uuid := auth.uid();
+supabase/migrations/014_update_join_rpc.sql:    v_normalized_code text;
+supabase/migrations/014_update_join_rpc.sql:    v_normalized_pin text;
+supabase/migrations/014_update_join_rpc.sql:BEGIN
+supabase/migrations/014_update_join_rpc.sql:    IF v_user_id IS NULL THEN
+supabase/migrations/014_update_join_rpc.sql:        RAISE EXCEPTION 'Not authenticated';
+supabase/migrations/014_update_join_rpc.sql:    END IF;
+supabase/migrations/014_update_join_rpc.sql:
+supabase/migrations/014_update_join_rpc.sql:    v_normalized_code := upper(trim(p_class_code));
+supabase/migrations/014_update_join_rpc.sql:    v_normalized_pin := trim(p_student_pin);
+supabase/migrations/014_update_join_rpc.sql:
+supabase/migrations/014_update_join_rpc.sql:    -- Find class by code
+supabase/migrations/014_update_join_rpc.sql:    SELECT id INTO v_class_id
+supabase/migrations/014_update_join_rpc.sql:    FROM public.classes
+supabase/migrations/014_update_join_rpc.sql:    WHERE upper(join_code) = v_normalized_code
+supabase/migrations/014_update_join_rpc.sql:      AND student_access_enabled = true;
+supabase/migrations/014_update_join_rpc.sql:
+supabase/migrations/014_update_join_rpc.sql:    IF v_class_id IS NULL THEN
+supabase/migrations/014_update_join_rpc.sql:        RAISE EXCEPTION 'The class code or PIN is incorrect.';
+supabase/migrations/014_update_join_rpc.sql:    END IF;
+supabase/migrations/014_update_join_rpc.sql:
+supabase/migrations/014_update_join_rpc.sql:    -- Find student by PIN hash
+supabase/migrations/014_update_join_rpc.sql:    -- We expect the PIN to match exactly one active, access-enabled student in this class
+supabase/migrations/014_update_join_rpc.sql:    SELECT * INTO v_student
+supabase/migrations/014_update_join_rpc.sql:    FROM public.students
+supabase/migrations/014_update_join_rpc.sql:    WHERE class_id = v_class_id
+supabase/migrations/014_update_join_rpc.sql:      AND is_active = true
+supabase/migrations/014_update_join_rpc.sql:      AND access_enabled = true
+supabase/migrations/014_update_join_rpc.sql:      AND access_pin_hash IS NOT NULL
+supabase/migrations/014_update_join_rpc.sql:      AND access_pin_hash = crypt(v_normalized_pin, access_pin_hash);
+supabase/migrations/014_update_join_rpc.sql:
+supabase/migrations/014_update_join_rpc.sql:    IF v_student IS NULL THEN
+supabase/migrations/014_update_join_rpc.sql:        RAISE EXCEPTION 'The class code or PIN is incorrect.';
+supabase/migrations/014_update_join_rpc.sql:    END IF;
+supabase/migrations/014_update_join_rpc.sql:
+supabase/migrations/014_update_join_rpc.sql:    -- Check if student is already linked to another user
+supabase/migrations/014_update_join_rpc.sql:    IF v_student.student_auth_user_id IS NOT NULL AND v_student.student_auth_user_id != v_user_id THEN
+supabase/migrations/014_update_join_rpc.sql:        RAISE EXCEPTION 'This student account is already linked to another device.';
+supabase/migrations/014_update_join_rpc.sql:    END IF;
+supabase/migrations/014_update_join_rpc.sql:
+supabase/migrations/014_update_join_rpc.sql:    -- Link student
+supabase/migrations/014_update_join_rpc.sql:    UPDATE public.students
+supabase/migrations/014_update_join_rpc.sql:    SET student_auth_user_id = v_user_id,
+supabase/migrations/014_update_join_rpc.sql:        access_activated_at = COALESCE(access_activated_at, now())
+supabase/migrations/014_update_join_rpc.sql:    WHERE id = v_student.id;
+supabase/migrations/014_update_join_rpc.sql:
+supabase/migrations/014_update_join_rpc.sql:    RETURN jsonb_build_object(
+supabase/migrations/014_update_join_rpc.sql:        'student_id', v_student.id,
+supabase/migrations/014_update_join_rpc.sql:        'class_id', v_class_id
+supabase/migrations/014_update_join_rpc.sql:    );
+supabase/migrations/014_update_join_rpc.sql:END;
+supabase/migrations/014_update_join_rpc.sql:$$;
+supabase/migrations/014_update_join_rpc.sql:
+supabase/migrations/014_update_join_rpc.sql:COMMIT;
+supabase/migrations/015_add_pin_generated_at.sql:BEGIN;
+supabase/migrations/015_add_pin_generated_at.sql:
+supabase/migrations/015_add_pin_generated_at.sql:ALTER TABLE public.students
+supabase/migrations/015_add_pin_generated_at.sql:  ADD COLUMN IF NOT EXISTS pin_generated_at timestamptz;
+supabase/migrations/015_add_pin_generated_at.sql:
+supabase/migrations/015_add_pin_generated_at.sql:COMMIT;

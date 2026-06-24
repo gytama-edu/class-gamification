@@ -33,6 +33,7 @@ export interface DbStudent {
   created_at: string;
   updated_at: string;
   has_pin?: boolean;
+  pin_generated_at?: string | null;
 }
 
 export interface Meeting {
@@ -40,7 +41,7 @@ export interface Meeting {
   class_id: string;
   meeting_number: number;
   max_lives_snapshot: number;
-  status: 'active' | 'completed';
+  status: "active" | "completed";
   started_at: string;
   ended_at: string | null;
   created_at: string;

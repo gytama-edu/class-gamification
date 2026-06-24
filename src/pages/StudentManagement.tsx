@@ -127,9 +127,7 @@ export const StudentManagement: React.FC = () => {
 
       // We don't have the hash in the client, but we know they now have a pin.
       setAllStudents((prev) =>
-        prev.map((s) =>
-          s.id === studentId ? { ...s, access_pin_hash: "set" } : s,
-        ),
+        prev.map((s) => (s.id === studentId ? { ...s, has_pin: true } : s)),
       );
     } catch (err) {
       console.error(err);
@@ -215,7 +213,7 @@ export const StudentManagement: React.FC = () => {
         <div className="bg-slate-900 px-6 py-4 rounded-xl border border-slate-700 min-w-[200px]">
           <div className="text-sm text-slate-400 mb-1">Students with PIN</div>
           <div className="text-3xl font-bold text-white">
-            {allStudents.filter((s) => s.access_pin_hash).length}{" "}
+            {allStudents.filter((s) => s.has_pin).length}{" "}
             <span className="text-lg text-slate-500 font-normal">
               / {allStudents.length}
             </span>
@@ -339,7 +337,7 @@ export const StudentManagement: React.FC = () => {
                         <span className="text-xs font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-md">
                           Access Disabled
                         </span>
-                      ) : student.access_pin_hash ? (
+                      ) : student.has_pin ? (
                         <span className="text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-md">
                           PIN Ready
                         </span>
@@ -374,7 +372,7 @@ export const StudentManagement: React.FC = () => {
                         disabled={processingId === student.id}
                         className="text-xs px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
                       >
-                        Gen PIN
+                        {student.has_pin ? "Reset PIN" : "Generate PIN"}
                       </button>
                       {student.student_auth_user_id && (
                         <button

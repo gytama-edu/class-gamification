@@ -51,7 +51,8 @@ BEGIN
 
     -- Hash and store the PIN
     UPDATE public.students
-    SET access_pin_hash = crypt(v_pin, gen_salt('bf', 8))
+    SET access_pin_hash = crypt(v_pin, gen_salt('bf', 8)),
+        pin_generated_at = now()
     WHERE id = p_student_id;
 
     -- Return the cleartext PIN to the teacher

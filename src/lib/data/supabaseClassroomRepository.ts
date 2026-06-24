@@ -158,12 +158,15 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     const { data, error } = await supabase
       .from("students")
       .select(
-        "id, class_id, display_name, avatar_key, total_points, is_active, student_auth_user_id, access_enabled, access_activated_at, created_at, updated_at, has_pin",
+        "id, class_id, display_name, avatar_key, total_points, is_active, student_auth_user_id, access_enabled, access_activated_at, created_at, updated_at, pin_generated_at",
       )
       .eq("class_id", classId)
       .order("created_at");
     if (error) throw error;
-    return data || [];
+    return (data || []).map((s: any) => ({
+      ...s,
+      has_pin: !!s.pin_generated_at,
+    }));
   }
 
   async addStudent(

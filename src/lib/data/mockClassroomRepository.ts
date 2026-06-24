@@ -26,7 +26,7 @@ interface MockDB {
   life_events: any[];
 }
 
-const CURRENT_SCHEMA_VERSION = 1;
+const CURRENT_SCHEMA_VERSION = 2;
 
 function generateId() {
   return crypto.randomUUID
@@ -130,6 +130,14 @@ function getInitialMockDB(): MockDB {
     lives: number,
   ) => {
     const sId = generateId();
+    let pin;
+    let isUnique = false;
+    while (!isUnique) {
+      pin = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
+      isUnique = !students.some(
+        (s) => s.class_id === classId && s.access_pin_hash === pin,
+      );
+    }
     students.push({
       id: sId,
       class_id: classId,
@@ -138,7 +146,7 @@ function getInitialMockDB(): MockDB {
       total_points: points,
       is_active: true,
       student_auth_user_id: null,
-      access_pin_hash: "1234", // Using cleartext '1234' for mock simplicity
+      access_pin_hash: pin, // Using cleartext for mock simplicity
       access_enabled: true,
       access_activated_at: null,
       created_at: new Date().toISOString(),
@@ -279,7 +287,44 @@ export class MockClassroomRepository implements ClassroomRepository {
         )
           ? parsed.student_meeting_states
           : [];
-        parsed.schema_version = parsed.schema_version || CURRENT_SCHEMA_VERSION;
+        parsed.schema_version = parsed.schema_version || 1;
+
+        if (parsed.schema_version < 2) {
+          console.info(
+            "Migrating to schema version 2 (Adding join_code and access_pin_hash)...",
+          );
+          parsed.classes.forEach((c: any) => {
+            if (!c.join_code) {
+              c.join_code = generateJoinCode();
+            }
+            if (c.student_access_enabled === undefined) {
+              c.student_access_enabled = true;
+            }
+          });
+          parsed.students.forEach((s: any) => {
+            if (s.access_enabled === undefined) {
+              s.access_enabled = true;
+            }
+            if (!s.access_pin_hash) {
+              let pin;
+              let isUnique = false;
+              while (!isUnique) {
+                pin = String(Math.floor(Math.random() * 10000)).padStart(
+                  4,
+                  "0",
+                );
+                isUnique = !parsed.students.some(
+                  (other: any) =>
+                    other.class_id === s.class_id &&
+                    other.access_pin_hash === pin,
+                );
+              }
+              s.access_pin_hash = pin;
+            }
+          });
+          parsed.schema_version = 2;
+          this.saveDb(parsed);
+        }
 
         // It's the new schema
         return parsed as MockDB;
@@ -414,7 +459,13 @@ export class MockClassroomRepository implements ClassroomRepository {
   }
 
   async getStudents(classId: string): Promise<DbStudent[]> {
-    return this.getDb().students.filter((s) => s.class_id === classId);
+    return this.getDb()
+      .students.filter((s) => s.class_id === classId)
+      .map((s) => ({
+        ...s,
+        has_pin: !!s.access_pin_hash,
+        access_pin_hash: null, // Don't expose hash just like Supabase
+      }));
   }
 
   async addStudent(
@@ -431,7 +482,7 @@ export class MockClassroomRepository implements ClassroomRepository {
       total_points: 0,
       is_active: true,
       student_auth_user_id: null,
-      access_pin_hash: "1234",
+      access_pin_hash: null,
       access_enabled: true,
       access_activated_at: null,
       created_at: new Date().toISOString(),
@@ -490,7 +541,15 @@ export class MockClassroomRepository implements ClassroomRepository {
     const db = this.getDb();
     const idx = db.students.findIndex((s) => s.id === studentId);
     if (idx !== -1) {
-      const pin = Math.floor(1000 + Math.random() * 9000).toString();
+      const classId = db.students[idx].class_id;
+      let pin;
+      let isUnique = false;
+      while (!isUnique) {
+        pin = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
+        isUnique = !db.students.some(
+          (s) => s.class_id === classId && s.access_pin_hash === pin,
+        );
+      }
       db.students[idx].access_pin_hash = pin; // Mock stores cleartext for simplicity
       this.saveDb(db);
       notifyMockUpdate(db.students[idx].class_id);
@@ -514,12 +573,17 @@ export class MockClassroomRepository implements ClassroomRepository {
     classCode: string,
     pin: string,
   ): Promise<{ student_id: string; class_id: string }> {
+    const normalizedCode = classCode.trim().toUpperCase();
+    const normalizedPin = pin.trim();
+
     const db = this.getDb();
     const cls = db.classes.find(
-      (c) =>
-        c.join_code === classCode.toUpperCase() && c.student_access_enabled,
+      (c) => c.join_code === normalizedCode && c.student_access_enabled,
     );
     if (!cls) {
+      console.warn(
+        `Join failed: Class not found or disabled for code ${normalizedCode}`,
+      );
       throw new Error("The class code or PIN is incorrect.");
     }
 
@@ -528,9 +592,12 @@ export class MockClassroomRepository implements ClassroomRepository {
         s.class_id === cls.id &&
         s.is_active &&
         s.access_enabled &&
-        s.access_pin_hash === pin,
+        s.access_pin_hash === normalizedPin,
     );
     if (!student) {
+      console.warn(
+        `Join failed: Student not found or disabled for class ${cls.id} with pin ${normalizedPin}`,
+      );
       throw new Error("The class code or PIN is incorrect.");
     }
 
@@ -543,9 +610,7 @@ export class MockClassroomRepository implements ClassroomRepository {
     return { student_id: student.id, class_id: cls.id };
   }
 
-  async getStudentDashboard(
-    studentId: string,
-  ): Promise<{
+  async getStudentDashboard(studentId: string): Promise<{
     student: DbStudent;
     classroom: Classroom;
     activeMeeting: Meeting | null;

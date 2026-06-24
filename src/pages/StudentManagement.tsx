@@ -72,7 +72,11 @@ export const StudentManagement: React.FC = () => {
       await repo.updateStudent(studentId, { is_active: !currentStatus });
       await refreshDashboard();
       // Also update local allStudents to reflect change quickly
-      setAllStudents(prev => prev.map(s => s.id === studentId ? { ...s, is_active: !currentStatus } : s));
+      setAllStudents((prev) =>
+        prev.map((s) =>
+          s.id === studentId ? { ...s, is_active: !currentStatus } : s,
+        ),
+      );
     } catch (err) {
       console.error(err);
       alert("Failed to update student status");
@@ -81,13 +85,20 @@ export const StudentManagement: React.FC = () => {
     }
   };
 
-  const handleToggleAccess = async (studentId: string, currentAccess: boolean) => {
+  const handleToggleAccess = async (
+    studentId: string,
+    currentAccess: boolean,
+  ) => {
     if (processingId === studentId) return;
     setProcessingId(studentId);
     try {
       const repo = getRepository();
       await repo.updateStudentAccess(studentId, !currentAccess);
-      setAllStudents(prev => prev.map(s => s.id === studentId ? { ...s, access_enabled: !currentAccess } : s));
+      setAllStudents((prev) =>
+        prev.map((s) =>
+          s.id === studentId ? { ...s, access_enabled: !currentAccess } : s,
+        ),
+      );
     } catch (err) {
       console.error(err);
       alert("Failed to update student access");
@@ -98,17 +109,28 @@ export const StudentManagement: React.FC = () => {
 
   const handleGeneratePin = async (studentId: string) => {
     if (processingId === studentId) return;
-    if (!confirm("Are you sure you want to generate a new PIN? The old PIN will no longer work.")) return;
-    
+    if (
+      !confirm(
+        "Are you sure you want to generate a new PIN? The old PIN will no longer work.",
+      )
+    )
+      return;
+
     setProcessingId(studentId);
     try {
       const repo = getRepository();
       const newPin = await repo.generateStudentPin(studentId);
       // We do not save the cleartext PIN to state, only show it once
-      alert(`The new PIN is: ${newPin}\n\nPlease save this or give it to the student. It will not be shown again.`);
-      
+      alert(
+        `The new PIN is: ${newPin}\n\nPlease save this or give it to the student. It will not be shown again.`,
+      );
+
       // We don't have the hash in the client, but we know they now have a pin.
-      setAllStudents(prev => prev.map(s => s.id === studentId ? { ...s, access_pin_hash: "set" } : s));
+      setAllStudents((prev) =>
+        prev.map((s) =>
+          s.id === studentId ? { ...s, access_pin_hash: "set" } : s,
+        ),
+      );
     } catch (err) {
       console.error(err);
       alert("Failed to generate PIN");
@@ -119,13 +141,24 @@ export const StudentManagement: React.FC = () => {
 
   const handleResetDevice = async (studentId: string) => {
     if (processingId === studentId) return;
-    if (!confirm("Are you sure you want to reset device access? The student will be logged out of their current device.")) return;
-    
+    if (
+      !confirm(
+        "Are you sure you want to reset device access? The student will be logged out of their current device.",
+      )
+    )
+      return;
+
     setProcessingId(studentId);
     try {
       const repo = getRepository();
       await repo.resetStudentDevice(studentId);
-      setAllStudents(prev => prev.map(s => s.id === studentId ? { ...s, student_auth_user_id: null, access_activated_at: null } : s));
+      setAllStudents((prev) =>
+        prev.map((s) =>
+          s.id === studentId
+            ? { ...s, student_auth_user_id: null, access_activated_at: null }
+            : s,
+        ),
+      );
     } catch (err) {
       console.error(err);
       alert("Failed to reset device access");
@@ -146,6 +179,96 @@ export const StudentManagement: React.FC = () => {
           </p>
         </div>
       </div>
+
+      <div className="bg-cosmic-panel border border-slate-800 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+          <h2 className="text-xl font-bold text-white mb-2">
+            Class Access Info
+          </h2>
+          <p className="text-slate-400 mb-4 text-sm">
+            Students can join using this class code and their unique PIN.
+          </p>
+          <div className="flex gap-4 items-center">
+            <div className="bg-slate-900 px-4 py-2 rounded-lg border border-slate-700">
+              <span className="text-xs text-slate-500 block uppercase tracking-wider mb-1">
+                Class Code
+              </span>
+              <span className="text-2xl font-mono text-cosmic-cyan font-bold tracking-widest">
+                {dashboardData.classroom.join_code || "MISSING"}
+              </span>
+            </div>
+            <div className="bg-slate-900 px-4 py-2 rounded-lg border border-slate-700">
+              <span className="text-xs text-slate-500 block uppercase tracking-wider mb-1">
+                Access
+              </span>
+              <span
+                className={`text-sm font-medium ${dashboardData.classroom.student_access_enabled ? "text-emerald-400" : "text-rose-400"}`}
+              >
+                {dashboardData.classroom.student_access_enabled
+                  ? "Enabled"
+                  : "Disabled"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-slate-900 px-6 py-4 rounded-xl border border-slate-700 min-w-[200px]">
+          <div className="text-sm text-slate-400 mb-1">Students with PIN</div>
+          <div className="text-3xl font-bold text-white">
+            {allStudents.filter((s) => s.access_pin_hash).length}{" "}
+            <span className="text-lg text-slate-500 font-normal">
+              / {allStudents.length}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {import.meta.env.DEV && import.meta.env.VITE_DATA_SOURCE === "mock" && (
+        <div className="bg-amber-900/20 border border-amber-500/30 rounded-3xl p-6">
+          <h2 className="text-lg font-bold text-amber-500 mb-2">
+            Development Recovery Tool
+          </h2>
+          <p className="text-sm text-amber-400/80 mb-4">
+            This tool generates missing class codes and mock PINs. It is only
+            visible in mock development mode.
+          </p>
+          <button
+            onClick={() => {
+              const repo = getRepository() as any;
+              if (repo.getDb) {
+                const db = repo.getDb();
+                let fixedClasses = 0;
+                let fixedStudents = 0;
+                db.classes.forEach((c: any) => {
+                  if (!c.join_code) {
+                    c.join_code = Math.random()
+                      .toString(36)
+                      .substring(2, 8)
+                      .toUpperCase();
+                    fixedClasses++;
+                  }
+                });
+                db.students.forEach((s: any) => {
+                  if (!s.access_pin_hash) {
+                    s.access_pin_hash = String(
+                      Math.floor(Math.random() * 10000),
+                    ).padStart(4, "0");
+                    fixedStudents++;
+                  }
+                });
+                repo.saveDb(db);
+                alert(
+                  `Repaired ${fixedClasses} classes and ${fixedStudents} students. Refreshing...`,
+                );
+                window.location.reload();
+              }
+            }}
+            className="px-4 py-2 bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 rounded-lg text-sm font-medium transition-colors border border-amber-500/30"
+          >
+            Repair Student Access Data
+          </button>
+        </div>
+      )}
 
       <div className="bg-cosmic-panel border border-slate-800 rounded-3xl p-6 md:p-8">
         <h2 className="text-xl font-bold text-white mb-6">Add New Student</h2>
@@ -212,30 +335,39 @@ export const StudentManagement: React.FC = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col items-center gap-2">
-                      {student.access_enabled ? (
-                        <span className="text-xs text-emerald-400">Enabled</span>
+                      {!student.access_enabled ? (
+                        <span className="text-xs font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-md">
+                          Access Disabled
+                        </span>
+                      ) : student.access_pin_hash ? (
+                        <span className="text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-md">
+                          PIN Ready
+                        </span>
                       ) : (
-                        <span className="text-xs text-rose-400">Revoked</span>
+                        <span className="text-xs font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-md">
+                          PIN Not Generated
+                        </span>
                       )}
-                      
+
                       {student.student_auth_user_id && (
                         <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">
                           Device Linked
                         </span>
-                      )}
-                      {!student.access_pin_hash && (
-                         <span className="text-[10px] text-amber-400">No PIN</span>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2 flex-wrap">
                       <button
-                        onClick={() => handleToggleAccess(student.id, student.access_enabled)}
+                        onClick={() =>
+                          handleToggleAccess(student.id, student.access_enabled)
+                        }
                         disabled={processingId === student.id}
                         className="text-xs px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
                       >
-                        {student.access_enabled ? "Revoke Access" : "Restore Access"}
+                        {student.access_enabled
+                          ? "Revoke Access"
+                          : "Restore Access"}
                       </button>
                       <button
                         onClick={() => handleGeneratePin(student.id)}

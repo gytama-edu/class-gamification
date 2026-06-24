@@ -19,6 +19,12 @@ export const StudentJoin: React.FC = () => {
       return;
     }
 
+    if (import.meta.env.DEV) {
+      console.log(
+        `Starting join flow in mode: ${import.meta.env.VITE_DATA_SOURCE || "supabase"}`,
+      );
+    }
+
     setIsLoading(true);
     try {
       const repo = getRepository();

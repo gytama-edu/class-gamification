@@ -157,7 +157,9 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     if (!supabase) throw new Error("Supabase not initialized");
     const { data, error } = await supabase
       .from("students")
-      .select("*")
+      .select(
+        "id, class_id, display_name, avatar_key, total_points, is_active, student_auth_user_id, access_enabled, access_activated_at, created_at, updated_at, has_pin",
+      )
       .eq("class_id", classId)
       .order("created_at");
     if (error) throw error;
@@ -232,6 +234,9 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
   ): Promise<{ student_id: string; class_id: string }> {
     if (!supabase) throw new Error("Supabase not initialized");
 
+    const normalizedCode = classCode.trim().toUpperCase();
+    const normalizedPin = pin.trim();
+
     // Ensure we have an anonymous session
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session) {
@@ -240,10 +245,13 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     }
 
     const { data, error } = await supabase.rpc("join_class_as_student", {
-      p_class_code: classCode,
-      p_student_pin: pin,
+      p_class_code: normalizedCode,
+      p_student_pin: normalizedPin,
     });
-    if (error) throw error;
+    if (error) {
+      console.warn(`Supabase RPC join failed:`, error);
+      throw new Error("The class code or PIN is incorrect.");
+    }
     return data;
   }
 
@@ -259,9 +267,7 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     return data;
   }
 
-  async getStudentDashboard(
-    studentId: string,
-  ): Promise<{
+  async getStudentDashboard(studentId: string): Promise<{
     student: DbStudent;
     classroom: Classroom;
     activeMeeting: Meeting | null;

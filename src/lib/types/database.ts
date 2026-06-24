@@ -32,6 +32,7 @@ export interface DbStudent {
   access_activated_at: string | null;
   created_at: string;
   updated_at: string;
+  has_pin?: boolean;
 }
 
 export interface Meeting {

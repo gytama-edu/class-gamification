@@ -1,13 +1,41 @@
-import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Users, Plus, Edit2, Ban, CheckCircle, RotateCcw, Trash2 } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { 
+  Users, 
+  UserPlus, 
+  Ban, 
+  RotateCcw, 
+  Trash2, 
+  Copy, 
+  ShieldCheck, 
+  ShieldAlert, 
+  Smartphone, 
+  Search,
+  MoreVertical,
+  Key,
+  ShieldOff,
+  CheckCircle,
+  Loader2,
+  ExternalLink
+} from "lucide-react";
 import { useAppContext } from "../store";
 import { getRepository } from "../lib/data/repository";
 import { DbStudent } from "../lib/types/database";
+import { 
+  PageHeader, 
+  Panel, 
+  Button, 
+  StatusBadge, 
+  EmptyState, 
+  LoadingSkeleton,
+  ConfirmDialog,
+  PinResultDialog
+} from "../components/ui";
 
 export const StudentManagement: React.FC = () => {
   const { classId } = useParams();
-  const { dashboardData, isLoadingDashboard, refreshDashboard } =
+  const navigate = useNavigate();
+  const { dashboardData, isLoadingDashboard, refreshDashboard, setToastMessage } =
     useAppContext();
 
   const [newStudentName, setNewStudentName] = useState("");
@@ -15,7 +43,26 @@ export const StudentManagement: React.FC = () => {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [allStudents, setAllStudents] = useState<DbStudent[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
-  const [studentToDelete, setStudentToDelete] = useState<DbStudent | null>(null);
+
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  
+  // Menus
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Dialogs
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: React.ReactNode;
+    warningText?: string;
+    variant?: 'danger' | 'warning' | 'primary';
+    onConfirm: () => void;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+
+  const [generatedPin, setGeneratedPin] = useState<string | null>(null);
 
   useEffect(() => {
     const loadAllStudents = async () => {
@@ -23,11 +70,6 @@ export const StudentManagement: React.FC = () => {
       setIsLoadingStudents(true);
       try {
         const repo = getRepository();
-        // We'll fetch all students, regardless of active status by calling the DB directly
-        // Wait, repo.getStudents() currently returns only active.
-        // Let's just adjust repo to return all if needed, or we just rely on getStudents
-        // If repo.getStudents only returns active, we might need a new method.
-        // Let's modify the component to just use repo.getStudents for now, and we'll fix the repo next.
         const students = await repo.getStudents(classId);
         setAllStudents(students);
       } catch (err) {
@@ -37,11 +79,23 @@ export const StudentManagement: React.FC = () => {
       }
     };
     loadAllStudents();
-  }, [classId, dashboardData]); // Re-fetch when dashboard updates (e.g. after adding)
+  }, [classId, dashboardData]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   if (isLoadingDashboard || !dashboardData || isLoadingStudents) {
     return (
-      <div className="p-8 text-center text-mission-muted-text">Loading students...</div>
+      <div className="space-y-6 pt-4 pb-12">
+        <LoadingSkeleton />
+      </div>
     );
   }
 
@@ -54,437 +108,680 @@ export const StudentManagement: React.FC = () => {
       await repo.addStudent(classId, { display_name: newStudentName.trim() });
       setNewStudentName("");
       await refreshDashboard();
+      setToastMessage("Student added successfully");
     } catch (err) {
       console.error(err);
-      alert("Failed to add student");
+      setToastMessage("Failed to add student");
     } finally {
       setIsAdding(false);
     }
   };
 
-  const handleToggleActive = async (
-    studentId: string,
-    currentStatus: boolean,
-  ) => {
-    if (processingId === studentId) return;
+  const handleToggleActive = async (student: DbStudent) => {
+    const currentStatus = student.is_active;
+    if (currentStatus) {
+      setConfirmState({
+        isOpen: true,
+        title: "Deactivate Student?",
+        message: `Are you sure you want to deactivate ${student.display_name}?`,
+        warningText: "They will not be able to join meetings until reactivated.",
+        variant: "warning",
+        onConfirm: async () => {
+          setConfirmState(prev => ({ ...prev, isOpen: false }));
+          await executeToggleActive(student.id, currentStatus);
+        }
+      });
+    } else {
+      await executeToggleActive(student.id, currentStatus);
+    }
+  };
+
+  const executeToggleActive = async (studentId: string, currentStatus: boolean) => {
     setProcessingId(studentId);
+    setOpenMenuId(null);
     try {
       const repo = getRepository();
       await repo.updateStudent(studentId, { is_active: !currentStatus });
       await refreshDashboard();
-      // Also update local allStudents to reflect change quickly
       setAllStudents((prev) =>
-        prev.map((s) =>
-          s.id === studentId ? { ...s, is_active: !currentStatus } : s,
-        ),
+        prev.map((s) => s.id === studentId ? { ...s, is_active: !currentStatus } : s)
       );
+      setToastMessage(`Student ${!currentStatus ? 'reactivated' : 'deactivated'} successfully`);
     } catch (err) {
       console.error(err);
-      alert("Failed to update student status");
+      setToastMessage("Failed to update student status");
     } finally {
       setProcessingId(null);
     }
   };
 
-  const handleToggleAccess = async (
-    studentId: string,
-    currentAccess: boolean,
-  ) => {
-    if (processingId === studentId) return;
+  const handleToggleAccess = async (studentId: string, currentAccess: boolean) => {
     setProcessingId(studentId);
+    setOpenMenuId(null);
     try {
       const repo = getRepository();
       await repo.updateStudentAccess(studentId, !currentAccess);
       setAllStudents((prev) =>
-        prev.map((s) =>
-          s.id === studentId ? { ...s, access_enabled: !currentAccess } : s,
-        ),
+        prev.map((s) => s.id === studentId ? { ...s, access_enabled: !currentAccess } : s)
       );
+      setToastMessage(`Student access ${!currentAccess ? 'enabled' : 'disabled'}`);
     } catch (err) {
       console.error(err);
-      alert("Failed to update student access");
+      setToastMessage("Failed to update student access");
     } finally {
       setProcessingId(null);
     }
   };
 
-  const handleGeneratePin = async (studentId: string) => {
-    if (processingId === studentId) return;
-    if (
-      !confirm(
-        "Are you sure you want to generate a new PIN? The old PIN will no longer work.",
-      )
-    )
-      return;
+  const handleGeneratePin = async (student: DbStudent) => {
+    if (student.has_pin) {
+      setConfirmState({
+        isOpen: true,
+        title: "Reset PIN?",
+        message: `Generate a new PIN for ${student.display_name}?`,
+        warningText: "The old PIN will no longer work.",
+        variant: "warning",
+        onConfirm: async () => {
+          setConfirmState(prev => ({ ...prev, isOpen: false }));
+          await executeGeneratePin(student.id);
+        }
+      });
+    } else {
+      await executeGeneratePin(student.id);
+    }
+  };
 
+  const executeGeneratePin = async (studentId: string) => {
     setProcessingId(studentId);
+    setOpenMenuId(null);
     try {
       const repo = getRepository();
       const newPin = await repo.generateStudentPin(studentId);
-      // We do not save the cleartext PIN to state, only show it once
-      alert(
-        `The new PIN is: ${newPin}\n\nPlease save this or give it to the student. It will not be shown again.`,
-      );
-
-      // We don't have the hash in the client, but we know they now have a pin.
+      setGeneratedPin(newPin);
       setAllStudents((prev) =>
-        prev.map((s) => (s.id === studentId ? { ...s, has_pin: true } : s)),
+        prev.map((s) => (s.id === studentId ? { ...s, has_pin: true } : s))
       );
+      setToastMessage("New PIN generated");
     } catch (err) {
       console.error(err);
-      alert("Failed to generate PIN");
+      setToastMessage("Failed to generate PIN");
     } finally {
       setProcessingId(null);
     }
   };
 
-  const handleResetDevice = async (studentId: string) => {
-    if (processingId === studentId) return;
-    if (
-      !confirm(
-        "Are you sure you want to reset device access? The student will be logged out of their current device.",
-      )
-    )
-      return;
+  const handleResetDevice = async (student: DbStudent) => {
+    setConfirmState({
+      isOpen: true,
+      title: "Reset Device?",
+      message: `Reset linked device for ${student.display_name}?`,
+      warningText: "The student will be logged out of their current device.",
+      variant: "warning",
+      onConfirm: async () => {
+        setConfirmState(prev => ({ ...prev, isOpen: false }));
+        await executeResetDevice(student.id);
+      }
+    });
+  };
 
+  const executeResetDevice = async (studentId: string) => {
     setProcessingId(studentId);
+    setOpenMenuId(null);
     try {
       const repo = getRepository();
       await repo.resetStudentDevice(studentId);
       setAllStudents((prev) =>
-        prev.map((s) =>
-          s.id === studentId
-            ? { ...s, student_auth_user_id: null, access_activated_at: null }
-            : s,
-        ),
+        prev.map((s) => s.id === studentId ? { ...s, student_auth_user_id: null, access_activated_at: null } : s)
       );
+      setToastMessage("Device access reset successfully");
     } catch (err) {
       console.error(err);
-      alert("Failed to reset device access");
+      setToastMessage("Failed to reset device access");
     } finally {
       setProcessingId(null);
     }
   };
 
-  const executeDeleteStudent = async () => {
-    if (!studentToDelete) return;
-    const studentId = studentToDelete.id;
+  const handleDeleteStudent = (student: DbStudent) => {
+    setConfirmState({
+      isOpen: true,
+      title: "Delete Student?",
+      message: (
+        <>
+          This will remove <span className="font-bold text-white">{student.display_name}</span> from the active class roster and revoke their student access.
+        </>
+      ),
+      warningText: "Historical meeting records will be preserved.",
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmState(prev => ({ ...prev, isOpen: false }));
+        await executeDeleteStudent(student.id);
+      }
+    });
+  };
+
+  const executeDeleteStudent = async (studentId: string) => {
     setProcessingId(studentId);
+    setOpenMenuId(null);
     try {
       const repo = getRepository();
       await repo.deleteStudent(studentId);
       setAllStudents((prev) => prev.filter((s) => s.id !== studentId));
       await refreshDashboard();
-      // Optional: show a toast, but for now we'll just alert or simply close.
-      // alert("Student removed from the class.");
+      setToastMessage("Student removed from the class");
     } catch (err) {
       console.error(err);
-      alert("Failed to delete student");
+      setToastMessage("Failed to delete student");
     } finally {
       setProcessingId(null);
-      setStudentToDelete(null);
     }
   };
 
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500 py-8">
-      <div className="flex flex-col md:flex-row justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
-            Student Management
-          </h1>
-          <p className="text-mission-secondary-text">
-            Add or manage students for {dashboardData.classroom.name}.
-          </p>
-        </div>
-      </div>
+  const copyJoinCode = () => {
+    if (dashboardData.classroom.join_code) {
+      navigator.clipboard.writeText(dashboardData.classroom.join_code);
+      setToastMessage("Class code copied to clipboard");
+    }
+  };
 
-      <div className="bg-mission-panel border border-mission-border rounded-3xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <h2 className="text-xl font-bold text-white mb-2">
-            Class Access Info
-          </h2>
-          <p className="text-mission-secondary-text mb-4 text-sm">
+  // Filter students
+  const filteredStudents = allStudents.filter(s => {
+    const matchesSearch = s.display_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || 
+                          (statusFilter === 'active' && s.is_active) || 
+                          (statusFilter === 'inactive' && !s.is_active);
+    return matchesSearch && matchesStatus;
+  });
+
+  const activeCount = allStudents.filter(s => s.is_active).length;
+  const pinReadyCount = allStudents.filter(s => s.has_pin).length;
+  const inactiveCount = allStudents.length - activeCount;
+
+  return (
+    <div className="space-y-6 pt-2 pb-16 animate-in fade-in duration-200">
+      <PageHeader
+        contextLabel="CLASS ROSTER"
+        title="Students"
+        description="Manage student profiles, access, and class participation."
+      />
+
+      {/* Class Access Panel */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Panel className="p-5 flex flex-col justify-between overflow-hidden relative border-mission-border/50 col-span-1 md:col-span-2">
+          <div className="absolute top-0 left-0 w-full h-1 bg-radar-green opacity-80" />
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <p className="text-xs text-mission-muted-text uppercase tracking-wider font-bold mb-1">
+                Class Join Code
+              </p>
+              <div className="flex items-center gap-3">
+                <span className="text-3xl font-mono text-radar-green font-bold tracking-widest bg-mission-bg-secondary px-3 py-1 rounded-lg border border-mission-border/50">
+                  {dashboardData.classroom.join_code || "MISSING"}
+                </span>
+                <Button variant="secondary" size="sm" onClick={copyJoinCode}>
+                  <Copy size={16} />
+                </Button>
+              </div>
+            </div>
+            <div className="text-right">
+               <p className="text-xs text-mission-muted-text uppercase tracking-wider font-bold mb-2">
+                Overall Access
+              </p>
+              {dashboardData.classroom.student_access_enabled ? (
+                <StatusBadge variant="success" dot>Enabled</StatusBadge>
+              ) : (
+                <StatusBadge variant="danger" dot>Disabled</StatusBadge>
+              )}
+            </div>
+          </div>
+          <p className="text-sm text-mission-secondary-text">
             Students can join using this class code and their unique PIN.
           </p>
-          <div className="flex gap-4 items-center">
-            <div className="bg-mission-bg-secondary px-4 py-2 rounded-lg border border-mission-border">
-              <span className="text-xs text-mission-muted-text block uppercase tracking-wider mb-1">
-                Class Code
-              </span>
-              <span className="text-2xl font-mono text-radar-green font-bold tracking-widest">
-                {dashboardData.classroom.join_code || "MISSING"}
-              </span>
-            </div>
-            <div className="bg-mission-bg-secondary px-4 py-2 rounded-lg border border-mission-border">
-              <span className="text-xs text-mission-muted-text block uppercase tracking-wider mb-1">
-                Access
-              </span>
-              <span
-                className={`text-sm font-medium ${dashboardData.classroom.student_access_enabled ? "text-radar-green" : "text-mission-danger"}`}
-              >
-                {dashboardData.classroom.student_access_enabled
-                  ? "Enabled"
-                  : "Disabled"}
-              </span>
+        </Panel>
+
+        <Panel className="p-5 flex flex-col justify-between overflow-hidden relative border-mission-border/50">
+          <div className="absolute top-0 left-0 w-full h-1 bg-cyan-500 opacity-80" />
+           <div className="flex justify-between items-start mb-4">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center border bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+              <Key size={20} />
             </div>
           </div>
-        </div>
+          <div>
+            <p className="text-xs text-mission-muted-text uppercase tracking-wider font-bold mb-1">
+              PIN Readiness
+            </p>
+            <div className="text-2xl font-bold text-white">
+              {pinReadyCount} <span className="text-lg text-mission-secondary-text font-normal">/ {allStudents.length} ready</span>
+            </div>
+          </div>
+        </Panel>
+      </div>
 
-        <div className="bg-mission-bg-secondary px-6 py-4 rounded-xl border border-mission-border min-w-[200px]">
-          <div className="text-sm text-mission-muted-text mb-1">Students with PIN</div>
-          <div className="text-3xl font-bold text-white">
-            {allStudents.filter((s) => s.has_pin).length}{" "}
-            <span className="text-lg text-mission-muted-text font-normal">
-              / {allStudents.length}
+      {/* Add Student Panel */}
+      <Panel className="p-6 border-mission-border/50 overflow-hidden relative">
+         <div className="absolute top-0 left-0 w-1 h-full bg-mission-primary-text opacity-80" />
+         <div className="flex items-center gap-4 mb-4">
+            <div className="bg-mission-panel-strong p-2 rounded-lg border border-mission-border/50 shadow-sm">
+              <UserPlus size={20} className="text-mission-primary-text" />
+            </div>
+            <div>
+              <h2 className="text-lg font-display font-bold text-white">Add Student</h2>
+              <p className="text-sm text-mission-secondary-text">Add a new student to the class roster.</p>
+            </div>
+         </div>
+         <form onSubmit={handleAddStudent} className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              value={newStudentName}
+              onChange={(e) => setNewStudentName(e.target.value)}
+              placeholder="Student Name"
+              className="flex-1 bg-mission-bg-secondary border border-mission-border/50 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
+              required
+            />
+            <Button type="submit" disabled={isAdding || !newStudentName.trim()}>
+              {isAdding ? <Loader2 size={18} className="animate-spin mr-2" /> : <Plus size={18} className="mr-2" />}
+              {isAdding ? "Adding..." : "Add Student"}
+            </Button>
+         </form>
+      </Panel>
+
+      {/* Roster Toolbar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-8 mb-4">
+        <div className="flex items-center gap-3">
+          <h2 className="font-display text-lg font-bold text-white">Student Roster</h2>
+          <div className="flex gap-2">
+            <span className="text-xs font-bold text-mission-secondary-text bg-mission-panel px-2.5 py-1 rounded-md border border-mission-border/50">
+              Total {allStudents.length}
             </span>
+            <span className="text-xs font-bold text-radar-green bg-radar-green/10 px-2.5 py-1 rounded-md border border-radar-green/20">
+              Active {activeCount}
+            </span>
+            {inactiveCount > 0 && (
+              <span className="text-xs font-bold text-mission-muted-text bg-mission-panel-strong px-2.5 py-1 rounded-md border border-mission-border/50">
+                Inactive {inactiveCount}
+              </span>
+            )}
           </div>
         </div>
+
+        <div className="flex w-full sm:w-auto gap-3">
+           <div className="relative flex-1 sm:w-64">
+             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={16} className="text-mission-muted-text" />
+             </div>
+             <input
+                type="text"
+                placeholder="Search students..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-mission-panel border border-mission-border/50 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
+             />
+           </div>
+           
+           <div className="relative">
+             <select
+               value={statusFilter}
+               onChange={(e) => setStatusFilter(e.target.value as any)}
+               className="appearance-none bg-mission-panel border border-mission-border/50 rounded-lg pl-9 pr-8 py-2 text-sm text-white focus:outline-none focus:border-radar-green transition-all"
+             >
+               <option value="all">All Status</option>
+               <option value="active">Active Only</option>
+               <option value="inactive">Inactive Only</option>
+             </select>
+             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Filter size={14} className="text-mission-muted-text" />
+             </div>
+           </div>
+        </div>
       </div>
 
-      {import.meta.env.DEV && import.meta.env.VITE_DATA_SOURCE === "mock" && (
-        <div className="bg-mission-warning/10 border border-mission-warning/30 rounded-3xl p-6">
-          <h2 className="text-lg font-bold text-mission-warning mb-2">
-            Development Recovery Tool
-          </h2>
-          <p className="text-sm text-mission-warning/80 mb-4">
-            This tool generates missing class codes and mock PINs. It is only
-            visible in mock development mode.
-          </p>
-          <button
-            onClick={() => {
-              const repo = getRepository() as any;
-              if (repo.getDb) {
-                const db = repo.getDb();
-                let fixedClasses = 0;
-                let fixedStudents = 0;
-                db.classes.forEach((c: any) => {
-                  if (!c.join_code) {
-                    c.join_code = Math.random()
-                      .toString(36)
-                      .substring(2, 8)
-                      .toUpperCase();
-                    fixedClasses++;
-                  }
-                });
-                db.students.forEach((s: any) => {
-                  if (!s.access_pin_hash) {
-                    s.access_pin_hash = String(
-                      Math.floor(Math.random() * 10000),
-                    ).padStart(4, "0");
-                    fixedStudents++;
-                  }
-                });
-                repo.saveDb(db);
-                alert(
-                  `Repaired ${fixedClasses} classes and ${fixedStudents} students. Refreshing...`,
-                );
-                window.location.reload();
-              }
-            }}
-            className="px-4 py-2 bg-mission-warning/20 text-mission-warning hover:bg-mission-warning/30 rounded-lg text-sm font-medium transition-colors border border-mission-warning/30"
-          >
-            Repair Student Access Data
-          </button>
-        </div>
-      )}
+      {/* Roster Area */}
+      {filteredStudents.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title={allStudents.length === 0 ? "No Students Yet" : "No Match Found"}
+          description={allStudents.length === 0 ? "Add the first student to prepare this class for meetings." : "Try adjusting your search or filters."}
+          className="mt-4"
+        />
+      ) : (
+        <>
+          {/* Mobile Cards */}
+          <div className="block md:hidden space-y-4">
+            {filteredStudents.map(student => (
+               <div key={student.id} className={`bg-mission-panel border border-mission-border/50 rounded-xl p-4 flex flex-col relative overflow-hidden group ${!student.is_active ? 'opacity-70 bg-mission-bg-secondary' : ''}`}>
+                 {processingId === student.id && (
+                   <div className="absolute inset-0 bg-mission-panel/80 backdrop-blur-sm z-10 flex items-center justify-center">
+                      <div className="flex items-center gap-2 text-radar-green bg-mission-panel-elevated px-4 py-2 rounded-lg border border-mission-border">
+                        <Loader2 size={16} className="animate-spin" />
+                        <span className="text-xs font-bold uppercase tracking-wider">Updating</span>
+                      </div>
+                   </div>
+                 )}
+                 <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-full bg-mission-panel-strong border border-mission-border/50 flex items-center justify-center font-display font-bold text-white text-lg">
+                         {student.display_name.charAt(0).toUpperCase()}
+                       </div>
+                       <div>
+                         <Link to={`/student/${student.id}`} className="font-bold text-white text-base hover:text-radar-green transition-colors">
+                           {student.display_name}
+                         </Link>
+                         <div className="flex items-center gap-2 mt-1">
+                           {student.is_active ? (
+                             <span className="text-[10px] font-bold text-radar-green uppercase tracking-wider">Active</span>
+                           ) : (
+                             <span className="text-[10px] font-bold text-mission-muted-text uppercase tracking-wider">Inactive</span>
+                           )}
+                           <span className="text-mission-muted-text text-[10px]">•</span>
+                           <span className="font-mono text-xs font-medium text-radar-green/80">
+                             {(Number.isFinite(Number(student.total_points)) ? Number(student.total_points) : 0).toLocaleString()} pts
+                           </span>
+                         </div>
+                       </div>
+                    </div>
+                    
+                    {/* Mobile Menu */}
+                    <div className="relative">
+                       <button
+                         onClick={() => setOpenMenuId(openMenuId === student.id ? null : student.id)}
+                         className="p-1.5 text-mission-muted-text hover:text-white hover:bg-mission-panel-strong rounded-md transition-colors"
+                       >
+                         <MoreVertical size={18} />
+                       </button>
+                       {openMenuId === student.id && (
+                         <div className="absolute right-0 mt-1 w-48 bg-mission-panel-elevated border border-mission-border/50 rounded-xl shadow-xl overflow-hidden z-20 py-1">
+                            <Link
+                               to={`/student/${student.id}`}
+                               className="w-full text-left px-4 py-2 text-sm text-white hover:bg-mission-bg-secondary flex items-center gap-2"
+                            >
+                               <ExternalLink size={14} className="text-mission-secondary-text" />
+                               View Profile
+                            </Link>
+                            <div className="w-full h-px bg-mission-border/50 my-1"></div>
+                            <button
+                               onClick={() => handleToggleAccess(student.id, student.access_enabled)}
+                               className="w-full text-left px-4 py-2 text-sm text-white hover:bg-mission-bg-secondary flex items-center gap-2"
+                            >
+                               {student.access_enabled ? <ShieldOff size={14} className="text-mission-danger" /> : <ShieldCheck size={14} className="text-radar-green" />}
+                               {student.access_enabled ? "Disable Access" : "Enable Access"}
+                            </button>
+                            <button
+                               onClick={() => handleGeneratePin(student)}
+                               className="w-full text-left px-4 py-2 text-sm text-white hover:bg-mission-bg-secondary flex items-center gap-2"
+                            >
+                               <Key size={14} className="text-mission-secondary-text" />
+                               {student.has_pin ? "Reset PIN" : "Generate PIN"}
+                            </button>
+                            {student.student_auth_user_id && (
+                               <button
+                                  onClick={() => handleResetDevice(student)}
+                                  className="w-full text-left px-4 py-2 text-sm text-white hover:bg-mission-bg-secondary flex items-center gap-2"
+                               >
+                                  <SmartphoneNfc size={14} className="text-amber-500" />
+                                  Reset Device
+                               </button>
+                            )}
+                            <div className="w-full h-px bg-mission-border/50 my-1"></div>
+                            <button
+                               onClick={() => handleToggleActive(student)}
+                               className="w-full text-left px-4 py-2 text-sm text-white hover:bg-mission-bg-secondary flex items-center gap-2"
+                            >
+                               {student.is_active ? <Ban size={14} className="text-amber-500" /> : <RotateCcw size={14} className="text-radar-green" />}
+                               {student.is_active ? "Deactivate" : "Reactivate"}
+                            </button>
+                            <button
+                               onClick={() => handleDeleteStudent(student)}
+                               className="w-full text-left px-4 py-2 text-sm text-mission-danger hover:bg-mission-danger/10 flex items-center gap-2"
+                            >
+                               <Trash2 size={14} className="text-mission-danger" />
+                               Delete Student
+                            </button>
+                         </div>
+                       )}
+                    </div>
+                 </div>
 
-      <div className="bg-mission-panel border border-mission-border rounded-3xl p-6 md:p-8">
-        <h2 className="text-xl font-bold text-white mb-6">Add New Student</h2>
-        <form onSubmit={handleAddStudent} className="flex gap-4">
-          <input
-            type="text"
-            value={newStudentName}
-            onChange={(e) => setNewStudentName(e.target.value)}
-            placeholder="Student Name"
-            className="flex-1 bg-mission-input border border-mission-border rounded-xl px-4 py-3 text-white focus:border-radar-green transition-all"
-            required
-          />
-          <button
-            type="submit"
-            disabled={isAdding}
-            className="flex items-center gap-2 px-6 py-3 bg-radar-green text-mission-bg font-bold rounded-xl hover:bg-strong-green transition-colors focus:outline-none focus:ring-2 focus:ring-radar-green focus:ring-offset-2 focus:ring-offset-mission-panel"
-          >
-            <Plus size={18} />
-            {isAdding ? "Initializing..." : "Add Student"}
-          </button>
-        </form>
-      </div>
-
-      <div className="bg-mission-panel border border-mission-border rounded-3xl overflow-hidden shadow-xl">
-        <div className="p-6 border-b border-mission-border">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Users size={20} />
-            Class Roster ({allStudents.length})
-          </h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-mission-bg-secondary text-mission-secondary-text text-sm uppercase tracking-wider border-b border-mission-border">
-                <th className="px-6 py-4 font-medium">Name</th>
-                <th className="px-6 py-4 font-medium">Points</th>
-                <th className="px-6 py-4 font-medium text-center">Status</th>
-                <th className="px-6 py-4 font-medium text-center">Access</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-mission-border">
-              {allStudents.map((student) => (
-                <tr
-                  key={student.id}
-                  className={`hover:bg-mission-panel-elevated transition-colors ${!student.is_active ? "opacity-50" : ""}`}
-                >
-                  <td className="px-6 py-4 font-medium text-white">
-                    {student.display_name}
-                  </td>
-                  <td className="px-6 py-4 font-mono text-radar-green">
-                    {(Number.isFinite(Number(student.total_points)) ? Number(student.total_points) : 0).toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    {student.is_active ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-radar-green/10 text-radar-green border border-radar-green/20">
-                        <CheckCircle size={12} /> Active
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-mission-secondary-text/10 text-mission-secondary-text border border-mission-secondary-text/20">
-                        <Ban size={12} /> Inactive
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col items-center gap-2">
+                 <div className="mt-2 pt-3 border-t border-mission-border/30">
+                   <div className="flex flex-col gap-2">
                       {!student.access_enabled ? (
-                        <span className="text-xs font-medium text-mission-danger bg-mission-danger/10 border border-mission-danger/20 px-2 py-1 rounded-md">
-                          Access Disabled
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-mission-danger">
+                          <ShieldAlert size={14} /> Access Disabled
                         </span>
                       ) : student.has_pin ? (
-                        <span className="text-xs font-medium text-radar-green bg-radar-green/10 border border-radar-green/20 px-2 py-1 rounded-md">
-                          PIN Ready
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-radar-green">
+                          <ShieldCheck size={14} /> PIN Ready
                         </span>
                       ) : (
-                        <span className="text-xs font-medium text-mission-warning bg-mission-warning/10 border border-mission-warning/20 px-2 py-1 rounded-md">
-                          PIN Not Generated
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-mission-warning">
+                          <Key size={14} /> PIN Required
                         </span>
                       )}
 
                       {student.student_auth_user_id && (
-                        <span className="text-[10px] text-mission-muted-text bg-mission-panel-elevated border border-mission-border px-2 py-0.5 rounded-full">
-                          Device Linked
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-mission-secondary-text">
+                          <Smartphone size={14} /> Device Linked
                         </span>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2 flex-wrap">
-                      <button
-                        onClick={() =>
-                          handleToggleAccess(student.id, student.access_enabled)
-                        }
-                        disabled={processingId === student.id}
-                        className="text-xs px-2 py-1 bg-mission-panel-elevated border border-mission-border hover:bg-mission-bg text-mission-secondary-text rounded"
-                      >
-                        {student.access_enabled
-                          ? "Revoke Access"
-                          : "Restore Access"}
-                      </button>
-                      <button
-                        onClick={() => handleGeneratePin(student.id)}
-                        disabled={processingId === student.id}
-                        className="text-xs px-2 py-1 bg-mission-panel-elevated border border-mission-border hover:bg-mission-bg text-mission-secondary-text rounded"
-                      >
-                        {student.has_pin ? "Reset PIN" : "Generate PIN"}
-                      </button>
-                      {student.student_auth_user_id && (
-                        <button
-                          onClick={() => handleResetDevice(student.id)}
-                          disabled={processingId === student.id}
-                          className="text-xs px-2 py-1 bg-mission-danger/20 hover:bg-mission-danger/30 text-mission-danger border border-mission-danger/30 rounded"
-                        >
-                          Reset Device
-                        </button>
-                      )}
+                   </div>
+                 </div>
+               </div>
+            ))}
+          </div>
 
-                      <Link
-                        to={`/student/${student.id}`}
-                        className="p-1.5 text-mission-muted-text hover:text-white bg-mission-panel-elevated border border-mission-border hover:bg-mission-bg rounded transition-colors"
-                        title="View Profile"
-                      >
-                        <Edit2 size={14} />
-                      </Link>
-                      {student.is_active ? (
-                        <button
-                          onClick={() => handleToggleActive(student.id, true)}
-                          disabled={processingId === student.id}
-                          className="p-1.5 text-mission-muted-text hover:text-mission-warning bg-mission-panel-elevated border border-mission-border hover:bg-mission-bg disabled:opacity-50 transition-colors rounded"
-                          title="Deactivate Student"
-                        >
-                          <Ban size={14} />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleToggleActive(student.id, false)}
-                          disabled={processingId === student.id}
-                          className="p-1.5 text-mission-muted-text hover:text-radar-green bg-mission-panel-elevated border border-mission-border hover:bg-mission-bg disabled:opacity-50 transition-colors rounded"
-                          title="Reactivate Student"
-                        >
-                          <RotateCcw size={14} />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => setStudentToDelete(student)}
-                        disabled={processingId === student.id}
-                        className="p-1.5 text-mission-muted-text hover:text-mission-danger bg-mission-panel-elevated border border-mission-border hover:bg-mission-bg disabled:opacity-50 transition-colors rounded"
-                        title="Delete Student"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
+          {/* Desktop Table */}
+          <Panel className="hidden md:block overflow-x-auto p-0 border-mission-border/50">
+            <table className="w-full text-left border-collapse" ref={menuRef}>
+              <thead>
+                <tr className="bg-mission-bg/50 text-mission-secondary-text text-xs uppercase tracking-wider border-b border-mission-border/50">
+                  <th className="px-5 py-3 font-medium">Student</th>
+                  <th className="px-5 py-3 font-medium">Points</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Access</th>
+                  <th className="px-5 py-3 font-medium text-right">Actions</th>
                 </tr>
-              ))}
-              {allStudents.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-6 py-8 text-center text-mission-muted-text"
+              </thead>
+              <tbody className="divide-y divide-mission-border/30 bg-mission-panel/30">
+                {filteredStudents.map((student) => (
+                  <tr
+                    key={student.id}
+                    className={`hover:bg-mission-panel/50 transition-colors group relative h-[68px] ${!student.is_active ? 'opacity-80 bg-mission-bg-secondary/30' : ''}`}
                   >
-                    No students found. Add one above.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                       <div className="flex items-center gap-3">
+                         <div className="w-8 h-8 rounded-full bg-mission-panel-strong border border-mission-border/50 flex items-center justify-center font-display font-bold text-white text-sm shrink-0">
+                           {student.display_name.charAt(0).toUpperCase()}
+                         </div>
+                         <div className="flex flex-col">
+                           <Link
+                             to={`/student/${student.id}`}
+                             className="font-medium text-sm text-white hover:text-radar-green transition-colors"
+                           >
+                             {student.display_name}
+                           </Link>
+                           {student.student_auth_user_id && (
+                             <span className="text-[10px] text-mission-muted-text flex items-center gap-1 mt-0.5">
+                               <Smartphone size={10} /> Device Linked
+                             </span>
+                           )}
+                         </div>
+                       </div>
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                       <div className="font-mono font-medium text-radar-green text-sm">
+                         {(Number.isFinite(Number(student.total_points)) ? Number(student.total_points) : 0).toLocaleString()}
+                       </div>
+                       <div className="text-[10px] text-mission-muted-text">Permanent</div>
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      {student.is_active ? (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-radar-green/10 text-radar-green border border-radar-green/20">
+                           Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-mission-secondary-text/10 text-mission-secondary-text border border-mission-secondary-text/20">
+                           Inactive
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <div className="flex flex-col gap-1">
+                        {!student.access_enabled ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-mission-danger">
+                            <ShieldAlert size={14} /> Disabled
+                          </span>
+                        ) : student.has_pin ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-radar-green">
+                            <ShieldCheck size={14} /> PIN Ready
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-mission-warning">
+                            <Key size={14} /> PIN Required
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap text-right">
+                       <div className="flex items-center justify-end gap-2 relative">
+                         {processingId === student.id ? (
+                           <div className="flex items-center gap-2 text-radar-green px-3">
+                             <Loader2 size={14} className="animate-spin" />
+                             <span className="text-[10px] font-bold uppercase tracking-wider">Updating</span>
+                           </div>
+                         ) : (
+                           <>
+                             <Button
+                               variant="secondary"
+                               size="sm"
+                               onClick={() => navigate(`/student/${student.id}`)}
+                               className="hidden sm:flex"
+                             >
+                               View Profile
+                             </Button>
+                             <div className="relative">
+                               <button
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   setOpenMenuId(openMenuId === student.id ? null : student.id);
+                                 }}
+                                 className="p-2 text-mission-secondary-text hover:text-white hover:bg-mission-panel-strong rounded-md transition-colors"
+                               >
+                                 <MoreVertical size={18} />
+                               </button>
+                               {openMenuId === student.id && (
+                                 <div className="absolute right-0 top-full mt-1 w-48 bg-mission-panel-elevated border border-mission-border/50 rounded-xl shadow-xl overflow-hidden z-20 py-1">
+                                    <button
+                                       onClick={() => handleToggleAccess(student.id, student.access_enabled)}
+                                       className="w-full text-left px-4 py-2 text-sm text-white hover:bg-mission-bg-secondary flex items-center gap-2"
+                                    >
+                                       {student.access_enabled ? <ShieldOff size={14} className="text-mission-danger" /> : <ShieldCheck size={14} className="text-radar-green" />}
+                                       {student.access_enabled ? "Disable Access" : "Enable Access"}
+                                    </button>
+                                    <button
+                                       onClick={() => handleGeneratePin(student)}
+                                       className="w-full text-left px-4 py-2 text-sm text-white hover:bg-mission-bg-secondary flex items-center gap-2"
+                                    >
+                                       <Key size={14} className="text-mission-secondary-text" />
+                                       {student.has_pin ? "Reset PIN" : "Generate PIN"}
+                                    </button>
+                                    {student.student_auth_user_id && (
+                                       <button
+                                          onClick={() => handleResetDevice(student)}
+                                          className="w-full text-left px-4 py-2 text-sm text-white hover:bg-mission-bg-secondary flex items-center gap-2"
+                                       >
+                                          <SmartphoneNfc size={14} className="text-amber-500" />
+                                          Reset Device
+                                       </button>
+                                    )}
+                                    <div className="w-full h-px bg-mission-border/50 my-1"></div>
+                                    <button
+                                       onClick={() => handleToggleActive(student)}
+                                       className="w-full text-left px-4 py-2 text-sm text-white hover:bg-mission-bg-secondary flex items-center gap-2"
+                                    >
+                                       {student.is_active ? <Ban size={14} className="text-amber-500" /> : <RotateCcw size={14} className="text-radar-green" />}
+                                       {student.is_active ? "Deactivate" : "Reactivate"}
+                                    </button>
+                                    <button
+                                       onClick={() => handleDeleteStudent(student)}
+                                       className="w-full text-left px-4 py-2 text-sm text-mission-danger hover:bg-mission-danger/10 flex items-center gap-2"
+                                    >
+                                       <Trash2 size={14} className="text-mission-danger" />
+                                       Delete Student
+                                    </button>
+                                 </div>
+                               )}
+                             </div>
+                           </>
+                         )}
+                       </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Panel>
+        </>
+      )}
 
-      {/* Delete Confirmation Modal */}
-      {studentToDelete && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-mission-panel border border-mission-border rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <h2 className="text-xl font-bold text-white mb-4">Delete Student?</h2>
-            <p className="text-mission-secondary-text mb-6">
-              This will remove <span className="font-bold text-white">{studentToDelete.display_name}</span> from the active class roster and revoke their student access. Historical meeting records will be preserved.
+      {/* Development Recovery Tool */}
+      {import.meta.env.DEV && import.meta.env.VITE_DATA_SOURCE === "mock" && (
+        <div className="mt-8 bg-amber-500/10 border border-amber-500/30 rounded-xl p-5 flex items-start gap-4">
+          <ShieldAlert className="text-amber-500 shrink-0 mt-1" size={24} />
+          <div>
+            <h2 className="text-sm font-bold text-amber-500 mb-1 uppercase tracking-wider">
+              Development Only
+            </h2>
+            <p className="text-sm text-amber-500/80 mb-3">
+              This tool generates missing class codes and mock PINs. It is only visible in mock development mode.
             </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setStudentToDelete(null)}
-                disabled={processingId === studentToDelete.id}
-                className="px-5 py-2.5 bg-mission-panel-elevated border border-mission-border text-mission-secondary-text font-bold rounded-xl hover:bg-mission-bg hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={executeDeleteStudent}
-                disabled={processingId === studentToDelete.id}
-                className="px-5 py-2.5 bg-mission-danger hover:bg-mission-danger/80 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(255,87,87,0.3)] transition-colors focus:outline-none focus:ring-2 focus:ring-mission-danger focus:ring-offset-2 focus:ring-offset-mission-panel"
-              >
-                {processingId === studentToDelete.id ? "Deleting..." : "Delete Student"}
-              </button>
-            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const repo = getRepository() as any;
+                if (repo.getDb) {
+                  const db = repo.getDb();
+                  let fixedClasses = 0;
+                  let fixedStudents = 0;
+                  db.classes.forEach((c: any) => {
+                    if (!c.join_code) {
+                      c.join_code = Math.random().toString(36).substring(2, 8).toUpperCase();
+                      fixedClasses++;
+                    }
+                  });
+                  db.students.forEach((s: any) => {
+                    if (!s.access_pin_hash) {
+                      s.access_pin_hash = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
+                      fixedStudents++;
+                    }
+                  });
+                  repo.saveDb(db);
+                  alert(`Repaired ${fixedClasses} classes and ${fixedStudents} students. Refreshing...`);
+                  window.location.reload();
+                }
+              }}
+            >
+              Repair Student Access Data
+            </Button>
           </div>
         </div>
       )}
+
+      {/* Dialogs */}
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        warningText={confirmState.warningText}
+        variant={confirmState.variant}
+        onConfirm={confirmState.onConfirm}
+        onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      <PinResultDialog
+        isOpen={!!generatedPin}
+        pin={generatedPin}
+        onClose={() => setGeneratedPin(null)}
+      />
     </div>
   );
 };

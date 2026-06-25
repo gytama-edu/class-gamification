@@ -9,3 +9,5 @@ export * from './EmptyState';
 export * from './ErrorState';
 export * from './LoadingSkeleton';
 export * from './Divider';
+export * from './ConfirmDialog';
+export * from './PinResultDialog';

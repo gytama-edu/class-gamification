@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { X, Award } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Award, AlertTriangle, Loader2 } from 'lucide-react';
 import { getRepository } from '../lib/data/repository';
 import { IconMap } from './AchievementCard';
+import { Button } from './ui';
 
 interface AwardRecognitionModalProps {
   isOpen: boolean;
@@ -36,6 +37,22 @@ export const AwardRecognitionModal: React.FC<AwardRecognitionModalProps> = ({
   const [selectedIcon, setSelectedIcon] = useState('star');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        titleInputRef.current?.focus();
+      }, 100);
+      
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') onClose();
+      };
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -60,110 +77,136 @@ export const AwardRecognitionModal: React.FC<AwardRecognitionModalProps> = ({
       setTitle('');
       setReason('');
     } catch (err: any) {
-      setError(err.message || 'Failed to award recognition.');
+      // Don't show raw Supabase errors
+      setError('Failed to award recognition. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-mission-panel border border-mission-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-4 border-b border-mission-border">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Award className="text-radar-green" />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div 
+        className="bg-mission-panel border border-mission-border/50 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in duration-200"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="award-modal-title"
+      >
+        <div className="flex items-center justify-between p-4 border-b border-mission-border/50 bg-mission-panel-strong">
+          <h2 id="award-modal-title" className="text-lg font-display font-bold text-white flex items-center gap-2">
+            <Award className="text-amber-400" size={18} />
             Award Recognition
           </h2>
           <button
             onClick={onClose}
             className="p-1 hover:bg-mission-bg-secondary rounded-lg text-mission-muted-text hover:text-white transition-colors"
+            aria-label="Close dialog"
+            disabled={isSubmitting}
           >
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-5">
+          <p className="text-mission-secondary-text text-sm mb-5 leading-relaxed">
+            Award special recognition to <span className="font-bold text-white">{studentName}</span>. 
+            This will appear permanently on their profile as a Special tier achievement.
+          </p>
+
           {error && (
-            <div className="p-3 bg-mission-danger/10 border border-mission-danger/20 rounded-lg text-mission-danger text-sm">
-              {error}
+            <div className="mb-5 p-3 bg-mission-danger/10 border border-mission-danger/20 rounded-lg text-mission-danger text-sm flex gap-2 items-start">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+              <p>{error}</p>
             </div>
           )}
 
-          <div>
-            <p className="text-mission-secondary-text text-sm mb-4">
-              Awarding special recognition to <strong className="text-white">{studentName}</strong>.
-            </p>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between items-end mb-1">
+                <label htmlFor="award-title" className="block text-sm font-medium text-white">
+                  Achievement Title <span className="text-mission-danger">*</span>
+                </label>
+                <span className="text-[10px] text-mission-muted-text">{title.length}/50</span>
+              </div>
+              <input
+                ref={titleInputRef}
+                id="award-title"
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., Creative Thinker"
+                className="w-full px-4 py-2.5 bg-mission-bg-secondary border border-mission-border/50 rounded-xl text-white placeholder-mission-muted-text focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all"
+                maxLength={50}
+              />
+              {title.length > 0 && title.length < 3 && (
+                <p className="text-[10px] text-amber-500 mt-1">Must be at least 3 characters</p>
+              )}
+            </div>
 
-            <label className="block text-sm font-medium text-mission-secondary-text mb-1">
-              Achievement Title *
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Creative Thinker"
-              className="w-full px-4 py-2 bg-mission-bg-secondary border border-mission-border rounded-lg text-white placeholder-mission-muted-text focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
-              maxLength={50}
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Select Icon
+              </label>
+              <div className="grid grid-cols-5 gap-2">
+                {AvailableIcons.map(({ id, icon: Icon, label }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setSelectedIcon(id)}
+                    className={`p-2.5 rounded-xl border flex items-center justify-center transition-all ${
+                      selectedIcon === id
+                        ? 'bg-amber-400/20 border-amber-400 text-amber-400'
+                        : 'bg-mission-bg-secondary border-mission-border/50 text-mission-muted-text hover:text-white hover:border-mission-muted-text hover:bg-mission-panel-elevated'
+                    }`}
+                    title={label}
+                  >
+                    <Icon size={20} />
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-mission-secondary-text mb-2">
-              Select Icon
-            </label>
-            <div className="grid grid-cols-6 gap-2">
-              {AvailableIcons.map(({ id, icon: Icon, label }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setSelectedIcon(id)}
-                  className={`p-2 rounded-lg border flex items-center justify-center transition-all ${
-                    selectedIcon === id
-                      ? 'bg-radar-green/20 border-radar-green text-radar-green'
-                      : 'bg-mission-bg-secondary border-mission-border text-mission-muted-text hover:text-white hover:border-mission-muted-text'
-                  }`}
-                  title={label}
-                >
-                  <Icon size={20} />
-                </button>
-              ))}
+            <div>
+              <div className="flex justify-between items-end mb-1">
+                <label htmlFor="award-reason" className="block text-sm font-medium text-white">
+                  Reason <span className="text-mission-muted-text font-normal">(Optional)</span>
+                </label>
+                <span className="text-[10px] text-mission-muted-text">{reason.length}/200</span>
+              </div>
+              <textarea
+                id="award-reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Why are they receiving this?"
+                className="w-full px-4 py-2.5 bg-mission-bg-secondary border border-mission-border/50 rounded-xl text-white placeholder-mission-muted-text focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all resize-none"
+                rows={3}
+                maxLength={200}
+              />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-mission-secondary-text mb-1">
-              Reason (Optional)
-            </label>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Why are they receiving this?"
-              className="w-full px-4 py-2 bg-mission-bg-secondary border border-mission-border rounded-lg text-white placeholder-mission-muted-text focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all resize-none"
-              rows={3}
-              maxLength={200}
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <button
+          <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-mission-border/50">
+            <Button
               type="button"
+              variant="ghost"
               onClick={onClose}
-              className="px-4 py-2 text-mission-secondary-text hover:text-white transition-colors"
               disabled={isSubmitting}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={isSubmitting || !title.trim()}
-              className="px-6 py-2 bg-radar-green hover:bg-radar-green/80 text-black rounded-lg font-bold transition-all shadow-lg shadow-radar-green/20 disabled:opacity-50"
+              disabled={isSubmitting || !title.trim() || title.length < 3}
+              className="bg-amber-400 hover:bg-amber-500 text-black border-amber-400"
             >
-              {isSubmitting ? 'Awarding...' : 'Award Badge'}
-            </button>
+              {isSubmitting ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
+              {isSubmitting ? 'Awarding...' : 'Award Recognition'}
+            </Button>
           </div>
         </form>
       </div>
     </div>
   );
 };
+

@@ -1,45 +1,55 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Oxanium:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Oxanium", "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
-  /* Mission Control Theme */
-  --color-mission-bg: #030705;
-  --color-mission-bg-secondary: #061009;
-  --color-mission-sidebar: #08130D;
-  --color-mission-panel: #0D1811;
-  --color-mission-panel-elevated: #122018;
-  --color-mission-panel-strong: #17271D;
-  --color-mission-input: #09130D;
+  /* Space Navy Foundation */
+  --color-mission-bg: #030712;
+  --color-mission-bg-secondary: #050A18;
+  --color-mission-sidebar: #081126;
+  --color-mission-panel: #0D1830;
+  --color-mission-panel-elevated: #111F3D;
+  --color-mission-panel-strong: #152747;
+  --color-mission-input: #091329;
 
+  /* Greens */
   --color-brand-logo: #69C447;
   --color-radar-green: #8DE35D;
   --color-strong-green: #4FA83F;
   --color-dark-green: #2F7135;
   --color-muted-green: #558C55;
-  --color-soft-green-surface: rgba(105, 196, 71, 0.10);
+  --color-soft-green-surface: rgba(141, 227, 93, 0.10);
   
-  --color-mission-primary-text: #F5F7F5;
-  --color-mission-secondary-text: #B2BDB5;
-  --color-mission-muted-text: #718078;
-  --color-mission-disabled-text: #4E5D53;
+  /* Text */
+  --color-mission-primary-text: #F5F7FF;
+  --color-mission-secondary-text: #A7B2CC;
+  --color-mission-muted-text: #72809E;
+  --color-mission-disabled-text: #4F5D78;
   
-  --color-mission-border: rgba(119, 173, 126, 0.22);
-  --color-mission-border-strong: rgba(111, 204, 83, 0.45);
-  --color-mission-border-focus: #8DE35D;
+  /* Borders */
+  --color-mission-border: rgba(125, 160, 220, 0.20);
+  --color-mission-border-strong: rgba(125, 180, 220, 0.38);
+  --color-mission-border-focus: rgba(141, 227, 93, 0.70);
   
+  /* Semantic */
   --color-mission-success: #69C447;
-  --color-mission-info: #75B7A0;
-  --color-mission-warning: #E4B34A;
-  --color-mission-danger: #EF5B64;
-  --color-mission-offline: #7A837C;
+  --color-mission-info: #5AB2C8;
+  --color-mission-warning: #D9A05B;
+  --color-mission-danger: #E57373;
+  --color-mission-offline: #72809E;
 }
 
 body {
   background-color: var(--color-mission-bg);
   color: var(--color-mission-primary-text);
+  background-image: 
+    radial-gradient(ellipse at top, rgba(20, 40, 80, 0.25), transparent 60%),
+    radial-gradient(circle at bottom right, rgba(141, 227, 93, 0.03), transparent 50%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+  background-attachment: fixed;
 }
+
 

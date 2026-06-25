@@ -38,6 +38,7 @@ export const StudentDashboard: React.FC = () => {
   } | null>(null);
   const [achievements, setAchievements] = useState<StudentAchievement[]>([]);
   const [tasks, setTasks] = useState<StudentTask[]>([]);
+  const [projectGroup, setProjectGroup] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -61,6 +62,9 @@ export const StudentDashboard: React.FC = () => {
       
       const studentTasks = await repo.getStudentTasks(studentId);
       setTasks(studentTasks);
+      
+      const pg = await repo.getMyProjectGroup();
+      setProjectGroup(pg);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to load data");
@@ -230,6 +234,46 @@ export const StudentDashboard: React.FC = () => {
             <span className="text-xs font-medium text-mission-muted-text uppercase tracking-wider">Keep<br/>going</span>
           </div>
         </Panel>
+
+        {/* Project Group Card */}
+        {projectGroup && (
+          <Panel className="p-0 border-mission-border/50 overflow-hidden">
+            <div className={`p-4 border-b border-mission-border/50 flex items-center gap-2 ${
+              projectGroup.color_key === 'green' ? 'bg-radar-green/10 text-radar-green' :
+              projectGroup.color_key === 'cyan' ? 'bg-neon-cyan/10 text-neon-cyan' :
+              projectGroup.color_key === 'blue' ? 'bg-mission-blue/10 text-mission-blue' :
+              projectGroup.color_key === 'purple' ? 'bg-purple-500/10 text-purple-400' :
+              projectGroup.color_key === 'amber' ? 'bg-amber-500/10 text-amber-400' :
+              'bg-rose-500/10 text-rose-400'
+            }`}>
+              <div className={`w-3 h-3 rounded-full ${
+                projectGroup.color_key === 'green' ? 'bg-radar-green' :
+                projectGroup.color_key === 'cyan' ? 'bg-neon-cyan' :
+                projectGroup.color_key === 'blue' ? 'bg-mission-blue' :
+                projectGroup.color_key === 'purple' ? 'bg-purple-500' :
+                projectGroup.color_key === 'amber' ? 'bg-amber-500' :
+                'bg-rose-500'
+              } shadow-[0_0_8px_rgba(0,0,0,0.5)]`} />
+              <h2 className="font-display font-bold">
+                {projectGroup.name}
+              </h2>
+            </div>
+            <div className="p-4 bg-mission-panel">
+              {projectGroup.description && (
+                <p className="text-sm text-mission-secondary-text mb-3">
+                  {projectGroup.description}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {projectGroup.member_names?.map((name: string, i: number) => (
+                  <span key={i} className="text-xs bg-deep-space border border-mission-border/50 text-white px-2 py-1 rounded">
+                    {name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </Panel>
+        )}
 
         {/* Tasks */}
         <Panel className="p-0 border-mission-border/50 overflow-hidden">

@@ -16,7 +16,8 @@ import {
   StudentAchievement,
   TeacherRecognitionInput,
   ClassTask, TaskWithSummary, TaskAssignment, TaskAssignmentWithStudent,
-  StudentTask, CreateTaskInput, UpdateTaskInput, TaskReviewResult, TaskStatus
+  StudentTask, CreateTaskInput, UpdateTaskInput, TaskReviewResult, TaskStatus,
+  ProjectGroupWithMembers, ProjectGroupSummary, CreateProjectGroupInput, UpdateProjectGroupInput, ProjectGroupDistribution, ProjectGroupDistributionResult, MyProjectGroup, ProjectGroupMember
 } from "../types/database";
 
 export class SupabaseClassroomRepository implements ClassroomRepository {
@@ -783,5 +784,159 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
         is_overdue
       };
     });
+  }
+
+  async getProjectGroups(classId: string): Promise<{ groups: ProjectGroupWithMembers[], archivedGroups: ProjectGroupWithMembers[], summary: ProjectGroupSummary, unassignedStudents: DbStudent[] }> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    
+    // Fetch active groups
+    const { data: groups, error: groupsError } = await supabase
+      .from('project_groups')
+      .select('*')
+      .eq('class_id', classId)
+      .eq('status', 'active')
+      .order('display_order', { ascending: true });
+      
+    if (groupsError) throw groupsError;
+    
+    // Fetch archived groups
+    const { data: archivedGroupsRaw, error: archivedGroupsError } = await supabase
+      .from('project_groups')
+      .select('*')
+      .eq('class_id', classId)
+      .eq('status', 'archived')
+      .order('archived_at', { ascending: false });
+
+    if (archivedGroupsError) throw archivedGroupsError;
+
+    // Fetch active students in the class
+    const { data: students, error: studentsError } = await supabase
+      .from('students')
+      .select('*')
+      .eq('class_id', classId)
+      .eq('is_active', true)
+      .is('deleted_at', null);
+      
+    if (studentsError) throw studentsError;
+    
+    // Fetch active memberships
+    const { data: memberships, error: membershipsError } = await supabase
+      .from('project_group_memberships')
+      .select('*')
+      .eq('class_id', classId)
+      .is('removed_at', null);
+      
+    if (membershipsError) throw membershipsError;
+    
+    // Group memberships by group
+    const groupsWithMembers = (groups || []).map((group: any) => {
+      const groupMemberships = (memberships || []).filter((m: any) => m.group_id === group.id);
+      const members: ProjectGroupMember[] = groupMemberships.map((m: any) => {
+        const student = (students || []).find((s: any) => s.id === m.student_id);
+        return {
+          student_id: m.student_id,
+          display_name: student ? student.display_name : 'Unknown Student'
+        };
+      }).sort((a: any, b: any) => a.display_name.localeCompare(b.display_name));
+      
+      return {
+        ...group,
+        members
+      };
+    });
+
+    const archivedGroups = (archivedGroupsRaw || []).map((group: any) => ({
+      ...group,
+      members: [] // Archived groups have no active members
+    }));
+    
+    // Determine assigned and unassigned students
+    const assignedStudentIds = new Set((memberships || []).map((m: any) => m.student_id));
+    const unassignedStudents = (students || []).filter((s: any) => !assignedStudentIds.has(s.id));
+    
+    const assignedCount = assignedStudentIds.size;
+    const unassignedCount = unassignedStudents.length;
+    const activeGroupsCount = groupsWithMembers.length;
+    const averageGroupSize = activeGroupsCount > 0 ? (assignedCount / activeGroupsCount) : 0;
+    
+    const summary: ProjectGroupSummary = {
+      active_groups_count: activeGroupsCount,
+      assigned_students_count: assignedCount,
+      unassigned_students_count: unassignedCount,
+      average_group_size: averageGroupSize
+    };
+    
+    return {
+      groups: groupsWithMembers,
+      archivedGroups,
+      summary,
+      unassignedStudents
+    };
+  }
+
+  async createProjectGroup(classId: string, input: CreateProjectGroupInput): Promise<string> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase.rpc('create_project_group', {
+      p_class_id: classId,
+      p_name: input.name,
+      p_description: input.description,
+      p_color_key: input.color_key
+    });
+    if (error) throw error;
+    return data;
+  }
+
+  async updateProjectGroup(groupId: string, input: UpdateProjectGroupInput): Promise<void> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { error } = await supabase.rpc('update_project_group', {
+      p_group_id: groupId,
+      p_name: input.name,
+      p_description: input.description,
+      p_color_key: input.color_key
+    });
+    if (error) throw error;
+  }
+
+  async archiveProjectGroup(groupId: string): Promise<void> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { error } = await supabase.rpc('archive_project_group', {
+      p_group_id: groupId
+    });
+    if (error) throw error;
+  }
+
+  async assignStudentToProjectGroup(groupId: string, studentId: string): Promise<void> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { error } = await supabase.rpc('assign_student_to_project_group', {
+      p_group_id: groupId,
+      p_student_id: studentId
+    });
+    if (error) throw error;
+  }
+
+  async removeStudentFromProjectGroup(groupId: string, studentId: string): Promise<void> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { error } = await supabase.rpc('remove_student_from_project_group', {
+      p_group_id: groupId,
+      p_student_id: studentId
+    });
+    if (error) throw error;
+  }
+
+  async applyProjectGroupDistribution(classId: string, distribution: ProjectGroupDistribution[]): Promise<ProjectGroupDistributionResult> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase.rpc('apply_project_group_distribution', {
+      p_class_id: classId,
+      p_assignments: distribution
+    });
+    if (error) throw error;
+    return data;
+  }
+
+  async getMyProjectGroup(): Promise<MyProjectGroup | null> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase.rpc('get_my_project_group');
+    if (error) throw error;
+    return data as MyProjectGroup | null;
   }
 }

@@ -55,6 +55,8 @@ import { TeacherTasks } from "./pages/TeacherTasks";
 import { TeacherTaskDetail } from "./pages/TeacherTaskDetail";
 import { StudentTaskDetail } from "./pages/StudentTaskDetail";
 
+import { ProjectGroups } from "./pages/ProjectGroups";
+
 const configuredBase = import.meta.env.BASE_URL;
 const routerBasename = window.location.pathname.startsWith(configuredBase)
   ? configuredBase
@@ -97,6 +99,10 @@ export default function App() {
               <Route
                 path="/teacher/classes/:classId/students"
                 element={<StudentManagement />}
+              />
+              <Route
+                path="/teacher/classes/:classId/groups"
+                element={<ProjectGroups />}
               />
               <Route
                 path="/teacher/classes/:classId/history"

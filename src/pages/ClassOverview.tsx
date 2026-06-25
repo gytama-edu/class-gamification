@@ -289,6 +289,28 @@ export const ClassOverview: React.FC = () => {
             </div>
           </Panel>
 
+          {/* Project Groups Quick Access */}
+          <Panel className="overflow-hidden">
+            <div className="p-4 border-b border-mission-border/50 bg-mission-bg-secondary">
+              <h2 className="font-display text-base font-bold text-white flex items-center gap-2">
+                <Users size={16} className="text-neon-cyan" />
+                Project Groups
+              </h2>
+            </div>
+            <div className="p-6 text-center">
+              <p className="text-sm text-gray-400 mb-4">
+                Organize your students into temporary groups for projects, presentations, or collaborative assignments.
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full justify-center"
+                onClick={() => navigate(`/teacher/classes/${classId}/groups`)}
+              >
+                Manage Project Groups
+              </Button>
+            </div>
+          </Panel>
+
           {/* Student Access Panel */}
           <Panel className="overflow-hidden">
             <div className="p-4 border-b border-mission-border/50 bg-mission-bg-secondary">

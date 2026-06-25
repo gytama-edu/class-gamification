@@ -250,6 +250,83 @@ export interface TaskAssignment {
   updated_at: string;
 }
 
+export type ProjectGroupStatus = 'active' | 'archived';
+export type ProjectGroupColorKey = 'green' | 'cyan' | 'blue' | 'purple' | 'amber' | 'rose';
+
+export interface ProjectGroup {
+  id: string;
+  class_id: string;
+  created_by: string;
+  name: string;
+  description: string;
+  color_key: ProjectGroupColorKey;
+  display_order: number;
+  status: ProjectGroupStatus;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+}
+
+export interface ProjectGroupMembership {
+  id: string;
+  group_id: string;
+  class_id: string;
+  student_id: string;
+  assigned_by: string;
+  assigned_at: string;
+  removed_at: string | null;
+  removed_by: string | null;
+  removal_reason: string | null;
+}
+
+export interface ProjectGroupMember {
+  student_id: string;
+  display_name: string;
+}
+
+export interface ProjectGroupWithMembers extends ProjectGroup {
+  members: ProjectGroupMember[];
+}
+
+export interface ProjectGroupSummary {
+  active_groups_count: number;
+  assigned_students_count: number;
+  unassigned_students_count: number;
+  average_group_size: number;
+}
+
+export interface CreateProjectGroupInput {
+  name: string;
+  description: string;
+  color_key: ProjectGroupColorKey;
+}
+
+export interface UpdateProjectGroupInput {
+  name: string;
+  description: string;
+  color_key: ProjectGroupColorKey;
+}
+
+export interface ProjectGroupDistribution {
+  groupId: string;
+  studentIds: string[];
+}
+
+export interface ProjectGroupDistributionResult {
+  groupsUpdated: number;
+  studentsAssigned: number;
+  studentsMoved: number;
+}
+
+export interface MyProjectGroup {
+  id: string;
+  name: string;
+  description: string;
+  color_key: ProjectGroupColorKey;
+  member_names: string[];
+}
+
+
 export interface TaskWithSummary extends ClassTask {
   assigned_count: number;
   submitted_count: number;

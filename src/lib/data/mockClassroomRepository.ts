@@ -17,7 +17,10 @@ import {
   TeacherRecognitionInput,
   ClassType,
   ClassTask, TaskWithSummary, TaskAssignment, TaskAssignmentWithStudent,
-  StudentTask, CreateTaskInput, UpdateTaskInput, TaskReviewResult, TaskStatus
+  StudentTask, CreateTaskInput, UpdateTaskInput, TaskReviewResult, TaskStatus,
+  ProjectGroupWithMembers, ProjectGroupSummary, CreateProjectGroupInput,
+  UpdateProjectGroupInput, ProjectGroupDistribution, ProjectGroupDistributionResult,
+  MyProjectGroup, ProjectGroupMember
 } from "../types/database";
 import { notifyMockUpdate } from "../realtime/useClassroomRealtime";
 
@@ -43,9 +46,11 @@ interface MockDB {
   student_achievements: StudentAchievement[];
   tasks: ClassTask[];
   task_assignments: TaskAssignment[];
+  project_groups: any[];
+  project_group_memberships: any[];
 }
 
-const CURRENT_SCHEMA_VERSION = 4;
+const CURRENT_SCHEMA_VERSION = 5;
 
 function generateId() {
   return crypto.randomUUID
@@ -203,6 +208,8 @@ function getInitialMockDB(): MockDB {
     student_achievements: [],
     tasks: [],
     task_assignments: [],
+    project_groups: [],
+    project_group_memberships: []
   };
 }
 
@@ -364,6 +371,14 @@ export class MockClassroomRepository implements ClassroomRepository {
           parsed.tasks = parsed.tasks || [];
           parsed.task_assignments = parsed.task_assignments || [];
           parsed.schema_version = 4;
+          this.saveDb(parsed);
+        }
+
+        if (parsed.schema_version < 5) {
+          console.info("Migrating to schema version 5 (Adding project groups)...");
+          parsed.project_groups = parsed.project_groups || [];
+          parsed.project_group_memberships = parsed.project_group_memberships || [];
+          parsed.schema_version = 5;
           this.saveDb(parsed);
         }
 
@@ -1561,5 +1576,327 @@ export class MockClassroomRepository implements ClassroomRepository {
         is_overdue: overdue
       };
     }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  async getProjectGroups(classId: string): Promise<{ groups: ProjectGroupWithMembers[], archivedGroups: ProjectGroupWithMembers[], summary: ProjectGroupSummary, unassignedStudents: DbStudent[] }> {
+    const db = this.getDb();
+    
+    // Fetch active groups
+    const groups = db.project_groups
+      .filter((g: any) => g.class_id === classId && g.status === 'active')
+      .sort((a: any, b: any) => a.display_order - b.display_order);
+      
+    // Fetch archived groups
+    const archivedGroupsRaw = db.project_groups
+      .filter((g: any) => g.class_id === classId && g.status === 'archived')
+      .sort((a: any, b: any) => new Date(b.archived_at || 0).getTime() - new Date(a.archived_at || 0).getTime());
+      
+    // Fetch active students in the class
+    const students = db.students
+      .filter((s) => s.class_id === classId && s.is_active && !s.deleted_at);
+      
+    // Fetch active memberships
+    const memberships = db.project_group_memberships
+      .filter((m: any) => m.class_id === classId && !m.removed_at);
+      
+    // Group memberships by group
+    const groupsWithMembers = groups.map((group: any) => {
+      const groupMemberships = memberships.filter((m: any) => m.group_id === group.id);
+      const members: ProjectGroupMember[] = groupMemberships.map((m: any) => {
+        const student = students.find((s: any) => s.id === m.student_id);
+        return {
+          student_id: m.student_id,
+          display_name: student ? student.display_name : 'Unknown Student'
+        };
+      }).sort((a: any, b: any) => a.display_name.localeCompare(b.display_name));
+      
+      return {
+        ...group,
+        members
+      };
+    });
+    
+    const archivedGroups = archivedGroupsRaw.map((group: any) => ({
+      ...group,
+      members: [] // Archived groups have no active members
+    }));
+    
+    // Determine assigned and unassigned students
+    const assignedStudentIds = new Set(memberships.map((m: any) => m.student_id));
+    const unassignedStudents = students.filter((s: any) => !assignedStudentIds.has(s.id));
+    
+    const assignedCount = assignedStudentIds.size;
+    const unassignedCount = unassignedStudents.length;
+    const activeGroupsCount = groupsWithMembers.length;
+    const averageGroupSize = activeGroupsCount > 0 ? (assignedCount / activeGroupsCount) : 0;
+    
+    const summary: ProjectGroupSummary = {
+      active_groups_count: activeGroupsCount,
+      assigned_students_count: assignedCount,
+      unassigned_students_count: unassignedCount,
+      average_group_size: averageGroupSize
+    };
+    
+    return {
+      groups: groupsWithMembers,
+      archivedGroups,
+      summary,
+      unassignedStudents
+    };
+  }
+
+  async createProjectGroup(classId: string, input: CreateProjectGroupInput): Promise<string> {
+    const db = this.getDb();
+    
+    // Check name uniqueness among active groups
+    const normalizedName = input.name.trim().toLowerCase();
+    const existing = db.project_groups.find((g: any) => g.class_id === classId && g.status === 'active' && g.name.trim().toLowerCase() === normalizedName);
+    if (existing) {
+      throw new Error("A project group with this name already exists in the class.");
+    }
+    
+    // Determine max display order
+    const classGroups = db.project_groups.filter((g: any) => g.class_id === classId && g.status === 'active');
+    const maxOrder = classGroups.reduce((max: number, g: any) => Math.max(max, g.display_order), -1);
+    const nextOrder = maxOrder + 1;
+    
+    const newGroup = {
+      id: generateId(),
+      class_id: classId,
+      created_by: 'mock-teacher-id',
+      name: input.name.trim(),
+      description: input.description.trim(),
+      color_key: input.color_key,
+      display_order: nextOrder,
+      status: 'active' as const,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      archived_at: null
+    };
+    
+    db.project_groups.push(newGroup);
+    this.saveDb(db);
+    notifyMockUpdate('project_groups');
+    return newGroup.id;
+  }
+
+  async updateProjectGroup(groupId: string, input: UpdateProjectGroupInput): Promise<void> {
+    const db = this.getDb();
+    const groupIndex = db.project_groups.findIndex((g: any) => g.id === groupId);
+    if (groupIndex === -1) throw new Error("Group not found");
+    
+    const group = db.project_groups[groupIndex];
+    if (group.status === 'archived') throw new Error("Cannot edit an archived project group");
+    
+    const normalizedName = input.name.trim().toLowerCase();
+    const existing = db.project_groups.find((g: any) => g.id !== groupId && g.class_id === group.class_id && g.status === 'active' && g.name.trim().toLowerCase() === normalizedName);
+    if (existing) {
+      throw new Error("A project group with this name already exists in the class.");
+    }
+    
+    db.project_groups[groupIndex] = {
+      ...group,
+      name: input.name.trim(),
+      description: input.description.trim(),
+      color_key: input.color_key,
+      updated_at: new Date().toISOString()
+    };
+    
+    this.saveDb(db);
+    notifyMockUpdate('project_groups');
+  }
+
+  async archiveProjectGroup(groupId: string): Promise<void> {
+    const db = this.getDb();
+    const groupIndex = db.project_groups.findIndex((g: any) => g.id === groupId);
+    if (groupIndex === -1) throw new Error("Group not found");
+    
+    const group = db.project_groups[groupIndex];
+    if (group.status === 'archived') return;
+    
+    db.project_groups[groupIndex] = {
+      ...group,
+      status: 'archived' as const,
+      archived_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Close memberships
+    let membershipsChanged = false;
+    db.project_group_memberships.forEach((m: any) => {
+      if (m.group_id === groupId && !m.removed_at) {
+        m.removed_at = new Date().toISOString();
+        m.removed_by = 'mock-teacher-id';
+        m.removal_reason = 'group_archived';
+        membershipsChanged = true;
+      }
+    });
+    
+    this.saveDb(db);
+    notifyMockUpdate('project_groups');
+    if (membershipsChanged) {
+      notifyMockUpdate('project_group_memberships');
+    }
+  }
+
+  async assignStudentToProjectGroup(groupId: string, studentId: string): Promise<void> {
+    const db = this.getDb();
+    const group = db.project_groups.find((g: any) => g.id === groupId);
+    if (!group) throw new Error("Group not found");
+    
+    const student = db.students.find(s => s.id === studentId);
+    if (!student) throw new Error("Student not found");
+    
+    if (group.class_id !== student.class_id) throw new Error("Class mismatch");
+    if (!student.is_active || student.deleted_at) throw new Error("Invalid student state");
+    if (group.status === 'archived') throw new Error("Cannot assign to archived group");
+    
+    const existingActive = db.project_group_memberships.find((m: any) => m.student_id === studentId && !m.removed_at);
+    if (existingActive) {
+      if (existingActive.group_id === groupId) return;
+      existingActive.removed_at = new Date().toISOString();
+      existingActive.removed_by = 'mock-teacher-id';
+      existingActive.removal_reason = 'moved';
+    }
+    
+    const newMembership = {
+      id: generateId(),
+      group_id: groupId,
+      class_id: group.class_id,
+      student_id: studentId,
+      assigned_by: 'mock-teacher-id',
+      assigned_at: new Date().toISOString(),
+      removed_at: null,
+      removed_by: null,
+      removal_reason: null
+    };
+    
+    db.project_group_memberships.push(newMembership);
+    
+    this.saveDb(db);
+    notifyMockUpdate('project_group_memberships');
+  }
+
+  async removeStudentFromProjectGroup(groupId: string, studentId: string): Promise<void> {
+    const db = this.getDb();
+    const membership = db.project_group_memberships.find((m: any) => m.group_id === groupId && m.student_id === studentId && !m.removed_at);
+    
+    if (membership) {
+      membership.removed_at = new Date().toISOString();
+      membership.removed_by = 'mock-teacher-id';
+      membership.removal_reason = 'manual_removal';
+      this.saveDb(db);
+      notifyMockUpdate('project_group_memberships');
+    }
+  }
+
+  async applyProjectGroupDistribution(classId: string, distribution: ProjectGroupDistribution[]): Promise<ProjectGroupDistributionResult> {
+    const db = this.getDb();
+    
+    let groupsUpdated = 0;
+    let studentsAssigned = 0;
+    let studentsMoved = 0;
+    
+    // First, validate everything
+    for (const g of distribution) {
+      const group = db.project_groups.find((pg: any) => pg.id === g.groupId);
+      if (!group || group.class_id !== classId || group.status !== 'active') {
+        throw new Error("Invalid active project group");
+      }
+      
+      for (const studentId of g.studentIds) {
+        const student = db.students.find(s => s.id === studentId);
+        if (!student || student.class_id !== classId || !student.is_active || student.deleted_at) {
+          throw new Error("Invalid or inactive student " + studentId);
+        }
+      }
+    }
+    
+    // Apply changes
+    for (const g of distribution) {
+      groupsUpdated++;
+      for (const studentId of g.studentIds) {
+        const existingActive = db.project_group_memberships.find((m: any) => m.student_id === studentId && !m.removed_at);
+        if (existingActive) {
+          if (existingActive.group_id !== g.groupId) {
+            existingActive.removed_at = new Date().toISOString();
+            existingActive.removed_by = 'mock-teacher-id';
+            existingActive.removal_reason = 'distribution_moved';
+            
+            db.project_group_memberships.push({
+              id: generateId(),
+              group_id: g.groupId,
+              class_id: classId,
+              student_id: studentId,
+              assigned_by: 'mock-teacher-id',
+              assigned_at: new Date().toISOString(),
+              removed_at: null,
+              removed_by: null,
+              removal_reason: null
+            });
+            studentsMoved++;
+            studentsAssigned++;
+          }
+        } else {
+          db.project_group_memberships.push({
+            id: generateId(),
+            group_id: g.groupId,
+            class_id: classId,
+            student_id: studentId,
+            assigned_by: 'mock-teacher-id',
+            assigned_at: new Date().toISOString(),
+            removed_at: null,
+            removed_by: null,
+            removal_reason: null
+          });
+          studentsAssigned++;
+        }
+      }
+    }
+    
+    this.saveDb(db);
+    notifyMockUpdate('project_group_memberships');
+    
+    return {
+      groupsUpdated,
+      studentsAssigned,
+      studentsMoved
+    };
+  }
+
+  async getMyProjectGroup(): Promise<MyProjectGroup | null> {
+    const db = this.getDb();
+    
+    // Find the current mock student
+    const studentId = localStorage.getItem('gytama_student_id');
+    let student;
+    if (studentId) {
+      student = db.students.find(s => s.id === studentId && s.is_active && !s.deleted_at);
+    } else {
+      student = db.students.find(s => s.is_active && s.access_enabled && !s.deleted_at);
+    }
+    
+    if (!student) return null;
+    
+    const membership = db.project_group_memberships.find((m: any) => m.student_id === student.id && !m.removed_at);
+    if (!membership) return null;
+    
+    const group = db.project_groups.find((g: any) => g.id === membership.group_id && g.status === 'active');
+    if (!group) return null;
+    
+    // Get all active member names
+    const allMemberships = db.project_group_memberships.filter((m: any) => m.group_id === group.id && !m.removed_at);
+    const member_names = allMemberships.map((m: any) => {
+      const s = db.students.find(st => st.id === m.student_id);
+      return s && s.is_active && !s.deleted_at ? s.display_name : null;
+    }).filter(Boolean).sort();
+    
+    return {
+      id: group.id,
+      name: group.name,
+      description: group.description,
+      color_key: group.color_key,
+      member_names
+    };
   }
 }

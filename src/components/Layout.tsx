@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   XCircle,
   ListTodo,
+  Layers,
 } from "lucide-react";
 import missionControlLogo from "../assets/branding/mission-control-full.jpeg";
 import { useAppContext } from "../store";
@@ -93,6 +94,11 @@ export const Layout: React.FC = () => {
           to: `/teacher/classes/${classId}/students`,
           icon: <Users size={18} />,
           label: "Students",
+        },
+        {
+          to: `/teacher/classes/${classId}/groups`,
+          icon: <Layers size={18} />,
+          label: "Groups",
         },
         {
           to: `/teacher/classes/${classId}/history`,

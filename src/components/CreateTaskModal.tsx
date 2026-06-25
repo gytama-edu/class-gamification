@@ -18,12 +18,10 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
   const [dueAt, setDueAt] = useState("");
   const [assignmentScope, setAssignmentScope] = useState<'all_students' | 'selected_students'>('all_students');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
-  const [publishImmediately, setPublishImmediately] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitTask = async (publishImmediately: boolean) => {
     if (!title.trim()) return;
     
     setIsSubmitting(true);
@@ -33,7 +31,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
       const input: CreateTaskInput = {
         title: title.trim(),
         instructions: instructions.trim(),
-        due_at: dueAt ? new Date(dueAt).toISOString() : undefined,
+        due_at: dueAt ? new Date(dueAt).toISOString() : null,
         reward_points: rewardPoints,
         assignment_scope: assignmentScope,
         student_ids: selectedStudentIds,
@@ -46,6 +44,11 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
       setError(err.message || "Failed to create task");
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitTask(true);
   };
 
   const toggleStudent = (studentId: string) => {
@@ -164,13 +167,14 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
           <Button 
             variant="secondary" 
             type="button" 
-            onClick={() => { setPublishImmediately(false); handleSubmit(new Event('submit') as any); }}
-            disabled={isSubmitting || !title.trim() || (assignmentScope === 'selected_students' && selectedStudentIds.length === 0)}
+            onClick={() => submitTask(false)}
+            disabled={isSubmitting || !title.trim()}
           >
             Save as Draft
           </Button>
           <Button 
-            type="submit" 
+            type="button" 
+            onClick={() => submitTask(true)}
             disabled={isSubmitting || !title.trim() || (assignmentScope === 'selected_students' && selectedStudentIds.length === 0)}
           >
             {isSubmitting ? "Creating..." : "Publish Task"}

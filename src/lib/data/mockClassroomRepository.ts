@@ -1336,44 +1336,81 @@ export class MockClassroomRepository implements ClassroomRepository {
     const task = db.tasks[taskIndex];
     if (task.status === 'archived') throw new Error("Cannot edit archived tasks");
     
-    if (input.reward_points !== undefined && input.reward_points !== task.reward_points) {
+    if (input.reward_points !== task.reward_points) {
       const hasApproved = db.task_assignments.some(a => a.task_id === taskId && a.status === 'approved');
       if (hasApproved) throw new Error("Cannot change reward points after assignments are approved");
     }
     
     db.tasks[taskIndex] = {
       ...task,
-      ...input,
+      title: input.title,
+      instructions: input.instructions,
+      due_at: input.due_at,
+      reward_points: input.reward_points,
+      assignment_scope: input.assignment_scope,
       updated_at: new Date().toISOString()
     };
     
-    if (task.status !== 'completed' && input.assignment_scope) {
+    if (task.status !== 'completed') {
       const activeStudents = db.students.filter(s => s.class_id === task.class_id && s.is_active);
-      const targetStudents = input.assignment_scope === 'all_students' 
-        ? activeStudents 
-        : activeStudents.filter(s => input.student_ids && input.student_ids.includes(s.id));
-        
-      targetStudents.forEach(s => {
-        const existing = db.task_assignments.find(a => a.task_id === taskId && a.student_id === s.id);
-        if (!existing) {
-           db.task_assignments.push({
-             id: generateId(),
-             task_id: taskId,
-             class_id: task.class_id,
-             student_id: s.id,
-             status: 'assigned',
-             submission_text: null,
-             submitted_at: null,
-             teacher_feedback: null,
-             reviewed_at: null,
-             reviewed_by: null,
-             points_awarded: 0,
-             points_awarded_at: null,
-             created_at: new Date().toISOString(),
-             updated_at: new Date().toISOString()
-           });
+      
+      if (input.assignment_scope === 'all_students') {
+        if (task.assignment_scope !== 'all_students' && task.status === 'active') {
+          activeStudents.forEach(student => {
+            const exists = db.task_assignments.some(a => a.task_id === taskId && a.student_id === student.id);
+            if (!exists) {
+              db.task_assignments.push({
+                id: generateId(),
+                task_id: taskId,
+                class_id: task.class_id,
+                student_id: student.id,
+                status: 'assigned',
+                submission_text: null,
+                submitted_at: null,
+                teacher_feedback: null,
+                reviewed_at: null,
+                reviewed_by: null,
+                points_awarded: 0,
+                points_awarded_at: null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              });
+            }
+          });
         }
-      });
+      } else if (input.student_ids) {
+        // Remove unselected that aren't submitted
+        db.task_assignments = db.task_assignments.filter(a => {
+          if (a.task_id !== taskId) return true;
+          if (input.student_ids.includes(a.student_id)) return true;
+          return a.status !== 'assigned' || a.submission_text !== null; // Keep if they've submitted
+        });
+
+        input.student_ids.forEach(studentId => {
+          const student = activeStudents.find(s => s.id === studentId);
+          if (!student) return;
+          
+          const exists = db.task_assignments.some(a => a.task_id === taskId && a.student_id === student.id);
+          if (!exists) {
+            db.task_assignments.push({
+              id: generateId(),
+              task_id: taskId,
+              class_id: task.class_id,
+              student_id: student.id,
+              status: 'assigned',
+              submission_text: null,
+              submitted_at: null,
+              teacher_feedback: null,
+              reviewed_at: null,
+              reviewed_by: null,
+              points_awarded: 0,
+              points_awarded_at: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+          }
+        });
+      }
     }
     
     this.saveDb(db);

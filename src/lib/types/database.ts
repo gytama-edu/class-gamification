@@ -277,12 +277,12 @@ export interface CreateTaskInput {
 }
 
 export interface UpdateTaskInput {
-  title?: string;
-  instructions?: string;
-  due_at?: string | null;
-  reward_points?: number;
-  assignment_scope?: TaskAssignmentScope;
-  student_ids?: string[];
+  title: string;
+  instructions: string;
+  due_at: string | null;
+  reward_points: number;
+  assignment_scope: TaskAssignmentScope;
+  student_ids: string[];
 }
 
 export interface TaskReviewResult {

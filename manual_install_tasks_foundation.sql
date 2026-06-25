@@ -435,6 +435,10 @@ GRANT EXECUTE ON FUNCTION public.set_task_status TO authenticated;
 GRANT EXECUTE ON FUNCTION public.submit_task_assignment TO authenticated;
 GRANT EXECUTE ON FUNCTION public.review_task_assignment TO authenticated;
 
+-- Realtime publication
+ALTER PUBLICATION supabase_realtime ADD TABLE tasks;
+ALTER PUBLICATION supabase_realtime ADD TABLE task_assignments;
+
 COMMIT;
 
 NOTIFY pgrst, 'reload schema';

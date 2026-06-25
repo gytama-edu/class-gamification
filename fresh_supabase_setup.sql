@@ -1714,7 +1714,9 @@ NOTIFY pgrst, 'reload schema';
 
 COMMIT;
 
--- 019_achievements.sql
+-- 024_achievements_foundation.sql
+-- manual_install_achievements_foundation.sql
+
 BEGIN;
 
 -- 1. Create achievement_definitions table
@@ -1753,9 +1755,13 @@ CREATE TABLE IF NOT EXISTS public.student_achievements (
 );
 
 -- 3. Constraints & Indexes
-ALTER TABLE public.student_achievements
-  ADD CONSTRAINT student_achievements_unique_automatic UNIQUE NULLS NOT DISTINCT (student_id, class_id, achievement_definition_id);
-  
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'student_achievements_unique_automatic') THEN
+        CREATE UNIQUE INDEX student_achievements_unique_automatic ON public.student_achievements (student_id, class_id, achievement_definition_id) WHERE source_type = 'automatic';
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS student_achievements_student_id_idx ON public.student_achievements(student_id);
 CREATE INDEX IF NOT EXISTS student_achievements_class_id_idx ON public.student_achievements(class_id);
 CREATE INDEX IF NOT EXISTS student_achievements_earned_at_idx ON public.student_achievements(earned_at);
@@ -1766,22 +1772,24 @@ ALTER TABLE public.achievement_definitions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_achievements ENABLE ROW LEVEL SECURITY;
 
 -- 5. RLS Policies
--- Achievement Definitions: viewable by authenticated users
-CREATE POLICY "Achievement definitions are viewable by authenticated users" 
-ON public.achievement_definitions FOR SELECT TO authenticated USING (true);
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Achievement definitions are viewable by authenticated users" ON public.achievement_definitions;
+    CREATE POLICY "Achievement definitions are viewable by authenticated users" 
+    ON public.achievement_definitions FOR SELECT TO authenticated USING (true);
 
--- Student Achievements
-CREATE POLICY "Teachers can view student achievements for their classes"
-ON public.student_achievements FOR SELECT TO authenticated
-USING (class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid()));
+    DROP POLICY IF EXISTS "Teachers can view student achievements for their classes" ON public.student_achievements;
+    CREATE POLICY "Teachers can view student achievements for their classes"
+    ON public.student_achievements FOR SELECT TO authenticated
+    USING (class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid()));
 
-CREATE POLICY "Students can view their own achievements"
-ON public.student_achievements FOR SELECT TO authenticated
-USING (student_id IN (SELECT id FROM public.students WHERE student_auth_user_id = auth.uid()));
+    DROP POLICY IF EXISTS "Students can view their own achievements" ON public.student_achievements;
+    CREATE POLICY "Students can view their own achievements"
+    ON public.student_achievements FOR SELECT TO authenticated
+    USING (student_id IN (SELECT id FROM public.students WHERE student_auth_user_id = auth.uid()));
 
-CREATE POLICY "Teachers can insert achievements for their classes"
-ON public.student_achievements FOR INSERT TO authenticated
-WITH CHECK (class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid()));
+    -- NO INSERT POLICY for regular clients. Insert is only via SECURITY DEFINER functions.
+END $$;
 
 -- Add table to publication for realtime
 DO $$
@@ -1803,17 +1811,6 @@ INSERT INTO public.achievement_definitions (key, name, description, category, ti
 ('meetings_10', 'Mission Regular', 'Participate in ten completed meetings.', 'Participation', 'Gold', 'calendar-check', true, 80),
 ('meetings_25', 'Operations Veteran', 'Participate in twenty-five completed meetings.', 'Participation', 'Platinum', 'shield', true, 90),
 
-('first_top_three', 'Command Board Debut', 'Finish a meeting in the top three.', 'Ranking', 'Bronze', 'trending-up', true, 100),
-('first_place', 'Mission Leader', 'Finish a meeting in first place.', 'Ranking', 'Silver', 'trophy', true, 110),
-('first_place_three_times', 'Command Champion', 'Finish first in three completed meetings.', 'Ranking', 'Gold', 'medal', true, 120),
-
-('perfect_lives', 'Shield Integrity', 'Complete a meeting without losing any lives.', 'Lives', 'Gold', 'shield-check', true, 130),
-('one_life_survivor', 'Last Shield Standing', 'Complete a meeting with exactly one life remaining.', 'Lives', 'Silver', 'heart', true, 140),
-
-('points_25_single_meeting', 'High Impact', 'Gain at least 25 net points in one meeting.', 'Progress', 'Silver', 'rocket', true, 150),
-('comeback', 'Mission Comeback', 'Recover from zero lives and finish the meeting with at least one life.', 'Progress', 'Gold', 'activity', true, 160),
-('positive_three_meetings', 'Consistent Progress', 'Finish three consecutive meetings with a positive net point change.', 'Progress', 'Gold', 'trending-up', true, 170),
-
 ('teacher_recognition', 'Teacher Recognition', 'Receive special recognition from your teacher.', 'Special', 'Special', 'star', false, 1000)
 ON CONFLICT (key) DO UPDATE SET
   name = EXCLUDED.name,
@@ -1823,113 +1820,8 @@ ON CONFLICT (key) DO UPDATE SET
   icon_key = EXCLUDED.icon_key,
   sort_order = EXCLUDED.sort_order;
 
--- 7. Secure RPC Functions
 
--- Evaluate all student achievements
-CREATE OR REPLACE FUNCTION public.evaluate_student_achievements(p_student_id uuid)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-    v_class_id uuid;
-    v_total_points integer;
-    v_completed_meetings integer;
-    v_first_place_finishes integer;
-    v_new_achievements jsonb := '[]'::jsonb;
-    v_student record;
-BEGIN
-    -- Verify caller owns the class
-    SELECT s.class_id, s.total_points, s.display_name INTO v_class_id, v_total_points, v_student.display_name
-    FROM public.students s
-    JOIN public.classes c ON s.class_id = c.id
-    WHERE s.id = p_student_id AND c.owner_id = auth.uid();
-
-    IF v_class_id IS NULL THEN
-        RAISE EXCEPTION 'Not authorized or student not found';
-    END IF;
-
-    -- Evaluate Points Achievements
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'first_point', v_total_points > 0);
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'points_50', v_total_points >= 50);
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'points_100', v_total_points >= 100);
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'points_250', v_total_points >= 250);
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'points_500', v_total_points >= 500);
-
-    -- Get Meeting Stats
-    SELECT count(*), count(CASE WHEN final_rank = 1 THEN 1 END) 
-    INTO v_completed_meetings, v_first_place_finishes
-    FROM public.student_meeting_states sms
-    JOIN public.meetings m ON sms.meeting_id = m.id
-    WHERE sms.student_id = p_student_id AND m.status = 'completed';
-
-    -- Evaluate Participation Achievements
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'first_meeting', v_completed_meetings >= 1);
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'meetings_5', v_completed_meetings >= 5);
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'meetings_10', v_completed_meetings >= 10);
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'meetings_25', v_completed_meetings >= 25);
-
-    -- Evaluate Ranking Achievements
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'first_top_three', EXISTS (
-        SELECT 1 FROM public.student_meeting_states sms
-        JOIN public.meetings m ON sms.meeting_id = m.id
-        WHERE sms.student_id = p_student_id AND m.status = 'completed' AND sms.final_rank <= 3
-    ));
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'first_place', v_first_place_finishes >= 1);
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'first_place_three_times', v_first_place_finishes >= 3);
-
-    -- Evaluate Lives Achievements
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'perfect_lives', EXISTS (
-        SELECT 1 FROM public.student_meeting_states sms
-        JOIN public.meetings m ON sms.meeting_id = m.id
-        WHERE sms.student_id = p_student_id AND m.status = 'completed' AND sms.lives_remaining = m.max_lives_snapshot AND m.max_lives_snapshot > 0
-    ));
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'one_life_survivor', EXISTS (
-        SELECT 1 FROM public.student_meeting_states sms
-        JOIN public.meetings m ON sms.meeting_id = m.id
-        WHERE sms.student_id = p_student_id AND m.status = 'completed' AND sms.lives_remaining = 1
-    ));
-
-    -- Evaluate Progress Achievements
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'points_25_single_meeting', EXISTS (
-        SELECT 1 FROM public.student_meeting_states sms
-        JOIN public.meetings m ON sms.meeting_id = m.id
-        WHERE sms.student_id = p_student_id AND m.status = 'completed' AND (sms.points_after - sms.points_before) >= 25
-    ));
-    
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'positive_three_meetings', EXISTS (
-        SELECT 1 FROM (
-            SELECT (points_after - points_before) as net_points
-            FROM public.student_meeting_states sms
-            JOIN public.meetings m ON sms.meeting_id = m.id
-            WHERE sms.student_id = p_student_id AND m.status = 'completed'
-            ORDER BY m.ended_at DESC
-            LIMIT 3
-        ) last_three
-        HAVING COUNT(*) = 3 AND MIN(net_points) > 0
-    ));
-
-    -- Comeback achievement requires checking event history
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'comeback', EXISTS (
-        SELECT 1 FROM public.student_meeting_states sms
-        JOIN public.meetings m ON sms.meeting_id = m.id
-        WHERE sms.student_id = p_student_id AND m.status = 'completed' AND sms.lives_remaining >= 1
-        AND EXISTS (
-            SELECT 1 FROM (
-                SELECT sum(lives_delta) over (order by created_at) as running_lives
-                FROM public.life_events
-                WHERE student_id = p_student_id AND meeting_id = sms.meeting_id
-            ) le
-            WHERE running_lives <= 0
-        )
-    ));
-
-    RETURN v_new_achievements;
-END;
-$$;
-
--- Helper to award achievement
+-- 7. Helper Function First
 CREATE OR REPLACE FUNCTION public._check_and_award_achievement(p_student_id uuid, p_class_id uuid, p_key text, p_condition boolean)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -1951,7 +1843,7 @@ BEGIN
 
     IF EXISTS (
         SELECT 1 FROM public.student_achievements
-        WHERE student_id = p_student_id AND achievement_definition_id = v_def.id
+        WHERE student_id = p_student_id AND achievement_definition_id = v_def.id AND source_type = 'automatic'
     ) THEN
         RETURN '[]'::jsonb;
     END IF;
@@ -1977,9 +1869,61 @@ BEGIN
     ));
 END;
 $$;
+REVOKE ALL ON FUNCTION public._check_and_award_achievement(uuid, uuid, text, boolean) FROM public, anon;
 
 
--- Evaluate all students in a class
+-- 8. Evaluate all student achievements
+CREATE OR REPLACE FUNCTION public.evaluate_student_achievements(p_student_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_class_id uuid;
+    v_total_points integer;
+    v_completed_meetings integer;
+    v_new_achievements jsonb := '[]'::jsonb;
+    v_student record;
+BEGIN
+    -- Verify caller owns the class
+    SELECT s.class_id, s.total_points, s.display_name INTO v_class_id, v_total_points, v_student.display_name
+    FROM public.students s
+    JOIN public.classes c ON s.class_id = c.id
+    WHERE s.id = p_student_id AND c.owner_id = auth.uid();
+
+    IF v_class_id IS NULL THEN
+        RAISE EXCEPTION 'Not authorized or student not found';
+    END IF;
+
+    -- Evaluate Points Achievements
+    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'first_point', v_total_points > 0);
+    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'points_50', v_total_points >= 50);
+    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'points_100', v_total_points >= 100);
+    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'points_250', v_total_points >= 250);
+    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'points_500', v_total_points >= 500);
+
+    -- Get Meeting Stats
+    SELECT count(*)
+    INTO v_completed_meetings
+    FROM public.student_meeting_states sms
+    JOIN public.meetings m ON sms.meeting_id = m.id
+    WHERE sms.student_id = p_student_id AND m.status = 'completed';
+
+    -- Evaluate Participation Achievements
+    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'first_meeting', v_completed_meetings >= 1);
+    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'meetings_5', v_completed_meetings >= 5);
+    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'meetings_10', v_completed_meetings >= 10);
+    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'meetings_25', v_completed_meetings >= 25);
+
+    RETURN v_new_achievements;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.evaluate_student_achievements(uuid) FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.evaluate_student_achievements(uuid) TO authenticated;
+
+
+-- 9. Evaluate all students in a class
 CREATE OR REPLACE FUNCTION public.evaluate_class_achievements(p_class_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -1995,7 +1939,7 @@ BEGIN
         RAISE EXCEPTION 'Not authorized';
     END IF;
 
-    FOR v_student IN SELECT id FROM public.students WHERE class_id = p_class_id AND is_active = true LOOP
+    FOR v_student IN SELECT id FROM public.students WHERE class_id = p_class_id AND is_active = true AND deleted_at IS NULL LOOP
         v_student_achievements := public.evaluate_student_achievements(v_student.id);
         IF jsonb_array_length(v_student_achievements) > 0 THEN
             v_results := v_results || v_student_achievements;
@@ -2005,8 +1949,11 @@ BEGIN
     RETURN v_results;
 END;
 $$;
+REVOKE ALL ON FUNCTION public.evaluate_class_achievements(uuid) FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.evaluate_class_achievements(uuid) TO authenticated;
 
--- Award teacher recognition
+
+-- 10. Award teacher recognition
 CREATE OR REPLACE FUNCTION public.award_teacher_recognition(
   p_student_id uuid,
   p_title text,
@@ -2040,6 +1987,10 @@ BEGIN
         RAISE EXCEPTION 'Reason must be between 3 and 200 characters';
     END IF;
 
+    IF p_icon_key NOT IN ('star', 'award', 'trophy', 'book-open', 'microphone', 'brain', 'target', 'shield', 'users', 'zap') THEN
+        RAISE EXCEPTION 'Invalid icon key';
+    END IF;
+
     SELECT * INTO v_def FROM public.achievement_definitions WHERE key = 'teacher_recognition';
     IF v_def IS NULL THEN
         RAISE EXCEPTION 'Definition not found';
@@ -2067,92 +2018,9 @@ BEGIN
     );
 END;
 $$;
-
-
--- Update end_meeting to trigger achievement evaluation
-CREATE OR REPLACE FUNCTION public.end_meeting(p_class_id UUID)
-RETURNS VOID
-LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public
-AS $$
-DECLARE
-    v_teacher_id UUID;
-    v_meeting_id UUID;
-    v_class record;
-BEGIN
-    v_teacher_id := auth.uid();
-    IF v_teacher_id IS NULL THEN
-        RAISE EXCEPTION 'Not authenticated';
-    END IF;
-
-    SELECT * INTO v_class FROM public.classes WHERE id = p_class_id;
-    IF v_class IS NULL THEN
-        RAISE EXCEPTION 'Class not found';
-    END IF;
-
-    IF v_class.owner_id != v_teacher_id THEN
-        RAISE EXCEPTION 'Not authorized';
-    END IF;
-
-    SELECT id INTO v_meeting_id FROM public.meetings WHERE class_id = p_class_id AND status = 'active';
-    IF v_meeting_id IS NULL THEN
-        RAISE EXCEPTION 'No active meeting';
-    END IF;
-
-    -- Ensure all participating students have a state
-    INSERT INTO public.student_meeting_states (meeting_id, student_id, lives_remaining)
-    SELECT DISTINCT pe.student_id, pe.meeting_id, v_class.max_lives
-    FROM public.point_events pe
-    WHERE pe.meeting_id = v_meeting_id
-      AND NOT EXISTS (
-          SELECT 1 FROM public.student_meeting_states sms 
-          WHERE sms.meeting_id = pe.meeting_id AND sms.student_id = pe.student_id
-      );
-
-    -- Capture student snapshots and calculate points
-    UPDATE public.student_meeting_states sms
-    SET student_name_snapshot = s.display_name,
-        points_after = s.total_points,
-        points_before = s.total_points - COALESCE((
-            SELECT SUM(points_delta) FROM public.point_events pe 
-            WHERE pe.meeting_id = v_meeting_id AND pe.student_id = sms.student_id
-        ), 0)
-    FROM public.students s
-    WHERE sms.student_id = s.id AND sms.meeting_id = v_meeting_id;
-
-    -- Calculate rank based on points_after DESC, student_name_snapshot ASC, student_id ASC
-    WITH RankedStudents AS (
-        SELECT id, 
-               RANK() OVER (ORDER BY points_after DESC NULLS LAST, student_name_snapshot ASC, student_id ASC) as new_rank
-        FROM public.student_meeting_states
-        WHERE meeting_id = v_meeting_id
-    )
-    UPDATE public.student_meeting_states sms
-    SET final_rank = rs.new_rank
-    FROM RankedStudents rs
-    WHERE sms.id = rs.id;
-
-    -- Capture class snapshots and finish meeting
-    UPDATE public.meetings
-    SET class_name_snapshot = v_class.name,
-        level_name_snapshot = v_class.level_name,
-        status = 'completed',
-        ended_at = NOW()
-    WHERE id = v_meeting_id;
-
-    -- Evaluate achievements for the class (safe failure)
-    BEGIN
-        PERFORM public.evaluate_class_achievements(p_class_id);
-    EXCEPTION WHEN OTHERS THEN
-        -- Log or ignore achievement evaluation errors so meeting still ends successfully
-    END;
-END;
-$$;
+REVOKE ALL ON FUNCTION public.award_teacher_recognition(uuid, text, text, text) FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.award_teacher_recognition(uuid, text, text, text) TO authenticated;
 
 NOTIFY pgrst, 'reload schema';
 
 COMMIT;
-
-
-

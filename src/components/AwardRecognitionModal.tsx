@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Award, Star, Zap, Crown, Shield, Rocket } from 'lucide-react';
+import { X, Award } from 'lucide-react';
 import { getRepository } from '../lib/data/repository';
+import { IconMap } from './AchievementCard';
 
 interface AwardRecognitionModalProps {
   isOpen: boolean;
@@ -11,12 +12,16 @@ interface AwardRecognitionModalProps {
 }
 
 const AvailableIcons = [
-  { id: 'star', icon: Star, label: 'Star' },
-  { id: 'award', icon: Award, label: 'Award' },
-  { id: 'zap', icon: Zap, label: 'Energy' },
-  { id: 'crown', icon: Crown, label: 'Crown' },
-  { id: 'shield', icon: Shield, label: 'Shield' },
-  { id: 'rocket', icon: Rocket, label: 'Rocket' },
+  { id: 'star', icon: IconMap['star'], label: 'Star' },
+  { id: 'book', icon: IconMap['book'], label: 'Book' },
+  { id: 'microphone', icon: IconMap['microphone'], label: 'Microphone' },
+  { id: 'brain', icon: IconMap['brain'], label: 'Brain' },
+  { id: 'zap', icon: IconMap['zap'], label: 'Energy' },
+  { id: 'target', icon: IconMap['target'], label: 'Target' },
+  { id: 'shield', icon: IconMap['shield'], label: 'Shield' },
+  { id: 'trophy', icon: IconMap['trophy'], label: 'Trophy' },
+  { id: 'helping-hand', icon: IconMap['helping-hand'], label: 'Helping Hand' },
+  { id: 'leadership', icon: IconMap['leadership'], label: 'Leadership' },
 ];
 
 export const AwardRecognitionModal: React.FC<AwardRecognitionModalProps> = ({
@@ -66,7 +71,7 @@ export const AwardRecognitionModal: React.FC<AwardRecognitionModalProps> = ({
       <div className="bg-mission-panel border border-mission-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between p-4 border-b border-mission-border">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Award className="text-purple-400" />
+            <Award className="text-radar-green" />
             Award Recognition
           </h2>
           <button
@@ -115,7 +120,7 @@ export const AwardRecognitionModal: React.FC<AwardRecognitionModalProps> = ({
                   onClick={() => setSelectedIcon(id)}
                   className={`p-2 rounded-lg border flex items-center justify-center transition-all ${
                     selectedIcon === id
-                      ? 'bg-purple-400/20 border-purple-400 text-purple-400'
+                      ? 'bg-radar-green/20 border-radar-green text-radar-green'
                       : 'bg-mission-bg-secondary border-mission-border text-mission-muted-text hover:text-white hover:border-mission-muted-text'
                   }`}
                   title={label}
@@ -152,7 +157,7 @@ export const AwardRecognitionModal: React.FC<AwardRecognitionModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting || !title.trim()}
-              className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold transition-all shadow-lg shadow-purple-900/20 disabled:opacity-50"
+              className="px-6 py-2 bg-radar-green hover:bg-radar-green/80 text-black rounded-lg font-bold transition-all shadow-lg shadow-radar-green/20 disabled:opacity-50"
             >
               {isSubmitting ? 'Awarding...' : 'Award Badge'}
             </button>

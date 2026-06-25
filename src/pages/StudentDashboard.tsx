@@ -31,25 +31,7 @@ import { useClassroomRealtime } from "../lib/realtime/useClassroomRealtime";
 
 import { useAuth } from "../lib/auth/AuthContext";
 import { supabase } from "../lib/supabase/client";
-
-const IconMap: Record<string, React.FC<any>> = {
-  radio: Radio,
-  zap: Zap,
-  star: Star,
-  award: Award,
-  crown: Crown,
-  flag: Flag,
-  users: Users,
-  "calendar-check": CalendarCheck,
-  shield: Shield,
-  "trending-up": TrendingUp,
-  trophy: Trophy,
-  medal: Medal,
-  "shield-check": ShieldCheck,
-  heart: Heart,
-  rocket: Rocket,
-  activity: Activity,
-};
+import { AchievementCard } from "../components/AchievementCard";
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -269,47 +251,9 @@ export const StudentDashboard: React.FC = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {achievements.map((ach) => {
-                  const Icon = IconMap[ach.icon_key_snapshot] || Award;
-                  const tierColor =
-                    ach.tier_snapshot === "Platinum"
-                      ? "text-blue-400 bg-blue-400/10 border-blue-400/20"
-                      : ach.tier_snapshot === "Gold"
-                        ? "text-yellow-400 bg-yellow-400/10 border-yellow-400/20"
-                        : ach.tier_snapshot === "Silver"
-                          ? "text-gray-300 bg-gray-300/10 border-gray-300/20"
-                          : ach.tier_snapshot === "Special"
-                            ? "text-purple-400 bg-purple-400/10 border-purple-400/20"
-                            : "text-amber-600 bg-amber-600/10 border-amber-600/20"; // Bronze
-
-                  return (
-                    <div
-                      key={ach.id}
-                      className="flex gap-3 p-3 rounded-xl bg-mission-background border border-mission-border"
-                    >
-                      <div
-                        className={`w-12 h-12 rounded-lg flex flex-shrink-0 items-center justify-center border ${tierColor}`}
-                      >
-                        <Icon size={24} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <h4 className="text-sm font-bold text-white truncate">
-                            {ach.achievement_name_snapshot}
-                          </h4>
-                          <span
-                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${tierColor}`}
-                          >
-                            {ach.tier_snapshot}
-                          </span>
-                        </div>
-                        <p className="text-xs text-mission-muted-text mt-0.5 line-clamp-2">
-                          {ach.achievement_description_snapshot}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+                {achievements.map((ach) => (
+                  <AchievementCard key={ach.id} achievement={ach} />
+                ))}
               </div>
             )}
           </div>

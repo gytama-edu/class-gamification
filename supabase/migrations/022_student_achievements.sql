@@ -1,4 +1,4 @@
--- manual_phase_1j_achievements.sql
+-- 022_student_achievements.sql
 
 BEGIN;
 

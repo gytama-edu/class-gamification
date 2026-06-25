@@ -768,6 +768,7 @@ export class MockClassroomRepository implements ClassroomRepository {
     if (student) {
       student.total_points += points;
       this.saveDb(db);
+      this.evaluateStudentAchievements(studentId); // evaluate asynchronously or immediately
       notifyMockUpdate(classId);
       return student.total_points;
     }
@@ -787,6 +788,7 @@ export class MockClassroomRepository implements ClassroomRepository {
     if (student) {
       student.total_points = Math.max(0, student.total_points - points);
       this.saveDb(db);
+      this.evaluateStudentAchievements(studentId);
       notifyMockUpdate(classId);
       return student.total_points;
     }
@@ -1111,46 +1113,64 @@ export class MockClassroomRepository implements ClassroomRepository {
       .map(a => ({ student_id: a.student_id, achievement: a }));
   }
 
-  async evaluateClassAchievements(classId: string): Promise<void> {
-    // In mock mode, we won't fully implement all the automatic checks.
-    // Real implementation requires replicating the entire PL/pgSQL logic.
-    // For now, we will just return since mock mode doesn't strictly need automatic achievements to work precisely,
-    // or we could add a basic evaluation here if required. Let's do a simple points check as a placeholder.
+  async evaluateStudentAchievements(studentId: string): Promise<void> {
     const db = this.getDb();
+    const student = db.students.find(s => s.id === studentId);
+    if (!student) return;
+
     let updated = false;
 
-    const students = db.students.filter(s => s.class_id === classId);
-    
-    // Very simple placeholder: award 'first_point' if points > 0
-    students.forEach(s => {
-      if (s.total_points > 0) {
-        const hasFirstPoint = db.student_achievements.some(a => a.student_id === s.id && a.achievement_key_snapshot === 'first_point');
-        if (!hasFirstPoint) {
-          db.student_achievements.push({
-            id: generateId(),
-            class_id: classId,
-            student_id: s.id,
-            achievement_definition_id: generateId(),
-            achievement_key_snapshot: 'first_point',
-            achievement_name_snapshot: 'First Signal',
-            achievement_description_snapshot: 'Earn your first Mission Point.',
-            category_snapshot: 'Points',
-            tier_snapshot: 'Bronze',
-            icon_key_snapshot: 'radio',
-            source_type: 'automatic',
-            source_meeting_id: null,
-            awarded_by: null,
-            reason: null,
-            earned_at: new Date().toISOString(),
-            created_at: new Date().toISOString()
-          });
-          updated = true;
-        }
+    const award = (key: string, name: string, desc: string, category: string, tier: string, icon: string) => {
+      const hasIt = db.student_achievements.some(a => a.student_id === studentId && a.achievement_key_snapshot === key);
+      if (!hasIt) {
+        db.student_achievements.push({
+          id: generateId(),
+          class_id: student.class_id,
+          student_id: student.id,
+          achievement_definition_id: generateId(),
+          achievement_key_snapshot: key,
+          achievement_name_snapshot: name,
+          achievement_description_snapshot: desc,
+          category_snapshot: category,
+          tier_snapshot: tier,
+          icon_key_snapshot: icon,
+          source_type: 'automatic',
+          source_meeting_id: null,
+          awarded_by: null,
+          reason: null,
+          earned_at: new Date().toISOString(),
+          created_at: new Date().toISOString()
+        });
+        updated = true;
       }
-    });
+    };
+
+    if (student.total_points > 0) award('first_point', 'First Signal', 'Earn your first Mission Point.', 'Points', 'Bronze', 'radio');
+    if (student.total_points >= 50) award('points_50', 'Momentum Builder', 'Reach 50 Mission Points.', 'Points', 'Silver', 'zap');
+    if (student.total_points >= 100) award('points_100', 'Century Operator', 'Reach 100 Mission Points.', 'Points', 'Silver', 'star');
+    if (student.total_points >= 250) award('points_250', 'Command Specialist', 'Reach 250 Mission Points.', 'Points', 'Gold', 'award');
+    if (student.total_points >= 500) award('points_500', 'Mission Veteran', 'Reach 500 Mission Points.', 'Points', 'Platinum', 'crown');
+
+    const completedStates = db.student_meeting_states.filter(sms => sms.student_id === studentId && db.meetings.find(m => m.id === sms.meeting_id && m.status === 'completed'));
+    const meetingCount = completedStates.length;
+    
+    if (meetingCount >= 1) award('first_meeting', 'First Deployment', 'Complete your first class meeting.', 'Participation', 'Bronze', 'flag');
+    if (meetingCount >= 5) award('meetings_5', 'Reliable Crew', 'Participate in five completed meetings.', 'Participation', 'Silver', 'users');
+
+    const firstPlaces = completedStates.filter(sms => sms.final_rank === 1).length;
+    if (completedStates.some(sms => sms.final_rank && sms.final_rank <= 3)) award('first_top_three', 'Command Board Debut', 'Finish a meeting in the top three.', 'Ranking', 'Bronze', 'trending-up');
+    if (firstPlaces >= 1) award('first_place', 'Mission Leader', 'Finish a meeting in first place.', 'Ranking', 'Silver', 'trophy');
 
     if (updated) {
       this.saveDb(db);
+    }
+  }
+
+  async evaluateClassAchievements(classId: string): Promise<void> {
+    const db = this.getDb();
+    const students = db.students.filter(s => s.class_id === classId && s.is_active);
+    for (const s of students) {
+      await this.evaluateStudentAchievements(s.id);
     }
   }
 

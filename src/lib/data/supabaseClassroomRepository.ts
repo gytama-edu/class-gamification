@@ -383,7 +383,13 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       p_reason: reason || null,
     });
     if (error) throw error;
-    return this.parseMutationNumber(data, "point total");
+    const result = this.parseMutationNumber(data, "point total");
+    
+    // Evaluate achievements asynchronously
+    supabase.rpc("evaluate_student_achievements", { p_student_id: studentId })
+      .catch(err => console.warn("Failed to evaluate achievements:", err));
+      
+    return result;
   }
 
   async removePoints(
@@ -400,7 +406,13 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       p_reason: reason || null,
     });
     if (error) throw error;
-    return this.parseMutationNumber(data, "point total");
+    const result = this.parseMutationNumber(data, "point total");
+    
+    // Evaluate achievements asynchronously
+    supabase.rpc("evaluate_student_achievements", { p_student_id: studentId })
+      .catch(err => console.warn("Failed to evaluate achievements:", err));
+      
+    return result;
   }
 
   async removeLife(
@@ -457,6 +469,10 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       p_class_id: classId,
     });
     if (error) throw error;
+    
+    // Evaluate class achievements asynchronously
+    supabase.rpc("evaluate_class_achievements", { p_class_id: classId })
+      .catch(err => console.warn("Failed to evaluate class achievements:", err));
   }
 
   async getMeetingHistory(classId: string): Promise<MeetingHistoryItem[]> {

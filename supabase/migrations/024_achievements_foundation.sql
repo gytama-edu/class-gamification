@@ -1,4 +1,4 @@
--- manual_phase_1j_achievements.sql
+-- 024_achievements_foundation.sql
 
 BEGIN;
 
@@ -41,8 +41,7 @@ CREATE TABLE IF NOT EXISTS public.student_achievements (
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'student_achievements_unique_automatic') THEN
-        ALTER TABLE public.student_achievements
-        ADD CONSTRAINT student_achievements_unique_automatic UNIQUE NULLS NOT DISTINCT (student_id, class_id, achievement_definition_id);
+        CREATE UNIQUE INDEX student_achievements_unique_automatic ON public.student_achievements (student_id, class_id, achievement_definition_id) WHERE source_type = 'automatic';
     END IF;
 END $$;
 
@@ -95,17 +94,6 @@ INSERT INTO public.achievement_definitions (key, name, description, category, ti
 ('meetings_10', 'Mission Regular', 'Participate in ten completed meetings.', 'Participation', 'Gold', 'calendar-check', true, 80),
 ('meetings_25', 'Operations Veteran', 'Participate in twenty-five completed meetings.', 'Participation', 'Platinum', 'shield', true, 90),
 
-('first_top_three', 'Command Board Debut', 'Finish a meeting in the top three.', 'Ranking', 'Bronze', 'trending-up', true, 100),
-('first_place', 'Mission Leader', 'Finish a meeting in first place.', 'Ranking', 'Silver', 'trophy', true, 110),
-('first_place_three_times', 'Command Champion', 'Finish first in three completed meetings.', 'Ranking', 'Gold', 'medal', true, 120),
-
-('perfect_lives', 'Shield Integrity', 'Complete a meeting without losing any lives.', 'Lives', 'Gold', 'shield-check', true, 130),
-('one_life_survivor', 'Last Shield Standing', 'Complete a meeting with exactly one life remaining.', 'Lives', 'Silver', 'heart', true, 140),
-
-('points_25_single_meeting', 'High Impact', 'Gain at least 25 net points in one meeting.', 'Progress', 'Silver', 'rocket', true, 150),
-('comeback', 'Mission Comeback', 'Recover from zero lives and finish the meeting with at least one life.', 'Progress', 'Gold', 'activity', true, 160),
-('positive_three_meetings', 'Consistent Progress', 'Finish three consecutive meetings with a positive net point change.', 'Progress', 'Gold', 'trending-up', true, 170),
-
 ('teacher_recognition', 'Teacher Recognition', 'Receive special recognition from your teacher.', 'Special', 'Special', 'star', false, 1000)
 ON CONFLICT (key) DO UPDATE SET
   name = EXCLUDED.name,
@@ -138,7 +126,7 @@ BEGIN
 
     IF EXISTS (
         SELECT 1 FROM public.student_achievements
-        WHERE student_id = p_student_id AND achievement_definition_id = v_def.id
+        WHERE student_id = p_student_id AND achievement_definition_id = v_def.id AND source_type = 'automatic'
     ) THEN
         RETURN '[]'::jsonb;
     END IF;
@@ -178,7 +166,6 @@ DECLARE
     v_class_id uuid;
     v_total_points integer;
     v_completed_meetings integer;
-    v_first_place_finishes integer;
     v_new_achievements jsonb := '[]'::jsonb;
     v_student record;
 BEGIN
@@ -200,8 +187,8 @@ BEGIN
     v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'points_500', v_total_points >= 500);
 
     -- Get Meeting Stats
-    SELECT count(*), count(CASE WHEN final_rank = 1 THEN 1 END) 
-    INTO v_completed_meetings, v_first_place_finishes
+    SELECT count(*)
+    INTO v_completed_meetings
     FROM public.student_meeting_states sms
     JOIN public.meetings m ON sms.meeting_id = m.id
     WHERE sms.student_id = p_student_id AND m.status = 'completed';
@@ -211,61 +198,6 @@ BEGIN
     v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'meetings_5', v_completed_meetings >= 5);
     v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'meetings_10', v_completed_meetings >= 10);
     v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'meetings_25', v_completed_meetings >= 25);
-
-    -- Evaluate Ranking Achievements
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'first_top_three', EXISTS (
-        SELECT 1 FROM public.student_meeting_states sms
-        JOIN public.meetings m ON sms.meeting_id = m.id
-        WHERE sms.student_id = p_student_id AND m.status = 'completed' AND sms.final_rank <= 3 AND sms.final_rank IS NOT NULL
-    ));
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'first_place', v_first_place_finishes >= 1);
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'first_place_three_times', v_first_place_finishes >= 3);
-
-    -- Evaluate Lives Achievements
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'perfect_lives', EXISTS (
-        SELECT 1 FROM public.student_meeting_states sms
-        JOIN public.meetings m ON sms.meeting_id = m.id
-        WHERE sms.student_id = p_student_id AND m.status = 'completed' AND sms.lives_remaining IS NOT NULL AND m.max_lives_snapshot IS NOT NULL AND sms.lives_remaining >= m.max_lives_snapshot AND m.max_lives_snapshot > 0
-    ));
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'one_life_survivor', EXISTS (
-        SELECT 1 FROM public.student_meeting_states sms
-        JOIN public.meetings m ON sms.meeting_id = m.id
-        WHERE sms.student_id = p_student_id AND m.status = 'completed' AND sms.lives_remaining = 1
-    ));
-
-    -- Evaluate Progress Achievements
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'points_25_single_meeting', EXISTS (
-        SELECT 1 FROM public.student_meeting_states sms
-        JOIN public.meetings m ON sms.meeting_id = m.id
-        WHERE sms.student_id = p_student_id AND m.status = 'completed' AND sms.points_after IS NOT NULL AND sms.points_before IS NOT NULL AND (sms.points_after - sms.points_before) >= 25
-    ));
-    
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'positive_three_meetings', EXISTS (
-        SELECT 1 FROM (
-            SELECT (points_after - points_before) as net_points
-            FROM public.student_meeting_states sms
-            JOIN public.meetings m ON sms.meeting_id = m.id
-            WHERE sms.student_id = p_student_id AND m.status = 'completed' AND sms.points_after IS NOT NULL AND sms.points_before IS NOT NULL
-            ORDER BY m.ended_at DESC
-            LIMIT 3
-        ) last_three
-        HAVING COUNT(*) = 3 AND MIN(net_points) > 0
-    ));
-
-    -- Comeback achievement requires checking event history
-    v_new_achievements := v_new_achievements || public._check_and_award_achievement(p_student_id, v_class_id, 'comeback', EXISTS (
-        SELECT 1 FROM public.student_meeting_states sms
-        JOIN public.meetings m ON sms.meeting_id = m.id
-        WHERE sms.student_id = p_student_id AND m.status = 'completed' AND sms.lives_remaining >= 1
-        AND EXISTS (
-            SELECT 1 FROM (
-                SELECT (m.max_lives_snapshot + sum(lives_delta) over (order by created_at)) as running_lives
-                FROM public.life_events
-                WHERE student_id = p_student_id AND meeting_id = sms.meeting_id
-            ) le
-            WHERE running_lives <= 0
-        )
-    ));
 
     RETURN v_new_achievements;
 END;
@@ -338,7 +270,7 @@ BEGIN
         RAISE EXCEPTION 'Reason must be between 3 and 200 characters';
     END IF;
 
-    IF p_icon_key NOT IN ('star', 'book', 'microphone', 'brain', 'zap', 'target', 'shield', 'trophy', 'helping-hand', 'leadership') THEN
+    IF p_icon_key NOT IN ('star', 'award', 'trophy', 'book-open', 'microphone', 'brain', 'target', 'shield', 'users', 'zap') THEN
         RAISE EXCEPTION 'Invalid icon key';
     END IF;
 
@@ -371,190 +303,6 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.award_teacher_recognition(uuid, text, text, text) FROM public, anon;
 GRANT EXECUTE ON FUNCTION public.award_teacher_recognition(uuid, text, text, text) TO authenticated;
-
-
--- 11. Point Mutators Evaluation Integration
--- We update award_points and remove_points to call evaluate_student_achievements but STILL RETURN the updated points!
-
-CREATE OR REPLACE FUNCTION public.award_points(p_class_id uuid, p_student_id uuid, p_points integer, p_reason text)
-RETURNS integer AS $$
-DECLARE
-  v_meeting_id uuid;
-  v_new_total integer;
-BEGIN
-  IF p_points <= 0 THEN
-    RAISE EXCEPTION 'Points awarded must be positive';
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM public.classes WHERE id = p_class_id AND teacher_id = auth.uid()) THEN
-    RAISE EXCEPTION 'Not authorized';
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM public.students WHERE id = p_student_id AND class_id = p_class_id AND is_active = true AND deleted_at IS NULL) THEN
-    RAISE EXCEPTION 'Student not found or inactive';
-  END IF;
-
-  SELECT id INTO v_meeting_id FROM public.meetings WHERE class_id = p_class_id AND status = 'active' LIMIT 1;
-  IF v_meeting_id IS NULL THEN
-    RAISE EXCEPTION 'No active meeting found';
-  END IF;
-
-  UPDATE public.students
-  SET total_points = total_points + p_points, updated_at = now()
-  WHERE id = p_student_id
-  RETURNING total_points INTO v_new_total;
-
-  INSERT INTO public.point_events (meeting_id, student_id, points_delta, reason)
-  VALUES (v_meeting_id, p_student_id, p_points, p_reason);
-
-  -- Evaluate achievements safely
-  BEGIN
-    PERFORM public.evaluate_student_achievements(p_student_id);
-  EXCEPTION WHEN OTHERS THEN
-    NULL;
-  END;
-
-  RETURN v_new_total;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-REVOKE ALL ON FUNCTION public.award_points(uuid, uuid, integer, text) FROM public, anon;
-GRANT EXECUTE ON FUNCTION public.award_points(uuid, uuid, integer, text) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.remove_points(p_class_id uuid, p_student_id uuid, p_points integer, p_reason text)
-RETURNS integer AS $$
-DECLARE
-  v_meeting_id uuid;
-  v_current_total integer;
-  v_new_total integer;
-  v_deduction integer;
-BEGIN
-  IF p_points <= 0 THEN
-    RAISE EXCEPTION 'Points removed must be positive';
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM public.classes WHERE id = p_class_id AND teacher_id = auth.uid()) THEN
-    RAISE EXCEPTION 'Not authorized';
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM public.students WHERE id = p_student_id AND class_id = p_class_id AND is_active = true AND deleted_at IS NULL) THEN
-    RAISE EXCEPTION 'Student not found or inactive';
-  END IF;
-
-  SELECT id INTO v_meeting_id FROM public.meetings WHERE class_id = p_class_id AND status = 'active' LIMIT 1;
-  IF v_meeting_id IS NULL THEN
-    RAISE EXCEPTION 'No active meeting found';
-  END IF;
-
-  SELECT total_points INTO v_current_total FROM public.students WHERE id = p_student_id FOR UPDATE;
-  
-  v_deduction := LEAST(p_points, v_current_total);
-  
-  IF v_deduction > 0 THEN
-    UPDATE public.students
-    SET total_points = total_points - v_deduction, updated_at = now()
-    WHERE id = p_student_id
-    RETURNING total_points INTO v_new_total;
-
-    INSERT INTO public.point_events (meeting_id, student_id, points_delta, reason)
-    VALUES (v_meeting_id, p_student_id, -v_deduction, p_reason);
-    
-    -- Evaluate achievements safely
-    BEGIN
-      PERFORM public.evaluate_student_achievements(p_student_id);
-    EXCEPTION WHEN OTHERS THEN
-      NULL;
-    END;
-  ELSE
-    v_new_total := v_current_total;
-  END IF;
-
-  RETURN v_new_total;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-REVOKE ALL ON FUNCTION public.remove_points(uuid, uuid, integer, text) FROM public, anon;
-GRANT EXECUTE ON FUNCTION public.remove_points(uuid, uuid, integer, text) TO authenticated;
-
-
--- 12. Update end_meeting to trigger class achievement evaluation
-CREATE OR REPLACE FUNCTION public.end_meeting(p_class_id UUID)
-RETURNS VOID
-LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public
-AS $$
-DECLARE
-    v_teacher_id UUID;
-    v_meeting_id UUID;
-    v_class record;
-BEGIN
-    v_teacher_id := auth.uid();
-    IF v_teacher_id IS NULL THEN
-        RAISE EXCEPTION 'Not authenticated';
-    END IF;
-
-    SELECT * INTO v_class FROM public.classes WHERE id = p_class_id;
-    IF v_class IS NULL THEN
-        RAISE EXCEPTION 'Class not found';
-    END IF;
-
-    IF v_class.owner_id != v_teacher_id THEN
-        RAISE EXCEPTION 'Not authorized';
-    END IF;
-
-    SELECT id INTO v_meeting_id FROM public.meetings WHERE class_id = p_class_id AND status = 'active';
-    IF v_meeting_id IS NULL THEN
-        RAISE EXCEPTION 'No active meeting';
-    END IF;
-
-    -- Ensure all participating students have a state
-    INSERT INTO public.student_meeting_states (meeting_id, student_id, lives_remaining)
-    SELECT DISTINCT pe.student_id, pe.meeting_id, v_class.max_lives
-    FROM public.point_events pe
-    WHERE pe.meeting_id = v_meeting_id
-      AND NOT EXISTS (
-          SELECT 1 FROM public.student_meeting_states sms 
-          WHERE sms.meeting_id = pe.meeting_id AND sms.student_id = pe.student_id
-      );
-
-    -- Capture student snapshots and calculate points
-    UPDATE public.student_meeting_states sms
-    SET student_name_snapshot = s.display_name,
-        points_after = s.total_points,
-        points_before = s.total_points - COALESCE((
-            SELECT SUM(points_delta) FROM public.point_events pe 
-            WHERE pe.meeting_id = v_meeting_id AND pe.student_id = sms.student_id
-        ), 0)
-    FROM public.students s
-    WHERE sms.student_id = s.id AND sms.meeting_id = v_meeting_id;
-
-    -- Calculate rank based on points_after DESC, student_name_snapshot ASC, student_id ASC
-    WITH RankedStudents AS (
-        SELECT id, 
-               RANK() OVER (ORDER BY points_after DESC NULLS LAST, student_name_snapshot ASC, student_id ASC) as new_rank
-        FROM public.student_meeting_states
-        WHERE meeting_id = v_meeting_id
-    )
-    UPDATE public.student_meeting_states sms
-    SET final_rank = rs.new_rank
-    FROM RankedStudents rs
-    WHERE sms.id = rs.id;
-
-    -- Capture class snapshots and finish meeting
-    UPDATE public.meetings
-    SET class_name_snapshot = v_class.name,
-        level_name_snapshot = v_class.level_name,
-        status = 'completed',
-        ended_at = NOW()
-    WHERE id = v_meeting_id;
-
-    -- Evaluate achievements for the class (safe failure)
-    BEGIN
-        PERFORM public.evaluate_class_achievements(p_class_id);
-    EXCEPTION WHEN OTHERS THEN
-        -- Log or ignore achievement evaluation errors so meeting still ends successfully
-    END;
-END;
-$$;
 
 NOTIFY pgrst, 'reload schema';
 

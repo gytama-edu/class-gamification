@@ -21,6 +21,7 @@ import {
   Crown,
 } from "lucide-react";
 import { getRepository } from "../lib/data/repository";
+import { AchievementCard } from "../components/AchievementCard";
 import {
   StudentWithCurrentState,
   Classroom,
@@ -279,7 +280,7 @@ export const StudentView: React.FC = () => {
               </div>
               <button
                 onClick={() => setIsAwardModalOpen(true)}
-                className="text-xs font-bold px-3 py-1.5 bg-purple-600/10 text-purple-400 border border-purple-500/30 hover:bg-purple-600 hover:text-white transition-colors rounded flex items-center gap-1.5"
+                className="text-xs font-bold px-3 py-1.5 bg-radar-green/10 text-radar-green border border-radar-green/30 hover:bg-radar-green hover:text-black transition-colors rounded flex items-center gap-1.5"
               >
                 <Star size={14} />
                 AWARD RECOGNITION
@@ -295,52 +296,9 @@ export const StudentView: React.FC = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {achievements.map((ach) => {
-                  const Icon = IconMap[ach.icon_key_snapshot] || Award;
-                  const tierColor =
-                    ach.tier_snapshot === "Platinum"
-                      ? "text-blue-400 bg-blue-400/10 border-blue-400/20"
-                      : ach.tier_snapshot === "Gold"
-                        ? "text-yellow-400 bg-yellow-400/10 border-yellow-400/20"
-                        : ach.tier_snapshot === "Silver"
-                          ? "text-gray-300 bg-gray-300/10 border-gray-300/20"
-                          : ach.tier_snapshot === "Special"
-                            ? "text-purple-400 bg-purple-400/10 border-purple-400/20"
-                            : "text-amber-600 bg-amber-600/10 border-amber-600/20"; // Bronze
-
-                  return (
-                    <div
-                      key={ach.id}
-                      className="flex gap-3 p-4 rounded-xl bg-mission-bg-secondary border border-mission-border hover:border-radar-green/30 transition-colors"
-                    >
-                      <div
-                        className={`w-12 h-12 rounded-lg flex flex-shrink-0 items-center justify-center border ${tierColor}`}
-                      >
-                        <Icon size={24} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <h4 className="text-sm font-bold text-white truncate">
-                            {ach.achievement_name_snapshot}
-                          </h4>
-                          <span
-                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${tierColor}`}
-                          >
-                            {ach.tier_snapshot}
-                          </span>
-                        </div>
-                        <p className="text-xs text-mission-muted-text mt-0.5 line-clamp-2">
-                          {ach.achievement_description_snapshot}
-                        </p>
-                        {ach.source_type === "manual" && ach.reason && (
-                          <p className="text-xs text-radar-green/80 mt-1.5 italic">
-                            "{ach.reason}"
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                {achievements.map((ach) => (
+                  <AchievementCard key={ach.id} achievement={ach} />
+                ))}
               </div>
             )}
           </div>

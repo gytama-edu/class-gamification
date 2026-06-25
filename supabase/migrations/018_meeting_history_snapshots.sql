@@ -43,7 +43,7 @@ BEGIN
 
     -- Ensure all participating students have a state
     INSERT INTO public.student_meeting_states (meeting_id, student_id, lives_remaining)
-    SELECT DISTINCT pe.student_id, pe.meeting_id, v_class.max_lives
+    SELECT DISTINCT pe.meeting_id, pe.student_id, v_class.max_lives
     FROM public.point_events pe
     WHERE pe.meeting_id = v_meeting_id
       AND NOT EXISTS (

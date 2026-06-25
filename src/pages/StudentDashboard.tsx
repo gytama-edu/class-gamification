@@ -4,21 +4,9 @@ import {
   Heart,
   Star,
   LogOut,
-  Loader2,
   Trophy,
   Award,
-  Zap,
-  Activity,
-  Users,
-  Shield,
-  ShieldCheck,
-  Flag,
-  CalendarCheck,
-  TrendingUp,
-  Medal,
-  Rocket,
-  Radio,
-  Crown,
+  Radio
 } from "lucide-react";
 import { getRepository } from "../lib/data/repository";
 import {
@@ -32,6 +20,7 @@ import { useClassroomRealtime } from "../lib/realtime/useClassroomRealtime";
 import { useAuth } from "../lib/auth/AuthContext";
 import { supabase } from "../lib/supabase/client";
 import { AchievementCard } from "../components/AchievementCard";
+import { Panel, StatCard, LoadingSkeleton } from "../components/ui";
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -101,21 +90,28 @@ export const StudentDashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-mission-bg text-white flex items-center justify-center">
-        <Loader2 className="animate-spin text-radar-green" size={48} />
+      <div className="min-h-screen bg-mission-bg flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-4">
+           <LoadingSkeleton />
+           <div className="grid grid-cols-2 gap-4">
+             <LoadingSkeleton />
+             <LoadingSkeleton />
+           </div>
+           <LoadingSkeleton />
+        </div>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-mission-bg text-white flex flex-col items-center justify-center p-4">
-        <p className="text-mission-danger mb-4">
+      <div className="min-h-screen bg-mission-bg flex flex-col items-center justify-center p-4">
+        <p className="text-mission-danger mb-4 font-medium bg-mission-danger/10 px-4 py-2 rounded-xl border border-mission-danger/20">
           {error || "Failed to load data"}
         </p>
         <button
           onClick={handleLeave}
-          className="px-6 py-2 bg-mission-panel border border-mission-border rounded-lg hover:bg-mission-bg"
+          className="px-6 py-2.5 bg-mission-panel-elevated border border-mission-border/50 rounded-xl hover:bg-mission-bg text-white font-medium transition-colors shadow-sm"
         >
           Return to Join Page
         </button>
@@ -125,49 +121,52 @@ export const StudentDashboard: React.FC = () => {
 
   const { student, classroom, activeMeeting, lives_remaining, rank } = data;
   const isMeetingLive = activeMeeting !== null;
-  // If the meeting has ended (we check current_meeting_number vs the latest meeting)
-  // Actually, wait, if there's no active meeting, it could be waiting or complete.
-  // We can just say "Meeting Complete" if there was a meeting before, but for simplicity:
   const statusMessage = isMeetingLive
     ? "Meeting Live"
     : classroom.current_meeting_number > 0
-      ? "Meeting Complete / Waiting for the next meeting"
-      : "Waiting for the first meeting";
+      ? "Meeting Complete"
+      : "Waiting for first meeting";
 
   return (
-    <div className="min-h-screen bg-mission-bg text-white flex flex-col items-center justify-start p-4 relative overflow-hidden font-sans pt-12 pb-24">
+    <div className="min-h-screen bg-mission-bg text-mission-primary-text flex flex-col items-center p-4 font-sans pt-12 pb-24 relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8Y2lyY2xlIGN4PSIyIiBjeT0iMiIgcj0iMC41IiBmaWxsPSIjZmZmZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiIC8+Cjwvc3ZnPg==')] opacity-30 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/5 blur-[120px] rounded-full pointer-events-none" />
+
       {/* Top Bar */}
-      <div className="w-full max-w-md flex justify-between items-center mb-8">
+      <div className="w-full max-w-md flex justify-between items-start mb-8 relative z-10">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-white">
+          <h1 className="font-display text-2xl font-bold tracking-tight text-white mb-1">
             {student.display_name}
           </h1>
-          <p className="text-sm text-mission-secondary-text">
+          <p className="text-sm font-medium text-mission-secondary-text">
             {classroom.name} • {classroom.level_name}
           </p>
         </div>
         <button
           onClick={handleLeave}
-          className="p-2 text-mission-muted-text hover:text-white bg-mission-panel border border-mission-border rounded-lg"
+          className="p-2 text-mission-muted-text hover:text-white bg-mission-panel border border-mission-border/50 rounded-xl transition-colors shadow-sm"
           title="Leave Session"
         >
           <LogOut size={20} />
         </button>
       </div>
 
-      <div className="w-full max-w-md space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="w-full max-w-md space-y-4 relative z-10 animate-in fade-in duration-500">
         {/* Status Card */}
         <div
-          className={`p-4 rounded-2xl border ${isMeetingLive ? "bg-radar-green/10 border-radar-green/30" : "bg-mission-bg-secondary border-mission-border"} flex items-center justify-center gap-2`}
+          className={`px-4 py-3 rounded-xl border flex items-center justify-center gap-2 shadow-sm ${isMeetingLive ? "bg-cyan-500/10 border-cyan-500/30" : "bg-mission-panel border-mission-border/50"}`}
         >
-          {isMeetingLive && (
-            <span className="relative flex h-3 w-3 mr-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-radar-green opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-radar-green"></span>
+          {isMeetingLive ? (
+            <span className="relative flex h-2.5 w-2.5 mr-1">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400"></span>
             </span>
+          ) : (
+             <Radio size={14} className="text-mission-muted-text" />
           )}
           <span
-            className={`font-medium ${isMeetingLive ? "text-radar-green" : "text-mission-secondary-text"}`}
+            className={`font-mono text-sm font-bold uppercase tracking-wider ${isMeetingLive ? "text-cyan-400" : "text-mission-muted-text"}`}
           >
             {statusMessage}
           </span>
@@ -175,74 +174,72 @@ export const StudentDashboard: React.FC = () => {
 
         {/* Main Stats Grid */}
         <div className="grid grid-cols-2 gap-4">
-          {/* Lives */}
-          <div className="bg-mission-panel border border-mission-border p-6 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-mission-danger" />
-            <Heart
-              size={32}
-              className={`mb-2 ${isMeetingLive ? "text-mission-danger fill-mission-danger animate-pulse" : "text-mission-muted-text"}`}
-            />
-            <span className="text-xs text-mission-muted-text uppercase tracking-wider font-bold mb-1">
-              Lives
-            </span>
-            <div className="text-4xl font-black text-white">
-              {isMeetingLive ? (Number.isFinite(Number(lives_remaining)) ? Number(lives_remaining) : 0) : classroom.max_lives}
-              <span className="text-xl text-mission-muted-text">
-                /{classroom.max_lives}
-              </span>
-            </div>
-          </div>
+          <StatCard
+            title="Current Lives"
+            value={
+              <div className="flex items-baseline gap-1">
+                {isMeetingLive ? (Number.isFinite(Number(lives_remaining)) ? Number(lives_remaining) : 0) : classroom.max_lives}
+                <span className="text-lg text-mission-muted-text font-normal">/{classroom.max_lives}</span>
+              </div>
+            }
+            icon={Heart}
+            trend={isMeetingLive ? "Active session" : "Full lives"}
+            accentColor={isMeetingLive ? "border-mission-danger/30" : "border-mission-border/50"}
+            iconColor={isMeetingLive ? "text-mission-danger" : "text-mission-muted-text"}
+            bgColor={isMeetingLive ? "bg-mission-danger/10" : "bg-mission-bg-secondary"}
+            valueColor={isMeetingLive ? "text-white" : "text-white"}
+          />
 
-          {/* Points */}
-          <div className="bg-mission-panel border border-mission-border p-6 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-radar-green" />
-            <Star
-              size={32}
-              className="mb-2 text-radar-green fill-radar-green"
-            />
-            <span className="text-xs text-mission-muted-text uppercase tracking-wider font-bold mb-1">
-              Points
-            </span>
-            <div className="text-4xl font-black text-white">
-              {(Number.isFinite(Number(student.total_points)) ? Number(student.total_points) : 0).toLocaleString()}
-            </div>
-          </div>
+          <StatCard
+            title="Total Points"
+            value={(Number.isFinite(Number(student.total_points)) ? Number(student.total_points) : 0).toLocaleString()}
+            icon={Star}
+            trend="All time"
+            accentColor="border-radar-green/30"
+            iconColor="text-radar-green"
+            bgColor="bg-radar-green/10"
+            valueColor="text-white"
+          />
         </div>
 
         {/* Rank Card */}
-        <div className="bg-mission-panel border border-mission-border p-6 rounded-2xl flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-radar-green/10 flex items-center justify-center border border-radar-green/20">
-              <Trophy size={24} className="text-radar-green" />
+        <Panel className="p-5 border-mission-border/50 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+              <Trophy size={24} className="text-amber-500" />
             </div>
             <div>
-              <h3 className="text-mission-secondary-text text-sm font-medium">
+              <h3 className="text-mission-secondary-text text-sm font-medium mb-0.5">
                 Class Rank
               </h3>
-              <p className="text-2xl font-bold text-white">#{rank}</p>
+              <p className="text-3xl font-mono font-bold text-white leading-none">#{rank}</p>
             </div>
           </div>
           <div className="text-right">
-            <span className="text-xs text-mission-muted-text">Keep going!</span>
+            <span className="text-xs font-medium text-mission-muted-text uppercase tracking-wider">Keep<br/>going</span>
           </div>
-        </div>
+        </Panel>
 
         {/* Achievements */}
-        <div className="bg-mission-panel border border-mission-border rounded-2xl overflow-hidden">
-          <div className="p-4 border-b border-mission-border bg-mission-background/50 flex items-center gap-3">
-            <Award className="text-radar-green" />
-            <h2 className="text-lg font-bold text-white tracking-wide">
-              Achievements
-            </h2>
-            <span className="ml-auto bg-radar-green/10 text-radar-green text-xs font-bold px-2 py-1 rounded">
-              {achievements.length} UNLOCKED
+        <Panel className="p-0 border-mission-border/50 overflow-hidden">
+          <div className="p-4 border-b border-mission-border/50 bg-mission-panel-strong flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Award className="text-purple-400" size={18} />
+              <h2 className="font-display font-bold text-white">
+                Achievements
+              </h2>
+            </div>
+            <span className="bg-purple-400/10 text-purple-400 text-[10px] font-bold px-2 py-0.5 rounded border border-purple-400/20 uppercase tracking-wider">
+              {achievements.length} Unlocked
             </span>
           </div>
-          <div className="p-4">
+          <div className="p-4 bg-mission-panel-elevated/30">
             {achievements.length === 0 ? (
-              <div className="text-center py-8">
-                <Award className="mx-auto text-mission-border mb-3" size={32} />
-                <p className="text-mission-muted-text">
+              <div className="text-center py-6">
+                <div className="w-12 h-12 rounded-xl bg-mission-bg-secondary border border-mission-border/50 flex items-center justify-center mx-auto mb-3">
+                   <Award className="text-mission-muted-text" size={24} />
+                </div>
+                <p className="text-mission-secondary-text text-sm font-medium">
                   No achievements unlocked yet.
                 </p>
                 <p className="text-xs text-mission-muted-text mt-1">
@@ -257,8 +254,9 @@ export const StudentDashboard: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
+        </Panel>
       </div>
     </div>
   );
 };
+

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, AlertTriangle } from 'lucide-react';
 import { useAppContext } from '../store';
+import { PageHeader, Panel, Button } from '../components/ui';
 
 export const CreateClass: React.FC = () => {
   const navigate = useNavigate();
@@ -41,32 +42,33 @@ export const CreateClass: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500 py-8">
+    <div className="max-w-3xl mx-auto space-y-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <button 
         onClick={() => navigate('/teacher/classes')}
-        className="flex items-center gap-2 text-sm text-mission-secondary-text hover:text-white transition-colors"
+        className="flex items-center gap-2 text-sm text-mission-secondary-text hover:text-white transition-colors group w-fit"
       >
-        <ArrowLeft size={16} />
+        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
         <span>Back to My Classes</span>
       </button>
 
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Create New Class</h1>
-        <p className="text-mission-secondary-text">Configure a new mission control center for your students.</p>
-      </div>
+      <PageHeader
+        title="Create New Class"
+        description="Configure a new environment for your students."
+      />
 
-      <div className="bg-mission-panel border border-mission-border rounded-3xl p-8 relative overflow-hidden shadow-xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-radar-green/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+      <Panel className="relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
         
         {error && (
-          <div className="mb-6 p-4 bg-mission-danger/10 border border-mission-danger/20 rounded-xl text-mission-danger text-sm">
-            {error}
+          <div className="mb-6 p-4 bg-mission-danger/10 border border-mission-danger/20 rounded-xl flex items-start gap-3 text-mission-danger text-sm shadow-sm">
+            <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+            <p>{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-mission-primary-text mb-2">
+          <div className="space-y-2">
+            <label htmlFor="name" className="block text-sm font-medium text-mission-secondary-text">
               Class Name
             </label>
             <input
@@ -75,13 +77,13 @@ export const CreateClass: React.FC = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Science Period 1"
-              className="w-full bg-mission-input border border-mission-border rounded-xl px-4 py-3 text-white placeholder-mission-muted-text focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
+              className="w-full bg-mission-bg border border-mission-border/50 rounded-xl px-4 py-3 text-white placeholder-mission-muted-text focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all shadow-sm"
               required
             />
           </div>
 
-          <div>
-            <label htmlFor="levelName" className="block text-sm font-medium text-mission-primary-text mb-2">
+          <div className="space-y-2">
+            <label htmlFor="levelName" className="block text-sm font-medium text-mission-secondary-text">
               Class Level / Subject
             </label>
             <input
@@ -90,13 +92,13 @@ export const CreateClass: React.FC = () => {
               value={levelName}
               onChange={(e) => setLevelName(e.target.value)}
               placeholder="e.g. Grade 5, IELTS Prep"
-              className="w-full bg-mission-input border border-mission-border rounded-xl px-4 py-3 text-white placeholder-mission-muted-text focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
+              className="w-full bg-mission-bg border border-mission-border/50 rounded-xl px-4 py-3 text-white placeholder-mission-muted-text focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all shadow-sm"
               required
             />
           </div>
 
-          <div>
-            <label htmlFor="maxLives" className="block text-sm font-medium text-mission-primary-text mb-2">
+          <div className="space-y-2">
+            <label htmlFor="maxLives" className="block text-sm font-medium text-mission-secondary-text">
               Maximum Lives (per meeting)
             </label>
             <input
@@ -106,7 +108,7 @@ export const CreateClass: React.FC = () => {
               max="20"
               value={maxLives}
               onChange={(e) => setMaxLives(parseInt(e.target.value) || 10)}
-              className="w-full bg-mission-input border border-mission-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
+              className="w-full bg-mission-bg border border-mission-border/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-mono text-lg shadow-sm"
               required
             />
             <p className="mt-2 text-xs text-mission-muted-text">
@@ -114,18 +116,20 @@ export const CreateClass: React.FC = () => {
             </p>
           </div>
 
-          <div className="pt-4">
-            <button
+          <div className="pt-6">
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-radar-green text-mission-bg font-bold rounded-xl hover:bg-strong-green transition-colors focus:outline-none focus:ring-2 focus:ring-radar-green focus:ring-offset-2 focus:ring-offset-mission-panel disabled:opacity-50"
+              variant="primary"
+              className="w-full py-3.5 font-bold"
+              icon={Plus}
             >
-              <Plus size={18} />
               {isSubmitting ? 'Initializing...' : 'Create Class'}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
+      </Panel>
     </div>
   );
 };
+

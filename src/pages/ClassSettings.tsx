@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Save, AlertTriangle } from 'lucide-react';
 import { useAppContext } from '../store';
 import { getRepository } from '../lib/data/repository';
+import { PageHeader, Panel, Button, LoadingSkeleton } from '../components/ui';
 
 export const ClassSettings: React.FC = () => {
   const { classId } = useParams();
@@ -62,94 +63,107 @@ export const ClassSettings: React.FC = () => {
   };
 
   if (isLoading) {
-    return <div className="p-8 text-center text-mission-muted-text">Loading settings...</div>;
+    return (
+      <div className="max-w-3xl mx-auto space-y-8 py-8 animate-in fade-in duration-500">
+         <LoadingSkeleton className="h-24 w-full" />
+         <LoadingSkeleton className="h-[400px] w-full" />
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500 py-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Class Settings</h1>
-        <p className="text-mission-secondary-text">Manage classroom details and danger zone actions.</p>
-      </div>
+    <div className="max-w-3xl mx-auto space-y-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <PageHeader
+        title="Class Settings"
+        description="Manage classroom details and danger zone actions."
+        actions={
+           <Button
+             variant="outline"
+             onClick={() => navigate(`/teacher/classes/${classId}`)}
+           >
+             Cancel
+           </Button>
+        }
+      />
 
-      <div className="bg-mission-panel border border-mission-border rounded-3xl p-8">
+      <Panel>
         {error && (
-          <div className="mb-6 p-4 bg-mission-danger/10 border border-mission-danger/20 rounded-xl text-mission-danger text-sm">
-            {error}
+          <div className="mb-6 p-4 bg-mission-danger/10 border border-mission-danger/20 rounded-xl text-mission-danger text-sm flex items-start gap-3">
+            <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+            <p>{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSave} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-mission-secondary-text mb-2">Class Name</label>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-mission-secondary-text">Class Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-mission-input border border-mission-border rounded-xl px-4 py-3 text-white focus:border-radar-green transition-all"
+              className="w-full bg-mission-bg border border-mission-border/50 rounded-xl px-4 py-3 text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all outline-none shadow-sm"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-mission-secondary-text mb-2">Class Level / Subject</label>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-mission-secondary-text">Class Level / Subject</label>
             <input
               type="text"
               value={levelName}
               onChange={(e) => setLevelName(e.target.value)}
-              className="w-full bg-mission-input border border-mission-border rounded-xl px-4 py-3 text-white focus:border-radar-green transition-all"
+              className="w-full bg-mission-bg border border-mission-border/50 rounded-xl px-4 py-3 text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all outline-none shadow-sm"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-mission-secondary-text mb-2">Maximum Lives</label>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-mission-secondary-text">Maximum Lives</label>
             <input
               type="number"
               min="1"
               max="20"
               value={maxLives}
               onChange={(e) => setMaxLives(parseInt(e.target.value) || 10)}
-              className="w-full bg-mission-input border border-mission-border rounded-xl px-4 py-3 text-white focus:border-radar-green transition-all"
+              className="w-full bg-mission-bg border border-mission-border/50 rounded-xl px-4 py-3 text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all outline-none shadow-sm font-mono text-lg"
               required
             />
+            <p className="text-xs text-mission-muted-text mt-1">
+              Standard configuration is 10 lives per session.
+            </p>
           </div>
 
-          <div className="pt-4 flex gap-4 border-t border-mission-border">
-            <button
+          <div className="pt-6 flex justify-end">
+            <Button
               type="submit"
               disabled={isSaving}
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-radar-green text-mission-bg font-bold rounded-xl hover:bg-strong-green transition-colors"
+              variant="primary"
+              className="px-8"
+              icon={Save}
             >
-              <Save size={18} />
               {isSaving ? 'Saving...' : 'Save Changes'}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(`/teacher/classes/${classId}`)}
-              className="px-6 py-3 bg-mission-panel-elevated border border-mission-border text-white font-bold rounded-xl hover:bg-mission-bg transition-colors"
-            >
-              Cancel
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
+      </Panel>
 
-      <div className="bg-mission-danger/5 border border-mission-danger/20 rounded-3xl p-8">
-        <h2 className="text-xl font-bold text-mission-danger mb-2 flex items-center gap-2">
+      <Panel className="border-mission-danger/30 bg-mission-danger/5">
+        <h2 className="text-lg font-bold text-mission-danger mb-2 flex items-center gap-2">
           <AlertTriangle size={20} />
           Danger Zone
         </h2>
-        <p className="text-mission-muted-text mb-6">
+        <p className="text-mission-secondary-text text-sm mb-6">
           Archiving a class removes it from your active list. You can restore it later from the database.
         </p>
-        <button
+        <Button
+          variant="outline"
           onClick={handleArchive}
-          className="px-6 py-3 bg-mission-danger/10 text-mission-danger border border-mission-danger/30 font-bold rounded-xl hover:bg-mission-danger/20 transition-colors"
+          className="text-mission-danger border-mission-danger/30 hover:bg-mission-danger/10 hover:text-mission-danger hover:border-mission-danger/50"
         >
           Archive Class
-        </button>
-      </div>
+        </Button>
+      </Panel>
     </div>
   );
 };
+

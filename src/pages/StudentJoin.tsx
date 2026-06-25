@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { LogIn, AlertCircle } from "lucide-react";
 import { getRepository } from "../lib/data/repository";
 import { supabase } from "../lib/supabase/client";
-import missionControlLogo from "../assets/branding/mission-control-full.jpeg";
+import { AuthShell, Button } from "../components/ui";
 
 export const StudentJoin: React.FC = () => {
   const [classCode, setClassCode] = useState("");
@@ -55,119 +55,100 @@ export const StudentJoin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-mission-bg text-mission-primary-text flex items-center justify-center p-4 relative overflow-hidden font-sans">
-      {/* Background Radar Texture */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0V0zm20 20h20v20H20V20zM0 20h20v20H0V20z' fill='%2339FF88' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`, backgroundSize: '20px 20px' }}></div>
-
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute w-[800px] h-[800px] bg-radar-green/5 rounded-full blur-[120px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-      </div>
-
-      <div className="bg-mission-panel border border-mission-border rounded-2xl p-8 max-w-md w-full relative z-10 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="flex justify-center mb-8">
-          <img src={missionControlLogo} alt="Mission Control" className="h-20 w-auto max-w-[80%] object-contain rounded-xl" />
+    <AuthShell
+      eyebrow="STUDENT PORTAL"
+      title="Join Class"
+      subtitle="Enter your class code and personal PIN to begin."
+    >
+      {!isSupabaseConfigured ? (
+        <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3 text-amber-500 text-sm shadow-sm">
+          <AlertCircle size={18} className="shrink-0 mt-0.5" />
+          <p>Supabase is not configured for this deployment.</p>
         </div>
+      ) : (
+        <>
+          {!isSupabaseMode && import.meta.env.DEV && (
+            <div className="mb-6 p-4 bg-cyan-400/10 border border-cyan-400/20 rounded-xl flex items-start gap-3 text-cyan-400 text-sm shadow-sm">
+              <AlertCircle size={18} className="shrink-0 mt-0.5" />
+              <p>Demo mode: Student access works only in this browser.</p>
+            </div>
+          )}
 
-        <div className="text-center mb-8">
-          <div className="text-xs font-semibold text-mission-muted-text uppercase tracking-wider mb-2">
-            STUDENT PORTAL
-          </div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-white mb-2">
-            Join Mission
-          </h1>
-          <p className="text-mission-secondary-text">
-            Enter your class code and personal PIN to begin.
-          </p>
-        </div>
+          {error && (
+            <div className="mb-6 p-4 bg-mission-danger/10 border border-mission-danger/20 rounded-xl flex items-start gap-3 text-mission-danger text-sm shadow-sm">
+              <AlertCircle size={18} className="shrink-0 mt-0.5" />
+              <p>{error}</p>
+            </div>
+          )}
 
-        {!isSupabaseConfigured ? (
-          <div className="mb-6 p-4 bg-mission-warning/10 border border-mission-warning/20 rounded-xl flex items-start gap-3 text-mission-warning text-sm">
-            <AlertCircle size={18} className="shrink-0 mt-0.5" />
-            <p>Supabase is not configured for this deployment.</p>
-          </div>
-        ) : (
-          <>
-            {!isSupabaseMode && import.meta.env.DEV && (
-              <div className="mb-6 p-4 bg-mission-info/10 border border-mission-info/20 rounded-xl flex items-start gap-3 text-mission-info text-sm">
-                <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                <p>Demo mode: Student access works only in this browser.</p>
-              </div>
-            )}
-
-            {error && (
-              <div className="mb-6 p-4 bg-mission-danger/10 border border-mission-danger/20 rounded-xl flex items-start gap-3 text-mission-danger text-sm">
-                <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                <p>{error}</p>
-              </div>
-            )}
-
-            <form onSubmit={handleJoin} className="space-y-5">
-              <div className="space-y-2">
-                <label
-                  htmlFor="classCode"
-                  className="block text-sm font-medium text-mission-secondary-text"
-                >
-                  Class Code
-                </label>
-                <input
-                  id="classCode"
-                  type="text"
-                  value={classCode}
-                  onChange={(e) => setClassCode(e.target.value.toUpperCase())}
-                  placeholder="e.g. GX7K92"
-                  className="w-full bg-mission-panel-elevated border border-mission-border rounded-xl px-4 py-3 text-white placeholder:text-mission-muted-text focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all outline-none uppercase font-mono tracking-widest text-lg"
-                  required
-                  maxLength={6}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label
-                  htmlFor="pin"
-                  className="block text-sm font-medium text-mission-secondary-text"
-                >
-                  Personal PIN
-                </label>
-                <input
-                  id="pin"
-                  type="password"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value)}
-                  placeholder="••••"
-                  className="w-full bg-mission-panel-elevated border border-mission-border rounded-xl px-4 py-3 text-white placeholder:text-mission-muted-text focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all outline-none font-mono tracking-widest text-lg"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 py-3.5 bg-radar-green text-mission-bg rounded-xl font-bold hover:bg-strong-green transition-colors disabled:opacity-50 mt-4 focus:outline-none focus:ring-2 focus:ring-radar-green focus:ring-offset-2 focus:ring-offset-mission-bg"
+          <form onSubmit={handleJoin} className="space-y-5">
+            <div className="space-y-2">
+              <label
+                htmlFor="classCode"
+                className="block text-sm font-medium text-mission-secondary-text"
               >
-                {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-mission-bg border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <LogIn size={20} />
-                    Join Mission
-                  </>
-                )}
-              </button>
-            </form>
-          </>
-        )}
+                Class Code
+              </label>
+              <input
+                id="classCode"
+                type="text"
+                value={classCode}
+                onChange={(e) => setClassCode(e.target.value.toUpperCase())}
+                placeholder="e.g. GX7K92"
+                className="w-full bg-mission-bg border border-mission-border/50 rounded-xl px-4 py-3 text-white placeholder:text-mission-muted-text focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all outline-none uppercase font-mono tracking-widest text-lg shadow-sm"
+                required
+                maxLength={6}
+              />
+            </div>
 
-        <div className="mt-8 text-center border-t border-mission-border pt-6">
-          <p className="text-sm text-mission-muted-text">
-            Are you a teacher?{" "}
-            <Link to="/login" className="text-radar-green hover:underline">
-              Log in here
-            </Link>
-          </p>
-        </div>
+            <div className="space-y-2">
+              <label
+                htmlFor="pin"
+                className="block text-sm font-medium text-mission-secondary-text"
+              >
+                Personal PIN
+              </label>
+              <input
+                id="pin"
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                placeholder="••••"
+                className="w-full bg-mission-bg border border-mission-border/50 rounded-xl px-4 py-3 text-white placeholder:text-mission-muted-text focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all outline-none font-mono tracking-widest text-lg shadow-sm"
+                required
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isLoading}
+              variant="primary"
+              className="w-full bg-cyan-500 hover:bg-cyan-600 text-black border-cyan-500 py-3.5 mt-4 font-bold flex items-center justify-center gap-2 shadow-md"
+            >
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+              ) : (
+                <>
+                  <LogIn size={20} />
+                  Join Class
+                </>
+              )}
+            </Button>
+          </form>
+        </>
+      )}
+
+      <div className="mt-8 text-center border-t border-mission-border/50 pt-6">
+        <p className="text-sm text-mission-muted-text">
+          Are you a teacher?{" "}
+          <Link to="/login" className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors">
+            Log in here
+          </Link>
+        </p>
       </div>
-    </div>
+    </AuthShell>
   );
 };
+

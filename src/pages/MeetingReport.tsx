@@ -4,6 +4,7 @@ import { ArrowLeft, Printer, Download, Clock, Users, Star, Heart, TrendingUp, Tr
 import { getRepository } from "../lib/data/repository";
 import { MeetingReport as ReportData } from "../lib/types/database";
 import missionControlLogo from "../assets/branding/mission-control-full.jpeg";
+import { PageHeader, Panel, Button, EmptyState, LoadingSkeleton, StatCard } from "../components/ui";
 
 export const MeetingReport: React.FC = () => {
   const { classId, meetingId } = useParams<{ classId: string, meetingId: string }>();
@@ -110,34 +111,32 @@ export const MeetingReport: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-8 animate-pulse py-8">
-        <div className="h-10 bg-mission-bg-secondary border border-mission-border rounded w-1/3 mb-4"></div>
+      <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500 py-6">
+        <LoadingSkeleton />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {[1,2,3,4].map(i => <div key={i} className="h-24 bg-mission-bg-secondary border border-mission-border rounded-2xl"></div>)}
+          {[1,2,3,4].map(i => <LoadingSkeleton key={i} />)}
         </div>
-        <div className="h-64 bg-mission-bg-secondary border border-mission-border rounded-2xl w-full"></div>
+        <LoadingSkeleton />
       </div>
     );
   }
 
   if (error || !report || !report.meeting) {
     return (
-      <div className="py-12 px-4 max-w-lg mx-auto text-center space-y-6">
-        <div className="w-16 h-16 bg-mission-danger/10 text-mission-danger rounded-full flex items-center justify-center mx-auto mb-4 border border-mission-danger/20">
-          <AlertTriangle size={32} />
-        </div>
-        <h2 className="text-xl font-bold text-white">Report Unavailable</h2>
-        <p className="text-mission-secondary-text">{error || "The report you are looking for could not be found."}</p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button
-            onClick={loadData}
-            className="flex items-center gap-2 px-6 py-2 bg-mission-panel hover:bg-mission-panel-elevated border border-mission-border rounded-lg text-white font-medium transition-colors"
-          >
-            <RefreshCw size={18} />
-            Retry
-          </button>
-          <Link to={`/teacher/classes/${classId}/history`} className="text-radar-green hover:underline font-medium">
-            Back to Meeting History
+      <div className="max-w-6xl mx-auto py-12">
+        <EmptyState
+          icon={AlertTriangle}
+          title="Report Unavailable"
+          description={error || "The report you are looking for could not be found."}
+          action={{
+            label: "Retry",
+            onClick: loadData
+          }}
+          className="border-mission-danger/20 bg-mission-danger/5"
+        />
+        <div className="mt-8 flex justify-center">
+          <Link to={`/teacher/classes/${classId}/history`}>
+            <Button variant="ghost"><ArrowLeft size={16} className="mr-2" /> Back to History</Button>
           </Link>
         </div>
       </div>
@@ -145,46 +144,48 @@ export const MeetingReport: React.FC = () => {
   }
 
   const { meeting, students } = report;
-  const durationMins = (meeting.ended_at && meeting.started_at)
-    ? Math.round((new Date(meeting.ended_at).getTime() - new Date(meeting.started_at).getTime()) / 60000)
-    : 0;
+  const isInvalidDate = (dStr: string | null) => !dStr || isNaN(new Date(dStr).getTime());
+
+  const durationMins = (!isInvalidDate(meeting.ended_at) && !isInvalidDate(meeting.started_at))
+    ? Math.round((new Date(meeting.ended_at!).getTime() - new Date(meeting.started_at!).getTime()) / 60000)
+    : null;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 py-8 px-4 sm:px-0 print:py-0 print:space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Link
-              to={`/teacher/classes/${classId}/history`}
-              className="text-mission-secondary-text hover:text-white transition-colors p-1"
-              title="Back to Meeting History"
-            >
-              <ArrowLeft size={20} />
-            </Link>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white truncate">
-              Meeting Report
-            </h1>
-          </div>
-          <p className="text-mission-secondary-text pl-9">
-            {meeting.class_name_snapshot || 'Unknown Class'} {meeting.level_name_snapshot && `• ${meeting.level_name_snapshot}`}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <button
-            onClick={handleExportCsv}
-            className="flex-1 sm:flex-none px-4 py-2 bg-mission-panel-elevated hover:bg-mission-bg border border-mission-border text-white rounded-xl transition-colors flex items-center justify-center gap-2"
-          >
-            <Download size={18} />
-            Export CSV
-          </button>
-          <button
-            onClick={handlePrint}
-            className="flex-1 sm:flex-none px-4 py-2 bg-mission-panel-elevated hover:bg-mission-bg border border-mission-border text-white rounded-xl transition-colors flex items-center justify-center gap-2"
-          >
-            <Printer size={18} />
-            Print
-          </button>
-        </div>
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 py-6 px-4 sm:px-0 print:py-0 print:space-y-6 print:max-w-none">
+      
+      <div className="print:hidden">
+        <Link
+          to={`/teacher/classes/${classId}/history`}
+          className="inline-flex items-center gap-2 text-sm text-mission-secondary-text hover:text-white transition-colors mb-2 font-medium"
+        >
+          <ArrowLeft size={16} />
+          Back to History
+        </Link>
+        <PageHeader
+          eyebrow="COMPLETED SESSION"
+          title={`Meeting #${meeting.meeting_number || 'Report'}`}
+          subtitle={`${meeting.class_name_snapshot || 'Unknown Class'} ${meeting.level_name_snapshot ? `• ${meeting.level_name_snapshot}` : ''}`}
+          actions={
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+              <Button
+                variant="secondary"
+                onClick={handleExportCsv}
+                className="w-full sm:w-auto"
+              >
+                <Download size={16} className="mr-2" />
+                Export CSV
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handlePrint}
+                className="w-full sm:w-auto"
+              >
+                <Printer size={16} className="mr-2" />
+                Print
+              </Button>
+            </div>
+          }
+        />
       </div>
 
       {/* Print Header */}
@@ -203,124 +204,127 @@ export const MeetingReport: React.FC = () => {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 print:grid-cols-4">
-        <div className="bg-mission-panel border border-mission-border rounded-2xl p-4 sm:p-5 print:border-gray-300 print:bg-white print:text-black">
-          <div className="flex items-center gap-2 text-mission-secondary-text mb-2 print:text-gray-600">
-            <Clock size={16} />
-            <span className="text-sm font-semibold uppercase tracking-wider">Duration</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-bold text-white print:text-black">
-            {durationMins} <span className="text-sm font-normal text-mission-muted-text print:text-gray-500">mins</span>
-          </div>
-          <div className="text-xs text-mission-muted-text mt-1 print:text-gray-500">
-            {meeting.started_at ? new Date(meeting.started_at).toLocaleDateString() : 'Unknown'}
-          </div>
-        </div>
-
-        <div className="bg-mission-panel border border-mission-border rounded-2xl p-4 sm:p-5 print:border-gray-300 print:bg-white print:text-black">
-          <div className="flex items-center gap-2 text-mission-secondary-text mb-2 print:text-gray-600">
-            <Users size={16} />
-            <span className="text-sm font-semibold uppercase tracking-wider">Students</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-bold text-white print:text-black">
-            {meeting.participant_count || 0}
-          </div>
-          <div className="text-xs text-mission-muted-text mt-1 print:text-gray-500">
-            Participated
-          </div>
-        </div>
-
-        <div className="bg-mission-panel border border-mission-border rounded-2xl p-4 sm:p-5 print:border-gray-300 print:bg-white print:text-black">
-          <div className="flex items-center gap-2 text-mission-secondary-text mb-2 print:text-gray-600">
-            <Star size={16} />
-            <span className="text-sm font-semibold uppercase tracking-wider">Net Points</span>
-          </div>
-          <div className={`text-xl sm:text-2xl font-bold ${(meeting.net_points || 0) > 0 ? 'text-radar-green print:text-green-700' : (meeting.net_points || 0) < 0 ? 'text-mission-danger print:text-red-700' : 'text-white print:text-black'}`}>
-            {(meeting.net_points || 0) > 0 ? '+' : ''}{meeting.net_points || 0}
-          </div>
-          <div className="text-xs text-mission-muted-text mt-1 flex flex-wrap gap-2 print:text-gray-500">
-            <span className="text-radar-green print:text-green-600">+{meeting.points_awarded || 0}</span>
-            <span className="text-mission-danger print:text-red-600">-{meeting.points_deducted || 0}</span>
-          </div>
-        </div>
-
-        <div className="bg-mission-panel border border-mission-border rounded-2xl p-4 sm:p-5 print:border-gray-300 print:bg-white print:text-black">
-          <div className="flex items-center gap-2 text-mission-secondary-text mb-2 print:text-gray-600">
-            <Heart size={16} />
-            <span className="text-sm font-semibold uppercase tracking-wider">Lives Lost</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-bold text-mission-danger print:text-red-700">
-            {meeting.lives_lost || 0}
-          </div>
-          <div className="text-xs text-mission-muted-text mt-1 print:text-gray-500 truncate">
-            Max: {meeting.max_lives_snapshot ?? 'N/A'}
-          </div>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 print:grid-cols-4">
+        <StatCard
+          title="Duration"
+          value={durationMins !== null ? durationMins : '—'}
+          icon={Clock}
+          trend={!isInvalidDate(meeting.started_at) ? new Date(meeting.started_at!).toLocaleDateString() : 'Unknown Date'}
+          accentColor="border-cyan-400/30"
+          iconColor="text-cyan-400"
+          bgColor="bg-cyan-400/10"
+          className="print:border-gray-300 print:bg-white print:text-black"
+        />
+        <StatCard
+          title="Participants"
+          value={meeting.participant_count || 0}
+          icon={Users}
+          trend="Students"
+          accentColor="border-blue-400/30"
+          iconColor="text-blue-400"
+          bgColor="bg-blue-400/10"
+          className="print:border-gray-300 print:bg-white print:text-black"
+        />
+        <StatCard
+          title="Net Points"
+          value={
+            <div className="flex items-center gap-1">
+              {(meeting.net_points || 0) > 0 ? '+' : ''}{meeting.net_points || 0}
+            </div>
+          }
+          icon={Star}
+          valueColor={(meeting.net_points || 0) > 0 ? "success" : (meeting.net_points || 0) < 0 ? "danger" : "default"}
+          trend={`+${meeting.points_awarded || 0} / -${meeting.points_deducted || 0}`}
+          accentColor="border-radar-green/30"
+          iconColor="text-radar-green"
+          bgColor="bg-radar-green/10"
+          className="print:border-gray-300 print:bg-white print:text-black"
+        />
+        <StatCard
+          title="Lives Lost"
+          value={meeting.lives_lost || 0}
+          icon={Heart}
+          valueColor="danger"
+          trend={`Max: ${meeting.max_lives_snapshot ?? '—'}`}
+          accentColor="border-mission-danger/30"
+          iconColor="text-mission-danger"
+          bgColor="bg-mission-danger/10"
+          className="print:border-gray-300 print:bg-white print:text-black"
+        />
       </div>
 
-      {/* Student Results */}
-      <div className="bg-mission-panel rounded-2xl border border-mission-border overflow-hidden print:border-gray-300 print:bg-white">
-        <div className="p-4 sm:p-5 border-b border-mission-border bg-mission-bg-secondary print:bg-gray-100 print:border-gray-300">
-          <h2 className="text-lg font-bold text-white print:text-black">Student Results</h2>
+      {/* Student Results Table */}
+      <Panel className="p-0 border-mission-border/50 overflow-hidden print:border-gray-300 print:bg-white">
+        <div className="p-4 sm:p-5 border-b border-mission-border/50 bg-mission-panel-strong print:bg-gray-100 print:border-gray-300">
+          <h2 className="text-lg font-display font-bold text-white print:text-black">Student Results</h2>
         </div>
-        <div className="overflow-x-auto">
+        
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-x-auto hide-scrollbar">
           <table className="w-full text-left text-sm print:text-black">
-            <thead className="bg-mission-bg-secondary text-mission-secondary-text text-xs uppercase tracking-wider print:bg-gray-50 print:text-gray-600">
+            <thead className="bg-mission-bg-secondary text-mission-secondary-text text-xs uppercase tracking-wider print:bg-gray-50 print:text-gray-600 sticky top-0 z-10 shadow-sm border-b border-mission-border/50">
               <tr>
-                <th className="px-4 sm:px-6 py-4 font-semibold whitespace-nowrap">Rank</th>
-                <th className="px-4 sm:px-6 py-4 font-semibold whitespace-nowrap">Student</th>
-                <th className="px-4 sm:px-6 py-4 font-semibold text-right whitespace-nowrap">Before</th>
-                <th className="px-4 sm:px-6 py-4 font-semibold text-right whitespace-nowrap">Net Change</th>
-                <th className="px-4 sm:px-6 py-4 font-semibold text-right text-radar-green whitespace-nowrap">After</th>
-                <th className="px-4 sm:px-6 py-4 font-semibold text-right whitespace-nowrap">Start Lives</th>
-                <th className="px-4 sm:px-6 py-4 font-semibold text-right text-mission-danger whitespace-nowrap">Final Lives</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Rank</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Student</th>
+                <th className="px-6 py-4 font-semibold text-right whitespace-nowrap">Before</th>
+                <th className="px-6 py-4 font-semibold text-right whitespace-nowrap text-radar-green">Earned</th>
+                <th className="px-6 py-4 font-semibold text-right whitespace-nowrap text-mission-danger">Lost</th>
+                <th className="px-6 py-4 font-semibold text-right whitespace-nowrap">Net Change</th>
+                <th className="px-6 py-4 font-semibold text-right text-radar-green whitespace-nowrap">After</th>
+                <th className="px-6 py-4 font-semibold text-right whitespace-nowrap">Start Lives</th>
+                <th className="px-6 py-4 font-semibold text-right whitespace-nowrap text-mission-danger">Lives Lost</th>
+                <th className="px-6 py-4 font-semibold text-right whitespace-nowrap text-cyan-400">Lives Restored</th>
+                <th className="px-6 py-4 font-semibold text-right text-white whitespace-nowrap print:text-black">Final Lives</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-mission-border print:divide-gray-200">
+            <tbody className="divide-y divide-mission-border/50 print:divide-gray-200">
               {(!students || students.length === 0) ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-mission-muted-text print:text-gray-500">
+                  <td colSpan={11} className="px-6 py-12 text-center text-mission-muted-text print:text-gray-500">
                     No students participated in this meeting.
                   </td>
                 </tr>
               ) : (
                 students.map((student) => (
-                  <tr key={student.student_id} className="hover:bg-mission-panel-elevated transition-colors print:hover:bg-transparent">
-                    <td className="px-4 sm:px-6 py-4 font-bold text-mission-primary-text print:text-black whitespace-nowrap">
-                      {student.final_rank ? `#${student.final_rank}` : <span className="text-mission-muted-text">N/A</span>}
+                  <tr key={student.student_id} className="hover:bg-mission-panel-elevated/30 transition-colors print:hover:bg-transparent">
+                    <td className="px-6 py-4 font-mono font-bold text-mission-secondary-text print:text-black whitespace-nowrap">
+                      {student.final_rank ? `#${student.final_rank}` : '—'}
                     </td>
-                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-bold text-white print:text-black">{student.student_name || 'Unknown Student'}</div>
-                      <div className="text-xs text-mission-muted-text print:text-gray-500">Participated</div>
                     </td>
-                    <td className="px-4 sm:px-6 py-4 text-right text-mission-secondary-text print:text-gray-600 whitespace-nowrap">
-                      {student.points_before ?? '-'}
+                    <td className="px-6 py-4 text-right text-mission-secondary-text print:text-gray-600 font-mono">
+                      {student.points_before ?? '—'}
                     </td>
-                    <td className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
-                      <div className={`font-bold flex items-center justify-end gap-1 ${
+                    <td className="px-6 py-4 text-right text-radar-green font-mono">
+                      {student.points_earned ? `+${student.points_earned}` : '—'}
+                    </td>
+                    <td className="px-6 py-4 text-right text-mission-danger font-mono">
+                      {student.points_deducted ? `-${student.points_deducted}` : '—'}
+                    </td>
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
+                      <div className={`font-mono font-bold flex items-center justify-end gap-1 ${
                         (student.net_points || 0) > 0 ? 'text-radar-green print:text-green-700' : 
                         (student.net_points || 0) < 0 ? 'text-mission-danger print:text-red-700' : 
                         'text-mission-muted-text print:text-gray-500'
                       }`}>
-                        {(student.net_points || 0) > 0 && <TrendingUp size={14} />}
-                        {(student.net_points || 0) < 0 && <TrendingDown size={14} />}
-                        {(student.net_points || 0) === 0 && <Minus size={14} />}
                         {(student.net_points || 0) > 0 ? '+' : ''}{student.net_points || 0}
                       </div>
                     </td>
-                    <td className="px-4 sm:px-6 py-4 text-right font-bold text-radar-green print:text-blue-700 whitespace-nowrap">
-                      {student.points_after ?? '-'}
+                    <td className="px-6 py-4 text-right font-bold font-mono text-radar-green print:text-blue-700 whitespace-nowrap">
+                      {student.points_after ?? '—'}
                     </td>
-                    <td className="px-4 sm:px-6 py-4 text-right text-mission-secondary-text print:text-gray-600 whitespace-nowrap">
-                      {student.starting_lives ?? '-'}
+                    <td className="px-6 py-4 text-right text-mission-secondary-text print:text-gray-600 font-mono">
+                      {student.starting_lives ?? '—'}
                     </td>
-                    <td className="px-4 sm:px-6 py-4 text-right font-bold text-white print:text-black whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1">
-                        {student.final_lives ?? '-'}
-                        {student.final_lives !== null && student.final_lives !== undefined && (
-                          <Heart size={14} className={student.final_lives > 0 ? 'text-mission-danger' : 'text-mission-muted-text'} />
-                        )}
-                      </div>
+                    <td className="px-6 py-4 text-right text-mission-danger font-mono">
+                      {student.lives_lost ? `-${student.lives_lost}` : '—'}
+                    </td>
+                    <td className="px-6 py-4 text-right text-cyan-400 font-mono">
+                      {student.lives_restored ? `+${student.lives_restored}` : '—'}
+                    </td>
+                    <td className="px-6 py-4 text-right font-bold font-mono text-white print:text-black whitespace-nowrap">
+                      {student.final_lives ?? '—'}
                     </td>
                   </tr>
                 ))
@@ -328,7 +332,63 @@ export const MeetingReport: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden divide-y divide-mission-border/50">
+           {(!students || students.length === 0) ? (
+             <div className="px-6 py-12 text-center text-mission-muted-text">
+                No students participated in this meeting.
+             </div>
+           ) : (
+             students.map((student) => (
+               <div key={student.student_id} className="p-4 space-y-4">
+                 <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                       <span className="font-mono text-mission-muted-text text-xs">
+                         {student.final_rank ? `#${student.final_rank}` : ''}
+                       </span>
+                       <span className="font-bold text-white">{student.student_name || 'Unknown Student'}</span>
+                    </div>
+                    <div className={`font-mono font-bold text-sm ${
+                        (student.net_points || 0) > 0 ? 'text-radar-green' : 
+                        (student.net_points || 0) < 0 ? 'text-mission-danger' : 
+                        'text-mission-muted-text'
+                      }`}>
+                        {(student.net_points || 0) > 0 ? '+' : ''}{student.net_points || 0} pts
+                    </div>
+                 </div>
+                 
+                 <div className="grid grid-cols-2 gap-4 text-sm bg-mission-bg-secondary rounded-lg p-3 border border-mission-border/30">
+                    <div>
+                       <div className="text-mission-secondary-text text-[10px] uppercase mb-1">Points (Before → After)</div>
+                       <div className="font-mono text-white">
+                         <span className="text-mission-muted-text">{student.points_before ?? '—'}</span>
+                         <span className="mx-1 text-mission-muted-text">→</span>
+                         <span className="text-radar-green font-bold">{student.points_after ?? '—'}</span>
+                       </div>
+                    </div>
+                    <div>
+                       <div className="text-mission-secondary-text text-[10px] uppercase mb-1">Lives (Start → Final)</div>
+                       <div className="font-mono text-white">
+                         <span className="text-mission-muted-text">{student.starting_lives ?? '—'}</span>
+                         <span className="mx-1 text-mission-muted-text">→</span>
+                         <span className={student.final_lives === 0 ? "text-mission-danger font-bold" : "text-white font-bold"}>{student.final_lives ?? '—'}</span>
+                       </div>
+                    </div>
+                 </div>
+                 
+                 <div className="flex flex-wrap gap-2 text-xs font-mono">
+                    {student.lives_lost ? <span className="px-2 py-1 bg-mission-danger/10 text-mission-danger rounded border border-mission-danger/20">-{student.lives_lost} Lives</span> : null}
+                    {student.lives_restored ? <span className="px-2 py-1 bg-cyan-400/10 text-cyan-400 rounded border border-cyan-400/20">+{student.lives_restored} Lives</span> : null}
+                    {student.points_earned ? <span className="px-2 py-1 bg-radar-green/10 text-radar-green rounded border border-radar-green/20">+{student.points_earned} Pts</span> : null}
+                    {student.points_deducted ? <span className="px-2 py-1 bg-mission-danger/10 text-mission-danger rounded border border-mission-danger/20">-{student.points_deducted} Pts</span> : null}
+                 </div>
+               </div>
+             ))
+           )}
+        </div>
+      </Panel>
     </div>
   );
 };
+

@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase/client";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../lib/auth/AuthContext";
-import missionControlLogo from "../../assets/branding/mission-control-full.jpeg";
+import { AuthShell, Button } from "../../components/ui";
 
 export const Register: React.FC = () => {
   const [fullName, setFullName] = useState("");
@@ -80,141 +80,126 @@ export const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-mission-bg flex items-center justify-center p-4 font-sans text-mission-primary-text relative overflow-hidden">
-      {/* Background Radar Texture */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0V0zm20 20h20v20H20V20zM0 20h20v20H0V20z' fill='%2339FF88' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`, backgroundSize: '20px 20px' }}></div>
-
-      <div className="w-full max-w-md bg-mission-panel border border-mission-border rounded-2xl p-8 shadow-2xl relative z-10">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-radar-green/5 blur-3xl rounded-full pointer-events-none"></div>
-
-        <div className="relative z-10 text-center mb-8">
-          <div className="flex items-center justify-center mx-auto mb-6">
-            <img src={missionControlLogo} alt="Mission Control" className="h-20 w-auto max-w-[80%] object-contain rounded-xl" />
-          </div>
-          <div className="text-xs font-semibold text-mission-muted-text uppercase tracking-wider mb-2">
-            INSTRUCTOR REGISTRATION
-          </div>
-          <h1 className="font-display text-2xl font-bold tracking-tight mb-2 text-white">
-            Create Teacher Access
-          </h1>
-          <p className="text-mission-secondary-text text-sm">
-            Create your account to begin managing your classes.
-          </p>
+    <AuthShell
+      eyebrow="INSTRUCTOR REGISTRATION"
+      title="Create Teacher Access"
+      subtitle="Create your account to begin managing your classes."
+    >
+      {error && (
+        <div className="mb-6 p-4 bg-mission-danger/10 border border-mission-danger/30 rounded-xl text-mission-danger text-sm">
+          {error}
         </div>
+      )}
 
-        {error && (
-          <div className="mb-6 p-4 bg-mission-danger/10 border border-mission-danger/30 rounded-xl text-mission-danger text-sm">
-            {error}
+      {success ? (
+        <div className="text-center space-y-4">
+          <div className="p-4 bg-radar-green/10 border border-radar-green/30 rounded-xl text-radar-green text-sm">
+            Registration successful! You can now log in. (If email
+            confirmation is enabled, please check your inbox).
           </div>
-        )}
-
-        {success ? (
-          <div className="text-center space-y-4">
-            <div className="p-4 bg-strong-green/10 border border-strong-green/30 rounded-xl text-strong-green text-sm">
-              Registration successful! You can now log in. (If email
-              confirmation is enabled, please check your inbox).
-            </div>
-            <button
-              onClick={() => navigate("/login")}
-              className="w-full flex items-center justify-center py-3 bg-radar-green text-mission-bg font-bold rounded-xl hover:bg-strong-green transition-colors focus:outline-none focus:ring-2 focus:ring-radar-green focus:ring-offset-2 focus:ring-offset-mission-bg"
-            >
-              Go to Login
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div>
-              <label
-                className="block text-sm font-medium text-mission-secondary-text mb-1.5"
-                htmlFor="fullName"
-              >
-                Full Name
-              </label>
-              <input
-                id="fullName"
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full bg-mission-panel-elevated border border-mission-border text-white rounded-xl px-4 py-3 focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                className="block text-sm font-medium text-mission-secondary-text mb-1.5"
-                htmlFor="email"
-              >
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-mission-panel-elevated border border-mission-border text-white rounded-xl px-4 py-3 focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                className="block text-sm font-medium text-mission-secondary-text mb-1.5"
-                htmlFor="password"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-mission-panel-elevated border border-mission-border text-white rounded-xl px-4 py-3 focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                className="block text-sm font-medium text-mission-secondary-text mb-1.5"
-                htmlFor="confirmPassword"
-              >
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-mission-panel-elevated border border-mission-border text-white rounded-xl px-4 py-3 focus:outline-none focus:border-radar-green focus:ring-1 focus:ring-radar-green transition-all"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex items-center justify-center py-3 mt-2 bg-radar-green hover:bg-strong-green text-mission-bg font-bold rounded-xl transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-radar-green focus:ring-offset-2 focus:ring-offset-mission-bg"
-            >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-mission-bg/30 border-t-mission-bg rounded-full animate-spin"></div>
-              ) : (
-                "Register"
-              )}
-            </button>
-          </form>
-        )}
-
-        <div className="mt-6 text-center text-sm text-mission-secondary-text">
-          Already have an account?{" "}
-          <Link
-            to="/login"
-            className="text-radar-green hover:text-strong-green hover:underline font-medium transition-colors"
+          <Button
+            onClick={() => navigate("/login")}
+            variant="primary"
+            className="w-full bg-cyan-500 hover:bg-cyan-600 text-black border-cyan-500 py-3 font-bold"
           >
-            Sign in
-          </Link>
+            Go to Login
+          </Button>
         </div>
+      ) : (
+        <form onSubmit={handleRegister} className="space-y-4">
+          <div>
+            <label
+              className="block text-sm font-medium text-mission-secondary-text mb-1.5"
+              htmlFor="fullName"
+            >
+              Full Name
+            </label>
+            <input
+              id="fullName"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full bg-mission-bg border border-mission-border/50 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all shadow-sm"
+              required
+            />
+          </div>
+
+          <div>
+            <label
+              className="block text-sm font-medium text-mission-secondary-text mb-1.5"
+              htmlFor="email"
+            >
+              Email Address
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-mission-bg border border-mission-border/50 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all shadow-sm"
+              required
+            />
+          </div>
+
+          <div>
+            <label
+              className="block text-sm font-medium text-mission-secondary-text mb-1.5"
+              htmlFor="password"
+            >
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-mission-bg border border-mission-border/50 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all shadow-sm"
+              required
+            />
+          </div>
+
+          <div>
+            <label
+              className="block text-sm font-medium text-mission-secondary-text mb-1.5"
+              htmlFor="confirmPassword"
+            >
+              Confirm Password
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full bg-mission-bg border border-mission-border/50 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all shadow-sm"
+              required
+            />
+          </div>
+
+          <Button
+            type="submit"
+            disabled={isLoading}
+            variant="primary"
+            className="w-full bg-cyan-500 hover:bg-cyan-600 text-black border-cyan-500 py-3 mt-2 font-bold"
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
+            ) : (
+              "Register"
+            )}
+          </Button>
+        </form>
+      )}
+
+      <div className="mt-6 text-center text-sm text-mission-secondary-text">
+        Already have an account?{" "}
+        <Link
+          to="/login"
+          className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
+        >
+          Sign in
+        </Link>
       </div>
-    </div>
+    </AuthShell>
   );
 };
+

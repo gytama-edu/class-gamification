@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { AlertCircle, X, Loader2 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import { ModalShell } from "./ui";
 
 interface NewMeetingDialogProps {
   isOpen: boolean;
@@ -32,55 +33,29 @@ export const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-mission-panel border border-mission-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="p-6">
-          <div className="flex justify-between items-start mb-4">
-            <div className="flex items-center gap-3 text-radar-green">
-              <AlertCircle size={24} />
-              <h2 className="text-xl font-semibold text-white">
-                Start a new meeting?
-              </h2>
-            </div>
-            <button
-              onClick={onClose}
-              disabled={isProcessing}
-              className="text-mission-muted-text hover:text-white transition-colors disabled:opacity-50"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          <p className="text-mission-secondary-text leading-relaxed mb-8">
-            {hasActiveMeeting
-              ? "The current meeting will be completed, final lives will be saved, and all active students will begin the next meeting with refreshed lives. Permanent points will remain saved."
-              : "All active students will begin with the class maximum lives. Permanent points will remain saved."}
-          </p>
-
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={onClose}
-              disabled={isProcessing}
-              className="px-4 py-2 rounded-lg font-medium text-mission-secondary-text hover:bg-mission-panel-elevated hover:text-white transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleConfirm}
-              disabled={isProcessing}
-              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-bold bg-radar-green text-mission-bg hover:bg-strong-green transition-colors focus:outline-none focus:ring-2 focus:ring-radar-green focus:ring-offset-2 focus:ring-offset-mission-panel disabled:opacity-50 min-w-[140px]"
-            >
-              {isProcessing ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : hasActiveMeeting ? (
-                "Start New Meeting"
-              ) : (
-                "Start Meeting"
-              )}
-            </button>
-          </div>
-        </div>
+    <ModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      title={hasActiveMeeting ? "Start New Meeting?" : "Start Meeting?"}
+      primaryAction={{
+        label: hasActiveMeeting ? "Start New Meeting" : "Start Meeting",
+        onClick: handleConfirm,
+        isLoading: isProcessing,
+      }}
+      secondaryAction={{
+        label: "Cancel",
+        onClick: onClose,
+        disabled: isProcessing,
+      }}
+      icon={AlertCircle}
+    >
+      <div className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-xl mb-6">
+        <p className="text-mission-secondary-text leading-relaxed text-sm">
+          {hasActiveMeeting
+            ? "The current meeting will be completed, final lives will be saved, and all active students will begin the next meeting with refreshed lives. Permanent points will remain saved."
+            : "All active students will begin with the class maximum lives. Permanent points will remain saved."}
+        </p>
       </div>
-    </div>
+    </ModalShell>
   );
 };

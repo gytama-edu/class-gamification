@@ -15,7 +15,9 @@ import {
   AchievementDefinition,
   StudentAchievement,
   TeacherRecognitionInput,
-  ClassType
+  ClassType,
+  ClassTask, TaskWithSummary, TaskAssignment, TaskAssignmentWithStudent,
+  StudentTask, CreateTaskInput, UpdateTaskInput, TaskReviewResult, TaskStatus
 } from "../types/database";
 import { notifyMockUpdate } from "../realtime/useClassroomRealtime";
 
@@ -39,9 +41,11 @@ interface MockDB {
   point_events: any[];
   life_events: any[];
   student_achievements: StudentAchievement[];
+  tasks: ClassTask[];
+  task_assignments: TaskAssignment[];
 }
 
-const CURRENT_SCHEMA_VERSION = 3;
+const CURRENT_SCHEMA_VERSION = 4;
 
 function generateId() {
   return crypto.randomUUID
@@ -197,6 +201,8 @@ function getInitialMockDB(): MockDB {
     point_events: [],
     life_events: [],
     student_achievements: [],
+    tasks: [],
+    task_assignments: [],
   };
 }
 
@@ -350,6 +356,14 @@ export class MockClassroomRepository implements ClassroomRepository {
           console.info("Migrating to schema version 3 (Adding achievements)...");
           parsed.student_achievements = parsed.student_achievements || [];
           parsed.schema_version = 3;
+          this.saveDb(parsed);
+        }
+
+        if (parsed.schema_version < 4) {
+          console.info("Migrating to schema version 4 (Adding tasks)...");
+          parsed.tasks = parsed.tasks || [];
+          parsed.task_assignments = parsed.task_assignments || [];
+          parsed.schema_version = 4;
           this.saveDb(parsed);
         }
 
@@ -1224,5 +1238,291 @@ export class MockClassroomRepository implements ClassroomRepository {
   async restoreDefaultMockData(): Promise<void> {
     localStorage.removeItem(MOCK_STORAGE_KEY);
     this.getDb();
+  }
+
+  // Tasks
+
+  async getClassTasks(classId: string): Promise<TaskWithSummary[]> {
+    const db = this.getDb();
+    const tasks = db.tasks.filter(t => t.class_id === classId).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    
+    return tasks.map(t => {
+      const assignments = db.task_assignments.filter(a => a.task_id === t.id);
+      let assigned = assignments.length;
+      let submitted = 0;
+      let approved = 0;
+      let overdue = 0;
+      const now = new Date().getTime();
+
+      assignments.forEach(a => {
+        if (a.status === 'submitted') submitted++;
+        if (a.status === 'approved') approved++;
+        if (t.status === 'active' && a.status !== 'approved' && t.due_at && now > new Date(t.due_at).getTime()) {
+          overdue++;
+        }
+      });
+
+      return {
+        ...t,
+        assigned_count: assigned,
+        submitted_count: submitted,
+        approved_count: approved,
+        overdue_count: overdue
+      };
+    });
+  }
+
+  async getTask(taskId: string): Promise<ClassTask | null> {
+    const db = this.getDb();
+    return db.tasks.find(t => t.id === taskId) || null;
+  }
+
+  async createTask(classId: string, input: CreateTaskInput): Promise<string> {
+    const db = this.getDb();
+    const taskId = generateId();
+    const now = new Date().toISOString();
+    
+    const task: ClassTask = {
+      id: taskId,
+      class_id: classId,
+      created_by: 'mock-teacher-id',
+      title: input.title,
+      instructions: input.instructions,
+      due_at: input.due_at || null,
+      reward_points: input.reward_points,
+      assignment_scope: input.assignment_scope,
+      status: input.publish_immediately ? 'active' : 'draft',
+      published_at: input.publish_immediately ? now : null,
+      completed_at: null,
+      created_at: now,
+      updated_at: now
+    };
+    
+    db.tasks.push(task);
+    
+    const activeStudents = db.students.filter(s => s.class_id === classId && s.is_active);
+    const targetStudents = input.assignment_scope === 'all_students' 
+      ? activeStudents 
+      : activeStudents.filter(s => input.student_ids.includes(s.id));
+      
+    targetStudents.forEach(s => {
+      db.task_assignments.push({
+        id: generateId(),
+        task_id: taskId,
+        class_id: classId,
+        student_id: s.id,
+        status: 'assigned',
+        submission_text: null,
+        submitted_at: null,
+        teacher_feedback: null,
+        reviewed_at: null,
+        reviewed_by: null,
+        points_awarded: 0,
+        points_awarded_at: null,
+        created_at: now,
+        updated_at: now
+      });
+    });
+    
+    this.saveDb(db);
+    return taskId;
+  }
+
+  async updateTask(taskId: string, input: UpdateTaskInput): Promise<void> {
+    const db = this.getDb();
+    const taskIndex = db.tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) throw new Error("Task not found");
+    
+    const task = db.tasks[taskIndex];
+    if (task.status === 'archived') throw new Error("Cannot edit archived tasks");
+    
+    if (input.reward_points !== undefined && input.reward_points !== task.reward_points) {
+      const hasApproved = db.task_assignments.some(a => a.task_id === taskId && a.status === 'approved');
+      if (hasApproved) throw new Error("Cannot change reward points after assignments are approved");
+    }
+    
+    db.tasks[taskIndex] = {
+      ...task,
+      ...input,
+      updated_at: new Date().toISOString()
+    };
+    
+    if (task.status !== 'completed' && input.assignment_scope) {
+      const activeStudents = db.students.filter(s => s.class_id === task.class_id && s.is_active);
+      const targetStudents = input.assignment_scope === 'all_students' 
+        ? activeStudents 
+        : activeStudents.filter(s => input.student_ids && input.student_ids.includes(s.id));
+        
+      targetStudents.forEach(s => {
+        const existing = db.task_assignments.find(a => a.task_id === taskId && a.student_id === s.id);
+        if (!existing) {
+           db.task_assignments.push({
+             id: generateId(),
+             task_id: taskId,
+             class_id: task.class_id,
+             student_id: s.id,
+             status: 'assigned',
+             submission_text: null,
+             submitted_at: null,
+             teacher_feedback: null,
+             reviewed_at: null,
+             reviewed_by: null,
+             points_awarded: 0,
+             points_awarded_at: null,
+             created_at: new Date().toISOString(),
+             updated_at: new Date().toISOString()
+           });
+        }
+      });
+    }
+    
+    this.saveDb(db);
+  }
+
+  async setTaskStatus(taskId: string, status: TaskStatus): Promise<void> {
+    const db = this.getDb();
+    const taskIndex = db.tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) throw new Error("Task not found");
+    
+    const task = db.tasks[taskIndex];
+    const now = new Date().toISOString();
+    
+    if (task.status === 'draft' && status === 'active') {
+      task.status = 'active';
+      task.published_at = now;
+    } else if (task.status === 'active' && status === 'completed') {
+      task.status = 'completed';
+      task.completed_at = now;
+    } else if (status === 'archived') {
+      task.status = 'archived';
+    } else {
+      throw new Error("Invalid status transition");
+    }
+    
+    task.updated_at = now;
+    this.saveDb(db);
+  }
+
+  async getTaskAssignments(taskId: string): Promise<TaskAssignmentWithStudent[]> {
+    const db = this.getDb();
+    const assignments = db.task_assignments.filter(a => a.task_id === taskId);
+    
+    return assignments.map(a => {
+      const student = db.students.find(s => s.id === a.student_id);
+      return {
+        ...a,
+        student_name: student?.display_name || 'Unknown'
+      };
+    });
+  }
+
+  async submitTaskAssignment(assignmentId: string, submissionText?: string): Promise<void> {
+    const db = this.getDb();
+    const aIndex = db.task_assignments.findIndex(a => a.id === assignmentId);
+    if (aIndex === -1) throw new Error("Assignment not found");
+    
+    const assignment = db.task_assignments[aIndex];
+    const task = db.tasks.find(t => t.id === assignment.task_id);
+    
+    if (!task || task.status !== 'active') throw new Error("Task is not active");
+    if (!['assigned', 'returned'].includes(assignment.status)) throw new Error("Cannot submit");
+    
+    const now = new Date().toISOString();
+    db.task_assignments[aIndex] = {
+      ...assignment,
+      status: 'submitted',
+      submission_text: submissionText || null,
+      submitted_at: now,
+      updated_at: now
+    };
+    
+    this.saveDb(db);
+  }
+
+  async reviewTaskAssignment(assignmentId: string, action: 'approve' | 'return', feedback?: string): Promise<TaskReviewResult> {
+    const db = this.getDb();
+    const aIndex = db.task_assignments.findIndex(a => a.id === assignmentId);
+    if (aIndex === -1) throw new Error("Assignment not found");
+    
+    const assignment = db.task_assignments[aIndex];
+    const task = db.tasks.find(t => t.id === assignment.task_id);
+    if (!task) throw new Error("Task not found");
+    
+    const student = db.students.find(s => s.id === assignment.student_id);
+    if (!student) throw new Error("Student not found");
+    
+    const now = new Date().toISOString();
+    
+    if (action === 'approve') {
+      if (assignment.status === 'approved') return { assignment, points_awarded: 0, student_new_total: student.total_points };
+      
+      student.total_points += task.reward_points;
+      
+      const newAssignment = {
+        ...assignment,
+        status: 'approved' as const,
+        teacher_feedback: feedback || null,
+        reviewed_at: now,
+        reviewed_by: 'mock-teacher-id',
+        points_awarded: task.reward_points,
+        points_awarded_at: now,
+        updated_at: now
+      };
+      db.task_assignments[aIndex] = newAssignment;
+      
+      if (task.reward_points > 0) {
+        db.point_events.push({
+           id: generateId(),
+           class_id: assignment.class_id,
+           student_id: assignment.student_id,
+           task_assignment_id: assignmentId,
+           points_delta: task.reward_points,
+           reason: 'Task reward: ' + task.title,
+           created_at: now
+        });
+      }
+      
+      this.saveDb(db);
+      return { assignment: newAssignment, points_awarded: task.reward_points, student_new_total: student.total_points };
+    } else {
+      if (assignment.status === 'approved') throw new Error("Already approved");
+      if (assignment.status !== 'submitted') throw new Error("Not submitted");
+      
+      const newAssignment = {
+        ...assignment,
+        status: 'returned' as const,
+        teacher_feedback: feedback || null,
+        reviewed_at: now,
+        reviewed_by: 'mock-teacher-id',
+        updated_at: now
+      };
+      db.task_assignments[aIndex] = newAssignment;
+      
+      this.saveDb(db);
+      return { assignment: newAssignment, points_awarded: 0, student_new_total: student.total_points };
+    }
+  }
+
+  async getStudentTasks(studentId: string): Promise<StudentTask[]> {
+    const db = this.getDb();
+    const assignments = db.task_assignments.filter(a => a.student_id === studentId);
+    const taskIds = assignments.map(a => a.task_id);
+    
+    const tasks = db.tasks.filter(t => taskIds.includes(t.id) && ['active', 'completed'].includes(t.status));
+    
+    const now = new Date().getTime();
+    
+    return tasks.map(t => {
+      const assignment = assignments.find(a => a.task_id === t.id)!;
+      let overdue = false;
+      if (t.status === 'active' && assignment.status !== 'approved' && t.due_at && now > new Date(t.due_at).getTime()) {
+         overdue = true;
+      }
+      return {
+        ...t,
+        assignment,
+        is_overdue: overdue
+      };
+    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 }

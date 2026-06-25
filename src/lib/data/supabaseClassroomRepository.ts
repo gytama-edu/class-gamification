@@ -14,7 +14,9 @@ import {
   MeetingHistoryItem,
   MeetingReport,
   StudentAchievement,
-  TeacherRecognitionInput
+  TeacherRecognitionInput,
+  ClassTask, TaskWithSummary, TaskAssignment, TaskAssignmentWithStudent,
+  StudentTask, CreateTaskInput, UpdateTaskInput, TaskReviewResult, TaskStatus
 } from "../types/database";
 
 export class SupabaseClassroomRepository implements ClassroomRepository {
@@ -570,5 +572,210 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
 
   async restoreDefaultMockData(): Promise<void> {
     // Only applies to mock
+  }
+
+  // Tasks
+
+  async getClassTasks(classId: string): Promise<TaskWithSummary[]> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    // We fetch tasks for the class, and compute summaries
+    const { data: tasksData, error: tasksError } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('class_id', classId)
+      .order('created_at', { ascending: false });
+    
+    if (tasksError) throw tasksError;
+
+    if (!tasksData || tasksData.length === 0) return [];
+
+    const taskIds = tasksData.map(t => t.id);
+
+    const { data: assignmentsData, error: assignmentsError } = await supabase
+      .from('task_assignments')
+      .select('task_id, status, submitted_at')
+      .in('task_id', taskIds);
+
+    if (assignmentsError) throw assignmentsError;
+
+    const summaryMap = new Map<string, { assigned: number, submitted: number, approved: number, overdue: number }>();
+    taskIds.forEach(id => summaryMap.set(id, { assigned: 0, submitted: 0, approved: 0, overdue: 0 }));
+
+    const now = new Date().getTime();
+
+    assignmentsData?.forEach(a => {
+      const s = summaryMap.get(a.task_id);
+      if (s) {
+        s.assigned++;
+        if (a.status === 'submitted') s.submitted++;
+        if (a.status === 'approved') s.approved++;
+        
+        // Calculate overdue if active and not approved and past due date
+        const task = tasksData.find(t => t.id === a.task_id);
+        if (task && task.status === 'active' && a.status !== 'approved' && task.due_at) {
+           const due = new Date(task.due_at).getTime();
+           if (now > due) {
+              s.overdue++;
+           }
+        }
+      }
+    });
+
+    return tasksData.map(t => {
+      const s = summaryMap.get(t.id)!;
+      return {
+        ...t,
+        assigned_count: s.assigned,
+        submitted_count: s.submitted,
+        approved_count: s.approved,
+        overdue_count: s.overdue
+      };
+    });
+  }
+
+  async getTask(taskId: string): Promise<ClassTask | null> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', taskId)
+      .single();
+    if (error) {
+      if (error.code === 'PGRST116') return null; // not found
+      throw error;
+    }
+    return data;
+  }
+
+  async createTask(classId: string, input: CreateTaskInput): Promise<string> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase.rpc('create_task', {
+      p_class_id: classId,
+      p_title: input.title,
+      p_instructions: input.instructions,
+      p_due_at: input.due_at,
+      p_reward_points: input.reward_points,
+      p_assignment_scope: input.assignment_scope,
+      p_student_ids: input.student_ids,
+      p_publish_immediately: input.publish_immediately
+    });
+    if (error) throw error;
+    return data;
+  }
+
+  async updateTask(taskId: string, input: UpdateTaskInput): Promise<void> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { error } = await supabase.rpc('update_task', {
+      p_task_id: taskId,
+      p_title: input.title,
+      p_instructions: input.instructions,
+      p_due_at: input.due_at,
+      p_reward_points: input.reward_points,
+      p_assignment_scope: input.assignment_scope,
+      p_student_ids: input.student_ids
+    });
+    if (error) throw error;
+  }
+
+  async setTaskStatus(taskId: string, status: TaskStatus): Promise<void> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { error } = await supabase.rpc('set_task_status', {
+      p_task_id: taskId,
+      p_status: status
+    });
+    if (error) throw error;
+  }
+
+  async getTaskAssignments(taskId: string): Promise<TaskAssignmentWithStudent[]> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase
+      .from('task_assignments')
+      .select('*, students(display_name)')
+      .eq('task_id', taskId);
+    
+    if (error) throw error;
+    
+    return (data || []).map((a: any) => ({
+      ...a,
+      student_name: a.students?.display_name || 'Unknown Student'
+    }));
+  }
+
+  async submitTaskAssignment(assignmentId: string, submissionText?: string): Promise<void> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { error } = await supabase.rpc('submit_task_assignment', {
+      p_assignment_id: assignmentId,
+      p_submission_text: submissionText || ''
+    });
+    if (error) throw error;
+  }
+
+  async reviewTaskAssignment(assignmentId: string, action: 'approve' | 'return', feedback?: string): Promise<TaskReviewResult> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase.rpc('review_task_assignment', {
+      p_assignment_id: assignmentId,
+      p_action: action,
+      p_feedback: feedback || ''
+    });
+    if (error) throw error;
+    
+    // We need to return the updated assignment as well. Fetch it.
+    const { data: assignmentData, error: assignmentError } = await supabase
+      .from('task_assignments')
+      .select('*')
+      .eq('id', assignmentId)
+      .single();
+      
+    if (assignmentError) throw assignmentError;
+    
+    return {
+      assignment: assignmentData,
+      points_awarded: data.points_awarded,
+      student_new_total: data.student_new_total
+    };
+  }
+
+  async getStudentTasks(studentId: string): Promise<StudentTask[]> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    
+    // Student can only see tasks assigned to them that are active or completed
+    const { data: assignments, error: assignmentsError } = await supabase
+      .from('task_assignments')
+      .select('*')
+      .eq('student_id', studentId);
+      
+    if (assignmentsError) throw assignmentsError;
+    
+    if (!assignments || assignments.length === 0) return [];
+    
+    const taskIds = assignments.map(a => a.task_id);
+    
+    const { data: tasks, error: tasksError } = await supabase
+      .from('tasks')
+      .select('*')
+      .in('id', taskIds)
+      .in('status', ['active', 'completed'])
+      .order('created_at', { ascending: false });
+      
+    if (tasksError) throw tasksError;
+    
+    const now = new Date().getTime();
+    
+    return (tasks || []).map(task => {
+      const assignment = assignments.find(a => a.task_id === task.id)!;
+      let is_overdue = false;
+      if (task.status === 'active' && assignment.status !== 'approved' && task.due_at) {
+        const due = new Date(task.due_at).getTime();
+        if (now > due) {
+          is_overdue = true;
+        }
+      }
+      
+      return {
+        ...task,
+        assignment,
+        is_overdue
+      };
+    });
   }
 }

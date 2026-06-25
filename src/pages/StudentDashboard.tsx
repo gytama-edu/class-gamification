@@ -6,7 +6,9 @@ import {
   LogOut,
   Trophy,
   Award,
-  Radio
+  Radio,
+  ListTodo,
+  ChevronRight
 } from "lucide-react";
 import { getRepository } from "../lib/data/repository";
 import {
@@ -14,6 +16,7 @@ import {
   Classroom,
   Meeting,
   StudentAchievement,
+  StudentTask,
 } from "../lib/types/database";
 import { useClassroomRealtime } from "../lib/realtime/useClassroomRealtime";
 
@@ -34,6 +37,7 @@ export const StudentDashboard: React.FC = () => {
     rank: number;
   } | null>(null);
   const [achievements, setAchievements] = useState<StudentAchievement[]>([]);
+  const [tasks, setTasks] = useState<StudentTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -54,6 +58,9 @@ export const StudentDashboard: React.FC = () => {
 
       const achs = await repo.getStudentAchievements(studentId);
       setAchievements(achs);
+      
+      const studentTasks = await repo.getStudentTasks(studentId);
+      setTasks(studentTasks);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to load data");
@@ -221,6 +228,63 @@ export const StudentDashboard: React.FC = () => {
           </div>
           <div className="text-right">
             <span className="text-xs font-medium text-mission-muted-text uppercase tracking-wider">Keep<br/>going</span>
+          </div>
+        </Panel>
+
+        {/* Tasks */}
+        <Panel className="p-0 border-mission-border/50 overflow-hidden">
+          <div className="p-4 border-b border-mission-border/50 bg-mission-panel-strong flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ListTodo className="text-cyan-400" size={18} />
+              <h2 className="font-display font-bold text-white">
+                My Tasks
+              </h2>
+            </div>
+            {tasks.filter(t => t.assignment.status === 'assigned' || t.assignment.status === 'returned').length > 0 && (
+              <span className="bg-cyan-500/10 text-cyan-400 text-[10px] font-bold px-2 py-0.5 rounded border border-cyan-500/20 uppercase tracking-wider">
+                {tasks.filter(t => t.assignment.status === 'assigned' || t.assignment.status === 'returned').length} Action Required
+              </span>
+            )}
+          </div>
+          <div className="p-0 bg-mission-panel-elevated/30">
+            {tasks.length === 0 ? (
+              <div className="text-center py-6">
+                <div className="w-12 h-12 rounded-xl bg-mission-bg-secondary border border-mission-border/50 flex items-center justify-center mx-auto mb-3">
+                   <ListTodo className="text-mission-muted-text" size={24} />
+                </div>
+                <p className="text-mission-secondary-text text-sm font-medium">
+                  No tasks assigned yet.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-mission-border/50">
+                {tasks.map((task) => (
+                  <button 
+                    key={task.id} 
+                    className="w-full p-4 flex items-center justify-between hover:bg-mission-panel transition-colors text-left group"
+                    onClick={() => navigate(`/student/tasks/${task.id}`)}
+                  >
+                    <div>
+                      <div className="font-medium text-white group-hover:text-cyan-400 transition-colors">{task.title}</div>
+                      <div className="flex items-center gap-2 mt-1">
+                        {task.assignment.status === 'assigned' && <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-mission-bg-secondary text-mission-muted-text">To Do</span>}
+                        {task.assignment.status === 'submitted' && <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/10 text-amber-500">Submitted</span>}
+                        {task.assignment.status === 'approved' && <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-radar-green/10 text-radar-green">Approved</span>}
+                        {task.assignment.status === 'returned' && <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-mission-danger/10 text-mission-danger">Returned</span>}
+                        
+                        {task.reward_points > 0 && task.assignment.status !== 'approved' && (
+                          <span className="text-xs text-radar-green">{task.reward_points} pts</span>
+                        )}
+                        {task.is_overdue && (
+                          <span className="text-xs text-mission-danger">Overdue</span>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight size={18} className="text-mission-muted-text group-hover:text-white transition-colors" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </Panel>
 

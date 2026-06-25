@@ -135,6 +135,7 @@ export interface PointEvent {
   class_id: string;
   student_id: string;
   meeting_id: string | null;
+  task_assignment_id: string | null;
   points_delta: number;
   reason: string | null;
   created_at: string;
@@ -210,4 +211,82 @@ export interface LeaderboardEntry {
   display_name: string;
   total_points: number;
   lives_remaining: number;
+}
+
+export type TaskStatus = 'draft' | 'active' | 'completed' | 'archived';
+export type TaskAssignmentScope = 'all_students' | 'selected_students';
+export type TaskAssignmentStatus = 'assigned' | 'submitted' | 'approved' | 'returned';
+
+export interface ClassTask {
+  id: string;
+  class_id: string;
+  created_by: string;
+  title: string;
+  instructions: string;
+  due_at: string | null;
+  reward_points: number;
+  assignment_scope: TaskAssignmentScope;
+  status: TaskStatus;
+  published_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskAssignment {
+  id: string;
+  task_id: string;
+  class_id: string;
+  student_id: string;
+  status: TaskAssignmentStatus;
+  submission_text: string | null;
+  submitted_at: string | null;
+  teacher_feedback: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  points_awarded: number;
+  points_awarded_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskWithSummary extends ClassTask {
+  assigned_count: number;
+  submitted_count: number;
+  approved_count: number;
+  overdue_count: number;
+}
+
+export interface TaskAssignmentWithStudent extends TaskAssignment {
+  student_name: string;
+}
+
+export interface StudentTask extends ClassTask {
+  assignment: TaskAssignment;
+  is_overdue: boolean;
+}
+
+export interface CreateTaskInput {
+  title: string;
+  instructions: string;
+  due_at: string | null;
+  reward_points: number;
+  assignment_scope: TaskAssignmentScope;
+  student_ids: string[];
+  publish_immediately: boolean;
+}
+
+export interface UpdateTaskInput {
+  title?: string;
+  instructions?: string;
+  due_at?: string | null;
+  reward_points?: number;
+  assignment_scope?: TaskAssignmentScope;
+  student_ids?: string[];
+}
+
+export interface TaskReviewResult {
+  assignment: TaskAssignment;
+  points_awarded: number;
+  student_new_total: number;
 }

@@ -1,7 +1,9 @@
 import { 
   Classroom, ClassroomDashboardData, DbStudent, LeaderboardEntry, 
   Meeting, StudentWithCurrentState, MeetingHistoryItem, MeetingReport,
-  StudentAchievement, TeacherRecognitionInput, ClassType
+  StudentAchievement, TeacherRecognitionInput, ClassType,
+  ClassTask, TaskWithSummary, TaskAssignment, TaskAssignmentWithStudent,
+  StudentTask, CreateTaskInput, UpdateTaskInput, TaskReviewResult, TaskStatus
 } from '../types/database';
 
 export interface CreateClassInput {
@@ -59,4 +61,15 @@ export interface ClassroomRepository {
   awardTeacherRecognition(studentId: string, input: TeacherRecognitionInput): Promise<StudentAchievement>;
   
   restoreDefaultMockData(): Promise<void>;
+  
+  // Tasks
+  getClassTasks(classId: string): Promise<TaskWithSummary[]>;
+  getTask(taskId: string): Promise<ClassTask | null>;
+  createTask(classId: string, input: CreateTaskInput): Promise<string>;
+  updateTask(taskId: string, input: UpdateTaskInput): Promise<void>;
+  setTaskStatus(taskId: string, status: TaskStatus): Promise<void>;
+  getTaskAssignments(taskId: string): Promise<TaskAssignmentWithStudent[]>;
+  submitTaskAssignment(assignmentId: string, submissionText?: string): Promise<void>;
+  reviewTaskAssignment(assignmentId: string, action: 'approve' | 'return', feedback?: string): Promise<TaskReviewResult>;
+  getStudentTasks(studentId: string): Promise<StudentTask[]>;
 }

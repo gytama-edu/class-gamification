@@ -51,6 +51,10 @@ const RootRedirect = () => {
 import { MeetingHistory } from "./pages/MeetingHistory";
 import { MeetingReport } from "./pages/MeetingReport";
 
+import { TeacherTasks } from "./pages/TeacherTasks";
+import { TeacherTaskDetail } from "./pages/TeacherTaskDetail";
+import { StudentTaskDetail } from "./pages/StudentTaskDetail";
+
 const configuredBase = import.meta.env.BASE_URL;
 const routerBasename = window.location.pathname.startsWith(configuredBase)
   ? configuredBase
@@ -71,6 +75,7 @@ export default function App() {
           {/* Student Protected Routes */}
           <Route element={<StudentProtectedRoute />}>
             <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/student/tasks/:taskId" element={<StudentTaskDetail />} />
           </Route>
 
           {/* Teacher Protected Routes */}
@@ -100,6 +105,14 @@ export default function App() {
               <Route
                 path="/teacher/classes/:classId/history/:meetingId"
                 element={<MeetingReport />}
+              />
+              <Route
+                path="/teacher/classes/:classId/tasks"
+                element={<TeacherTasks />}
+              />
+              <Route
+                path="/teacher/classes/:classId/tasks/:taskId"
+                element={<TeacherTaskDetail />}
               />
               <Route
                 path="/teacher/classes/:classId/settings"

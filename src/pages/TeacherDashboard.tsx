@@ -79,7 +79,7 @@ export const TeacherDashboard: React.FC = () => {
   }
 
   const totalClassPoints = students.reduce((acc, s) => acc + (Number.isFinite(Number(s.total_points)) ? Number(s.total_points) : 0), 0);
-  const activeStudents = students.filter(s => s.status === 'active');
+  const activeStudents = students.filter(s => s.is_active === true);
 
   return (
     <div className="space-y-6 pb-20 animate-in fade-in duration-200 relative">

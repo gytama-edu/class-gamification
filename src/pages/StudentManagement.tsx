@@ -108,7 +108,8 @@ export const StudentManagement: React.FC = () => {
     setIsAdding(true);
     try {
       const repo = getRepository();
-      await repo.addStudent(classId, { display_name: newStudentName.trim() });
+      const newStudent = await repo.addStudent(classId, { display_name: newStudentName.trim() });
+      setAllStudents(prev => [...prev, newStudent]);
       setNewStudentName("");
       await refreshDashboard();
       setToastMessage("Student added successfully");

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useAppContext } from "../store";
 import { EmptyState, Button, IconButton } from "./ui";
+import { StudentWithCurrentState } from "../lib/types/database";
 
 export const StudentTable: React.FC = () => {
   const { classId } = useParams();
@@ -42,7 +43,7 @@ export const StudentTable: React.FC = () => {
   };
 
   const sortedStudents = [...dashboardData.students]
-    .filter(s => s.status === 'active')
+    .filter(s => s.is_active === true)
     .sort((a, b) => b.total_points - a.total_points);
 
   if (sortedStudents.length === 0) {
@@ -75,7 +76,7 @@ export const StudentTable: React.FC = () => {
     );
   };
 
-  const renderLives = (student: any) => {
+  const renderLives = (student: StudentWithCurrentState) => {
     const maxLives = dashboardData.classroom.max_lives;
     const currentLives = Number.isFinite(Number(student.lives_remaining)) ? Number(student.lives_remaining) : 0;
     
@@ -104,7 +105,7 @@ export const StudentTable: React.FC = () => {
     );
   };
 
-  const renderPointControls = (student: any) => {
+  const renderPointControls = (student: StudentWithCurrentState) => {
     const isProcessing = processingId === student.id;
     return (
       <div className="flex bg-mission-panel-strong rounded-lg overflow-hidden border border-mission-border/50">
@@ -131,7 +132,7 @@ export const StudentTable: React.FC = () => {
     );
   };
 
-  const renderLifeControls = (student: any) => {
+  const renderLifeControls = (student: StudentWithCurrentState) => {
     const isProcessing = processingId === student.id;
     const currentLives = Number.isFinite(Number(student.lives_remaining)) ? Number(student.lives_remaining) : 0;
     const maxLives = dashboardData.classroom.max_lives;

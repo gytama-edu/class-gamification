@@ -21,6 +21,7 @@ import { useAuth } from "../lib/auth/AuthContext";
 import { supabase } from "../lib/supabase/client";
 import { AchievementCard } from "../components/AchievementCard";
 import { Panel, StatCard, LoadingSkeleton } from "../components/ui";
+import { ClassTypeBadge } from "../components/ClassTypeBadge";
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -139,9 +140,12 @@ export const StudentDashboard: React.FC = () => {
           <h1 className="font-display text-2xl font-bold tracking-tight text-white mb-1">
             {student.display_name}
           </h1>
-          <p className="text-sm font-medium text-mission-secondary-text">
-            {classroom.name} • {classroom.level_name}
-          </p>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <p className="text-sm font-medium text-mission-secondary-text">
+              {classroom.name} • {classroom.level_name}
+            </p>
+            <ClassTypeBadge type={classroom.class_type} compact />
+          </div>
         </div>
         <button
           onClick={handleLeave}

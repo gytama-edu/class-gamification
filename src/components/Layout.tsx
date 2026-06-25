@@ -23,6 +23,7 @@ import { useAuth } from "../lib/auth/AuthContext";
 import { useClassroomRealtime } from "../lib/realtime/useClassroomRealtime";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { IconButton } from "./ui";
+import { ClassTypeBadge } from "./ClassTypeBadge";
 
 export const Layout: React.FC = () => {
   const { classId } = useParams();
@@ -134,7 +135,7 @@ export const Layout: React.FC = () => {
         {classId ? (
           <>
             <div className="px-3 pb-4 mb-2 border-b border-mission-border/50">
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-2">
                 <p className="text-[10px] font-bold text-mission-muted-text uppercase tracking-wider">
                   Active Mission
                 </p>
@@ -142,12 +143,15 @@ export const Layout: React.FC = () => {
                   <span className={`h-1.5 w-1.5 rounded-full ${status === 'connected' ? 'bg-radar-green animate-pulse' : 'bg-mission-offline'}`}></span>
                 </div>
               </div>
-              <p className="text-sm font-bold text-white truncate">
+              <p className="text-sm font-bold text-white truncate mb-1">
                 {activeClass?.name}
               </p>
-              <p className="text-xs text-mission-secondary-text truncate">
-                {activeClass?.level_name || 'No level assigned'}
-              </p>
+              <div className="flex flex-wrap gap-1">
+                <span className="text-[10px] bg-mission-bg px-1.5 py-0.5 rounded text-mission-secondary-text border border-mission-border/50">
+                  {activeClass?.level_name || 'No level'}
+                </span>
+                <ClassTypeBadge type={activeClass?.class_type} compact />
+              </div>
             </div>
             {navItems.map((item, idx) => (
               <NavLink

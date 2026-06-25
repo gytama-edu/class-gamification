@@ -1,4 +1,8 @@
-import { ClassroomRepository } from "./classroomRepository";
+import {
+  ClassroomRepository,
+  CreateClassInput,
+  UpdateClassInput
+} from "./classroomRepository";
 import { supabase } from "../supabase/client";
 import {
   Classroom,
@@ -22,7 +26,10 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       .eq("is_archived", false)
       .order("created_at", { ascending: false });
     if (error) throw error;
-    return data || [];
+    return (data || []).map((c: any) => ({
+      ...c,
+      class_type: c.class_type === 'private' ? 'private' : 'regular'
+    }));
   }
 
   async getClassroomDashboard(
@@ -30,12 +37,17 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
   ): Promise<ClassroomDashboardData> {
     if (!supabase) throw new Error("Supabase client is not initialized.");
 
-    const { data: classroom, error: classError } = await supabase
+    const { data: rawClassroom, error: classError } = await supabase
       .from("classes")
       .select("*")
       .eq("id", classId)
       .single();
     if (classError) throw classError;
+    
+    const classroom = {
+      ...rawClassroom,
+      class_type: rawClassroom.class_type === 'private' ? 'private' : 'regular'
+    } as Classroom;
 
     const { data: latestMeeting, error: meetingError } = await supabase
       .from("meetings")
@@ -93,16 +105,13 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     };
   }
 
-  async createClass(input: {
-    name: string;
-    level_name: string;
-    max_lives: number;
-  }): Promise<Classroom> {
+  async createClass(input: CreateClassInput): Promise<Classroom> {
     if (!supabase) throw new Error("Supabase not initialized");
     const { data, error } = await supabase.rpc("create_class", {
       p_name: input.name,
       p_level_name: input.level_name,
       p_max_lives: input.max_lives,
+      p_class_type: input.class_type || "regular",
     });
     if (error) throw error;
 
@@ -112,12 +121,17 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       .eq("id", data)
       .single();
     if (fetchErr) throw fetchErr;
-    return newClass;
+    
+    // Fallback normalization if needed, though DB returns it
+    return {
+      ...newClass,
+      class_type: newClass.class_type || "regular"
+    };
   }
 
   async updateClass(
     classId: string,
-    input: { name?: string; level_name?: string; max_lives?: number },
+    input: UpdateClassInput,
   ): Promise<void> {
     if (!supabase) throw new Error("Supabase not initialized");
     const { error } = await supabase.rpc("update_class", {
@@ -125,6 +139,7 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       p_name: input.name || null,
       p_level_name: input.level_name || null,
       p_max_lives: input.max_lives || null,
+      p_class_type: input.class_type || null,
     });
     if (error) throw error;
   }

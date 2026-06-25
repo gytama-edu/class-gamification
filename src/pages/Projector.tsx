@@ -4,6 +4,7 @@ import { Trophy, Star, Heart, Activity } from "lucide-react";
 import { getRepository } from "../lib/data/repository";
 import { ClassroomDashboardData } from "../lib/types/database";
 import { useClassroomRealtime } from "../lib/realtime/useClassroomRealtime";
+import { ClassTypeBadge } from "../components/ClassTypeBadge";
 
 export const Projector: React.FC = () => {
   const { classId } = useParams();
@@ -90,6 +91,7 @@ export const Projector: React.FC = () => {
               <h1 className="text-4xl xl:text-5xl font-display font-bold text-white tracking-tight">
                 {data.classroom.name}
               </h1>
+              <ClassTypeBadge type={data.classroom.class_type} />
             </div>
             {data.activeMeeting ? (
               <div className="flex items-center gap-3">

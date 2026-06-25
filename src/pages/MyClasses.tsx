@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users,
@@ -24,10 +24,13 @@ import {
   StatusBadge,
   LoadingSkeleton,
 } from "../components/ui";
+import { ClassTypeBadge } from "../components/ClassTypeBadge";
+import { ClassType } from "../lib/types/database";
 
 export const MyClasses: React.FC = () => {
   const { classes, isLoadingClasses, archiveClass } = useAppContext();
   const navigate = useNavigate();
+  const [filterType, setFilterType] = useState<ClassType | 'all'>('all');
 
   if (isLoadingClasses) {
     return (
@@ -48,6 +51,13 @@ export const MyClasses: React.FC = () => {
     }
   };
 
+  const filteredClasses = filterType === 'all' 
+    ? classes 
+    : classes.filter(c => c.class_type === filterType);
+
+  const regularCount = classes.filter(c => c.class_type === 'regular' || !c.class_type).length;
+  const privateCount = classes.filter(c => c.class_type === 'private').length;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       <PageHeader
@@ -60,6 +70,41 @@ export const MyClasses: React.FC = () => {
           </Button>
         }
       />
+
+      {classes.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-6 bg-mission-panel border border-mission-border/50 p-1 rounded-xl w-fit">
+          <button
+            onClick={() => setFilterType('all')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filterType === 'all'
+                ? 'bg-mission-panel-elevated text-white shadow-sm border border-mission-border'
+                : 'text-mission-secondary-text hover:text-white hover:bg-mission-panel-elevated/50'
+            }`}
+          >
+            All Classes ({classes.length})
+          </button>
+          <button
+            onClick={() => setFilterType('regular')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filterType === 'regular'
+                ? 'bg-cyan-400/10 text-cyan-400 shadow-sm border border-cyan-400/20'
+                : 'text-mission-secondary-text hover:text-white hover:bg-mission-panel-elevated/50'
+            }`}
+          >
+            Regular ({regularCount})
+          </button>
+          <button
+            onClick={() => setFilterType('private')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filterType === 'private'
+                ? 'bg-amber-400/10 text-amber-400 shadow-sm border border-amber-400/20'
+                : 'text-mission-secondary-text hover:text-white hover:bg-mission-panel-elevated/50'
+            }`}
+          >
+            Private ({privateCount})
+          </button>
+        </div>
+      )}
 
       {classes.length === 0 ? (
         <EmptyState
@@ -76,8 +121,23 @@ export const MyClasses: React.FC = () => {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.map((cls, index) => {
-            const accents = [
+          {filteredClasses.length === 0 ? (
+            <div className="col-span-full">
+              <EmptyState
+                icon={filterType === 'private' ? Users : Users}
+                title={`No ${filterType === 'private' ? 'Private' : 'Regular'} Classes`}
+                description="Create or recategorize a class to see it here."
+                action={
+                  <Button onClick={() => navigate("/teacher/classes/new")}>
+                    <Plus size={18} className="mr-2" />
+                    Create Class
+                  </Button>
+                }
+              />
+            </div>
+          ) : (
+            filteredClasses.map((cls, index) => {
+              const accents = [
               'bg-blue-500/10 text-blue-400 border-blue-500/20',
               'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
               'bg-purple-500/10 text-purple-400 border-purple-500/20',
@@ -135,9 +195,12 @@ export const MyClasses: React.FC = () => {
                 </div>
 
                 <div className="mb-2">
-                  <StatusBadge variant="default" className="mb-3">
-                    {cls.level_name || "Uncategorized"}
-                  </StatusBadge>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <StatusBadge variant="default">
+                      {cls.level_name || "Uncategorized"}
+                    </StatusBadge>
+                    <ClassTypeBadge type={cls.class_type} compact />
+                  </div>
                   <h2 className="text-xl font-display font-bold text-white line-clamp-2 leading-tight">
                     {cls.name}
                   </h2>
@@ -173,7 +236,7 @@ export const MyClasses: React.FC = () => {
                 </div>
               </Panel>
             );
-          })}
+          }))}
         </div>
       )}
     </div>

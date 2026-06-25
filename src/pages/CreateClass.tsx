@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, AlertTriangle } from 'lucide-react';
 import { useAppContext } from '../store';
 import { PageHeader, Panel, Button } from '../components/ui';
+import { ClassTypeSelector } from '../components/ClassTypeSelector';
+import { ClassType } from '../lib/types/database';
 
 export const CreateClass: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +13,7 @@ export const CreateClass: React.FC = () => {
   const [name, setName] = useState('');
   const [levelName, setLevelName] = useState('');
   const [maxLives, setMaxLives] = useState<number>(10);
+  const [classType, setClassType] = useState<ClassType>('regular');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +36,7 @@ export const CreateClass: React.FC = () => {
     setError(null);
 
     try {
-      const classId = await createClass(name.trim(), levelName.trim(), maxLives);
+      const classId = await createClass(name.trim(), levelName.trim(), maxLives, classType);
       navigate(`/teacher/classes/${classId}`);
     } catch (err: any) {
       setError(err.message || 'Failed to create class.');
@@ -116,6 +119,17 @@ export const CreateClass: React.FC = () => {
             </p>
           </div>
 
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-mission-secondary-text mb-2">
+              Class Category
+            </label>
+            <ClassTypeSelector 
+              value={classType}
+              onChange={setClassType}
+              disabled={isSubmitting}
+            />
+          </div>
+
           <div className="pt-6">
             <Button
               type="submit"
@@ -124,7 +138,7 @@ export const CreateClass: React.FC = () => {
               className="w-full py-3.5 font-bold"
               icon={Plus}
             >
-              {isSubmitting ? 'Initializing...' : 'Create Class'}
+              {isSubmitting ? 'Creating...' : 'Create Class'}
             </Button>
           </div>
         </form>

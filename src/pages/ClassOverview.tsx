@@ -28,6 +28,7 @@ import {
   SectionHeader,
   IconButton
 } from "../components/ui";
+import { ClassTypeBadge } from "../components/ClassTypeBadge";
 
 export const ClassOverview: React.FC = () => {
   const { classId } = useParams<{ classId: string }>();
@@ -89,11 +90,12 @@ export const ClassOverview: React.FC = () => {
       <Panel className="p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            <div className="flex flex-wrap items-center gap-3 mb-2">
+              <h1 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight mr-1">
                 {classroom.name}
               </h1>
               <StatusBadge>{classroom.level_name || "Uncategorized"}</StatusBadge>
+              <ClassTypeBadge type={classroom.class_type} compact />
             </div>
             
             <div className="flex items-center gap-2">

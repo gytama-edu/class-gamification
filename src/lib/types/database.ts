@@ -1,3 +1,20 @@
+export type ClassType = "regular" | "private";
+
+export const CLASS_TYPE_LABELS: Record<ClassType, string> = {
+  regular: "Regular Class",
+  private: "Private Class",
+};
+
+export function getClassTypeLabel(type: ClassType | string | null | undefined): string {
+  const normalized = normalizeClassType(type);
+  return CLASS_TYPE_LABELS[normalized];
+}
+
+export function normalizeClassType(type: any): ClassType {
+  if (type === "private") return "private";
+  return "regular";
+}
+
 export interface TeacherProfile {
   id: string;
   full_name: string;
@@ -11,6 +28,7 @@ export interface Classroom {
   name: string;
   level_name: string;
   max_lives: number;
+  class_type: ClassType;
   current_meeting_number: number;
   is_archived: boolean;
   join_code: string;

@@ -4,6 +4,8 @@ import { Save, AlertTriangle } from 'lucide-react';
 import { useAppContext } from '../store';
 import { getRepository } from '../lib/data/repository';
 import { PageHeader, Panel, Button, LoadingSkeleton } from '../components/ui';
+import { ClassTypeSelector } from '../components/ClassTypeSelector';
+import { ClassType } from '../lib/types/database';
 
 export const ClassSettings: React.FC = () => {
   const { classId } = useParams();
@@ -13,6 +15,7 @@ export const ClassSettings: React.FC = () => {
   const [name, setName] = useState('');
   const [levelName, setLevelName] = useState('');
   const [maxLives, setMaxLives] = useState(10);
+  const [classType, setClassType] = useState<ClassType>('regular');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +31,7 @@ export const ClassSettings: React.FC = () => {
           setName(cls.name);
           setLevelName(cls.level_name);
           setMaxLives(cls.max_lives);
+          setClassType(cls.class_type);
         }
       } catch (err: any) {
         setError(err.message || 'Failed to load class settings.');
@@ -45,7 +49,7 @@ export const ClassSettings: React.FC = () => {
     setError(null);
     try {
       const repo = getRepository();
-      await repo.updateClass(classId, { name, level_name: levelName, max_lives: maxLives });
+      await repo.updateClass(classId, { name, level_name: levelName, max_lives: maxLives, class_type: classType });
       await refreshClasses();
       navigate(`/teacher/classes/${classId}`);
     } catch (err: any) {
@@ -130,6 +134,18 @@ export const ClassSettings: React.FC = () => {
             />
             <p className="text-xs text-mission-muted-text mt-1">
               Standard configuration is 10 lives per session.
+            </p>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <label className="block text-sm font-medium text-mission-secondary-text mb-2">Class Category</label>
+            <ClassTypeSelector 
+              value={classType}
+              onChange={setClassType}
+              disabled={isSaving}
+            />
+            <p className="text-xs text-mission-muted-text mt-2">
+              Changing the category only changes how the class is organized and labelled. It does not change existing students, points, meetings, or reports.
             </p>
           </div>
 

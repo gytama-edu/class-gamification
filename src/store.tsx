@@ -5,7 +5,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import { Classroom, ClassroomDashboardData } from "./lib/types/database";
+import { Classroom, ClassroomDashboardData, ClassType } from "./lib/types/database";
 import { getRepository } from "./lib/data/repository";
 
 interface AppContextType {
@@ -16,6 +16,7 @@ interface AppContextType {
     name: string,
     levelName: string,
     maxLives: number,
+    classType?: ClassType,
   ) => Promise<string>;
   archiveClass: (classId: string) => Promise<void>;
 
@@ -146,11 +147,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     name: string,
     levelName: string,
     maxLives: number,
+    classType?: ClassType,
   ) => {
     const newClass = await repo.createClass({
       name,
       level_name: levelName,
       max_lives: maxLives,
+      class_type: classType || "regular",
     });
     await refreshClasses();
     return newClass.id;

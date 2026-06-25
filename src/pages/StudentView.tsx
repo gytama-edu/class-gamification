@@ -21,6 +21,7 @@ import {
 import { useClassroomRealtime } from "../lib/realtime/useClassroomRealtime";
 import { ConnectionStatus } from "../components/ConnectionStatus";
 import { AwardRecognitionModal } from "../components/AwardRecognitionModal";
+import { ClassTypeBadge } from "../components/ClassTypeBadge";
 import { 
   PageHeader, 
   Panel, 
@@ -170,12 +171,13 @@ export const StudentView: React.FC = () => {
                     </h1>
                     <ConnectionStatus status={status} />
                  </div>
-                 <div className="flex flex-wrap items-center gap-3">
+                 <div className="flex flex-wrap items-center gap-3 mt-1">
                     <span className="text-sm font-medium text-radar-green flex items-center gap-1.5">
                        {classroom.name}
                        <span className="w-1 h-1 rounded-full bg-mission-border" />
                        {classroom.level_name}
                     </span>
+                    <ClassTypeBadge type={classroom.class_type} compact />
                     {!student.is_active && (
                        <span className="px-2 py-0.5 bg-mission-secondary-text/10 text-mission-secondary-text border border-mission-secondary-text/20 rounded text-[10px] font-bold uppercase tracking-wider">
                          Inactive

@@ -1,14 +1,28 @@
 import { 
   Classroom, ClassroomDashboardData, DbStudent, LeaderboardEntry, 
   Meeting, StudentWithCurrentState, MeetingHistoryItem, MeetingReport,
-  StudentAchievement, TeacherRecognitionInput
+  StudentAchievement, TeacherRecognitionInput, ClassType
 } from '../types/database';
+
+export interface CreateClassInput {
+  name: string;
+  level_name: string;
+  max_lives: number;
+  class_type?: ClassType;
+}
+
+export interface UpdateClassInput {
+  name?: string;
+  level_name?: string;
+  max_lives?: number;
+  class_type?: ClassType;
+}
 
 export interface ClassroomRepository {
   getClasses(): Promise<Classroom[]>;
   getClassroomDashboard(classId: string): Promise<ClassroomDashboardData>;
-  createClass(input: { name: string; level_name: string; max_lives: number }): Promise<Classroom>;
-  updateClass(classId: string, input: { name?: string; level_name?: string; max_lives?: number }): Promise<void>;
+  createClass(input: CreateClassInput): Promise<Classroom>;
+  updateClass(classId: string, input: UpdateClassInput): Promise<void>;
   archiveClass(classId: string): Promise<void>;
   regenerateJoinCode(classId: string): Promise<string>;
   updateStudentAccessEnabled(classId: string, enabled: boolean): Promise<void>;

@@ -1,4 +1,8 @@
-import { ClassroomRepository } from "./classroomRepository";
+import {
+  ClassroomRepository,
+  CreateClassInput,
+  UpdateClassInput
+} from "./classroomRepository";
 import {
   Classroom,
   ClassroomDashboardData,
@@ -10,7 +14,8 @@ import {
   MeetingReport,
   AchievementDefinition,
   StudentAchievement,
-  TeacherRecognitionInput
+  TeacherRecognitionInput,
+  ClassType
 } from "../types/database";
 import { notifyMockUpdate } from "../realtime/useClassroomRealtime";
 
@@ -64,6 +69,7 @@ function getInitialMockDB(): MockDB {
     name: "Galaxy Explorers",
     level_name: "Grade 5",
     max_lives: 10,
+    class_type: "regular",
     current_meeting_number: 1,
     is_archived: false,
     join_code: "GALAXY",
@@ -77,6 +83,7 @@ function getInitialMockDB(): MockDB {
     name: "Comet Crew",
     level_name: "Teen Class",
     max_lives: 15,
+    class_type: "regular",
     current_meeting_number: 1,
     is_archived: false,
     join_code: "COMETS",
@@ -90,6 +97,7 @@ function getInitialMockDB(): MockDB {
     name: "Orion Academy",
     level_name: "IELTS Preparation",
     max_lives: 8,
+    class_type: "private",
     current_meeting_number: 1,
     is_archived: false,
     join_code: "ORION1",
@@ -229,6 +237,7 @@ export class MockClassroomRepository implements ClassroomRepository {
               name: parsed.className || "Migrated Class",
               level_name: parsed.classLevel || "General",
               max_lives: parsed.maxLives || 10,
+              class_type: "regular",
               current_meeting_number: parsed.meetingNumber || 1,
               is_archived: false,
               join_code: generateJoinCode(),
@@ -361,15 +370,24 @@ export class MockClassroomRepository implements ClassroomRepository {
   }
 
   async getClasses(): Promise<Classroom[]> {
-    return this.getDb().classes.filter((c) => !c.is_archived);
+    return this.getDb()
+      .classes.filter((c) => !c.is_archived)
+      .map((c) => ({
+        ...c,
+        class_type: (c.class_type === "private" ? "private" : "regular") as ClassType,
+      }));
   }
 
   async getClassroomDashboard(
     classId: string,
   ): Promise<ClassroomDashboardData> {
     const db = this.getDb();
-    const classroom = db.classes.find((c) => c.id === classId);
-    if (!classroom) throw new Error("Class not found");
+    const rawClassroom = db.classes.find((c) => c.id === classId);
+    if (!rawClassroom) throw new Error("Class not found");
+    const classroom = {
+      ...rawClassroom,
+      class_type: (rawClassroom.class_type === "private" ? "private" : "regular") as ClassType,
+    };
 
     const latestMeeting =
       db.meetings
@@ -399,11 +417,7 @@ export class MockClassroomRepository implements ClassroomRepository {
     return { classroom, activeMeeting, students: studentsWithState };
   }
 
-  async createClass(input: {
-    name: string;
-    level_name: string;
-    max_lives: number;
-  }): Promise<Classroom> {
+  async createClass(input: CreateClassInput): Promise<Classroom> {
     const db = this.getDb();
     const newClass: Classroom = {
       id: generateId(),
@@ -411,6 +425,7 @@ export class MockClassroomRepository implements ClassroomRepository {
       name: input.name,
       level_name: input.level_name,
       max_lives: input.max_lives,
+      class_type: input.class_type ?? "regular",
       current_meeting_number: 0,
       is_archived: false,
       join_code: generateJoinCode(),
@@ -425,14 +440,17 @@ export class MockClassroomRepository implements ClassroomRepository {
 
   async updateClass(
     classId: string,
-    input: { name?: string; level_name?: string; max_lives?: number },
+    input: UpdateClassInput,
   ): Promise<void> {
     const db = this.getDb();
     const idx = db.classes.findIndex((c) => c.id === classId);
     if (idx !== -1) {
       db.classes[idx] = {
         ...db.classes[idx],
-        ...input,
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.level_name !== undefined ? { level_name: input.level_name } : {}),
+        ...(input.max_lives !== undefined ? { max_lives: input.max_lives } : {}),
+        ...(input.class_type !== undefined ? { class_type: input.class_type } : {}),
         updated_at: new Date().toISOString(),
       };
       this.saveDb(db);

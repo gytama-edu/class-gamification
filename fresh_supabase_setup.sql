@@ -7,6 +7,7 @@ CREATE TABLE public.classes (
   level_name text NOT NULL,
   max_lives integer NOT NULL,
   current_meeting_number integer NOT NULL DEFAULT 0,
+  class_type text NOT NULL DEFAULT 'regular' CHECK (class_type IN ('regular', 'private')),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -713,17 +714,27 @@ $$;
 -- By default, functions in Postgres are SECURITY INVOKER.
 -- We'll explicitly recreate them as SECURITY INVOKER just to be absolutely sure.
 
-CREATE OR REPLACE FUNCTION public.update_class(p_class_id UUID, p_name TEXT, p_level_name TEXT, p_max_lives INTEGER)
+CREATE OR REPLACE FUNCTION public.update_class(p_class_id UUID, p_name TEXT, p_level_name TEXT, p_max_lives INTEGER, p_class_type TEXT DEFAULT NULL)
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY INVOKER
 AS $$
+DECLARE
+    v_type TEXT;
 BEGIN
+    IF p_class_type IS NOT NULL THEN
+        v_type := lower(btrim(p_class_type));
+        IF v_type NOT IN ('regular', 'private') THEN
+            v_type := 'regular';
+        END IF;
+    END IF;
+
     UPDATE public.classes
     SET 
         name = COALESCE(p_name, name),
         level_name = COALESCE(p_level_name, level_name),
         max_lives = COALESCE(p_max_lives, max_lives),
+        class_type = COALESCE(v_type, class_type),
         updated_at = NOW()
     WHERE id = p_class_id;
 END;
@@ -1350,7 +1361,7 @@ WHERE id NOT IN (SELECT id FROM public.teacher_profiles)
 -- 3. Safely recreate create_class to ensure the schema matches exactly what the frontend expects
 DROP FUNCTION IF EXISTS public.create_class(text, text, integer);
 
-CREATE OR REPLACE FUNCTION public.create_class(p_name TEXT, p_level_name TEXT, p_max_lives INTEGER)
+CREATE OR REPLACE FUNCTION public.create_class(p_name TEXT, p_level_name TEXT, p_max_lives INTEGER, p_class_type TEXT DEFAULT 'regular')
 RETURNS UUID
 LANGUAGE plpgsql
 SECURITY INVOKER
@@ -1358,6 +1369,7 @@ AS $$
 DECLARE
     v_class_id UUID;
     v_owner_id UUID;
+    v_type TEXT;
 BEGIN
     v_owner_id := auth.uid();
     
@@ -1370,8 +1382,13 @@ BEGIN
         RAISE EXCEPTION 'Must be a registered teacher to create a class';
     END IF;
 
-    INSERT INTO public.classes (name, level_name, max_lives, current_meeting_number, owner_id)
-    VALUES (p_name, p_level_name, p_max_lives, 0, v_owner_id)
+    v_type := COALESCE(lower(btrim(p_class_type)), 'regular');
+    IF v_type NOT IN ('regular', 'private') THEN
+        v_type := 'regular';
+    END IF;
+
+    INSERT INTO public.classes (name, level_name, max_lives, current_meeting_number, owner_id, class_type)
+    VALUES (p_name, p_level_name, p_max_lives, 0, v_owner_id, v_type)
     RETURNING id INTO v_class_id;
     
     RETURN v_class_id;

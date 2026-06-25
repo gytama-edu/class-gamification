@@ -16,7 +16,10 @@ import {
   ShieldOff,
   CheckCircle,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  Plus,
+  Filter,
+  SmartphoneNfc
 } from "lucide-react";
 import { useAppContext } from "../store";
 import { getRepository } from "../lib/data/repository";

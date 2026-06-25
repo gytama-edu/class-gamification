@@ -33,6 +33,7 @@ export const TeacherDashboard: React.FC = () => {
     error,
     updateMaxLives,
     endMeeting,
+    refreshDashboard,
   } = useAppContext();
   const [isEndMeetingDialogOpen, setIsEndMeetingDialogOpen] = useState(false);
 
@@ -178,6 +179,7 @@ export const TeacherDashboard: React.FC = () => {
         isOpen={isEndMeetingDialogOpen}
         onClose={() => setIsEndMeetingDialogOpen(false)}
         onConfirm={() => endMeeting(classId!)}
+        onRefreshClass={refreshDashboard}
       />
     </div>
   );

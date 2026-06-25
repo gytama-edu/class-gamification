@@ -403,8 +403,10 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     const result = this.parseMutationNumber(data, "point total");
     
     // Evaluate achievements asynchronously
-    supabase.rpc("evaluate_student_achievements", { p_student_id: studentId })
-      .catch(err => console.warn("Failed to evaluate achievements:", err));
+    (async () => {
+      const { error: evalError } = await supabase!.rpc("evaluate_student_achievements", { p_student_id: studentId });
+      if (evalError) console.warn("Failed to evaluate achievements:", evalError);
+    })();
       
     return result;
   }
@@ -426,8 +428,10 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     const result = this.parseMutationNumber(data, "point total");
     
     // Evaluate achievements asynchronously
-    supabase.rpc("evaluate_student_achievements", { p_student_id: studentId })
-      .catch(err => console.warn("Failed to evaluate achievements:", err));
+    (async () => {
+      const { error: evalError } = await supabase!.rpc("evaluate_student_achievements", { p_student_id: studentId });
+      if (evalError) console.warn("Failed to evaluate achievements:", evalError);
+    })();
       
     return result;
   }
@@ -488,8 +492,10 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     if (error) throw error;
     
     // Evaluate class achievements asynchronously
-    supabase.rpc("evaluate_class_achievements", { p_class_id: classId })
-      .catch(err => console.warn("Failed to evaluate class achievements:", err));
+    (async () => {
+      const { error: evalError } = await supabase!.rpc("evaluate_class_achievements", { p_class_id: classId });
+      if (evalError) console.warn("Failed to evaluate class achievements:", evalError);
+    })();
   }
 
   async getMeetingHistory(classId: string): Promise<MeetingHistoryItem[]> {

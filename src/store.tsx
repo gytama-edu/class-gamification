@@ -181,6 +181,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const endMeeting = async (classId: string) => {
     await repo.endMeeting(classId);
     if (selectedClassId === classId) await refreshDashboard();
+    await refreshClasses();
   };
 
   const updateStudentLocalState = (studentId: string, updates: any) => {

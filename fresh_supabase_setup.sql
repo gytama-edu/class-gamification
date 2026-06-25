@@ -2216,6 +2216,7 @@ CREATE TRIGGER trg_validate_task_assignment
 -- RPCs
 -- Clean up old signatures
 DROP FUNCTION IF EXISTS public.create_task(uuid, text, text, timestamptz, integer, text, uuid[], boolean);
+DROP FUNCTION IF EXISTS public.create_task(uuid, text, text, timestamptz, integer, text, uuid[]);
 DROP FUNCTION IF EXISTS public.update_task(uuid, text, text, timestamptz, integer, text, uuid[]);
 DROP FUNCTION IF EXISTS public.set_task_status(uuid, text);
 DROP FUNCTION IF EXISTS public.submit_task_assignment(uuid, text);
@@ -2225,12 +2226,12 @@ DROP FUNCTION IF EXISTS public.review_task_assignment(uuid, text, text);
 CREATE OR REPLACE FUNCTION public.create_task(
     p_class_id uuid,
     p_title text,
-    p_instructions text,
-    p_due_at timestamptz,
-    p_reward_points integer,
-    p_assignment_scope text,
-    p_student_ids uuid[],
-    p_publish_immediately boolean
+    p_instructions text DEFAULT '',
+    p_due_at timestamptz DEFAULT NULL,
+    p_reward_points integer DEFAULT 0,
+    p_assignment_scope text DEFAULT 'all_students',
+    p_student_ids uuid[] DEFAULT NULL,
+    p_publish_immediately boolean DEFAULT false
 )
 RETURNS uuid
 LANGUAGE plpgsql

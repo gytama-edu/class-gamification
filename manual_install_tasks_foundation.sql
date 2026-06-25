@@ -295,12 +295,12 @@ $$;
 -- 2. update_task
 CREATE OR REPLACE FUNCTION public.update_task(
     p_task_id uuid,
-    p_title text,
-    p_instructions text,
-    p_due_at timestamptz,
-    p_reward_points integer,
-    p_assignment_scope text,
-    p_student_ids uuid[]
+    p_title text DEFAULT NULL,
+    p_instructions text DEFAULT NULL,
+    p_due_at timestamptz DEFAULT NULL,
+    p_reward_points integer DEFAULT NULL,
+    p_assignment_scope text DEFAULT NULL,
+    p_student_ids uuid[] DEFAULT NULL
 )
 RETURNS uuid
 LANGUAGE plpgsql
@@ -313,8 +313,11 @@ DECLARE
     v_student_id uuid;
     v_title_clean text;
     v_instructions_clean text;
-    v_student_ids uuid[] := COALESCE(p_student_ids, ARRAY[]::uuid[]);
+    v_student_ids uuid[];
     v_current_assigned uuid[];
+    v_due_at timestamptz;
+    v_reward_points integer;
+    v_assignment_scope text;
 BEGIN
     IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
 
@@ -328,14 +331,28 @@ BEGIN
     
     IF v_task.status = 'archived' THEN RAISE EXCEPTION 'Cannot edit archived tasks.'; END IF;
     
-    v_title_clean := trim(p_title);
-    v_instructions_clean := trim(p_instructions);
+    v_title_clean := trim(COALESCE(p_title, v_task.title));
+    v_instructions_clean := trim(COALESCE(p_instructions, v_task.instructions));
+    v_due_at := COALESCE(p_due_at, v_task.due_at);
+    v_reward_points := COALESCE(p_reward_points, v_task.reward_points);
+    v_assignment_scope := COALESCE(p_assignment_scope, v_task.assignment_scope);
+    
+    -- For student_ids, if it's explicitly passed as empty array, we should probably respect it,
+    -- but if it's NULL, we fallback to current assigned students if needed.
+    -- Actually, if p_student_ids is NULL, we shouldn't change the assigned students.
+    -- Let's fetch current assigned if p_student_ids is NULL.
+    IF p_student_ids IS NULL THEN
+        SELECT array_agg(student_id) INTO v_student_ids FROM public.task_assignments WHERE task_id = p_task_id;
+        v_student_ids := COALESCE(v_student_ids, ARRAY[]::uuid[]);
+    ELSE
+        v_student_ids := p_student_ids;
+    END IF;
     
     IF length(v_title_clean) < 3 OR length(v_title_clean) > 100 THEN RAISE EXCEPTION 'Title must be between 3 and 100 characters.'; END IF;
     IF length(v_instructions_clean) > 5000 THEN RAISE EXCEPTION 'Instructions must not exceed 5000 characters.'; END IF;
-    IF p_reward_points < 0 OR p_reward_points > 1000 THEN RAISE EXCEPTION 'Reward points must be between 0 and 1000.'; END IF;
+    IF v_reward_points < 0 OR v_reward_points > 1000 THEN RAISE EXCEPTION 'Reward points must be between 0 and 1000.'; END IF;
     
-    IF p_reward_points != v_task.reward_points THEN
+    IF v_reward_points != v_task.reward_points THEN
         IF EXISTS (SELECT 1 FROM public.task_assignments WHERE task_id = p_task_id AND status = 'approved') THEN
             RAISE EXCEPTION 'Cannot change reward points after assignments have been approved.';
         END IF;
@@ -344,15 +361,15 @@ BEGIN
     -- If completed, ONLY allow harmless metadata updates (title, instructions, due_at, reward_points)
     -- Reject scope changes and student updates.
     IF v_task.status = 'completed' THEN
-        IF p_assignment_scope != v_task.assignment_scope THEN
+        IF v_assignment_scope != v_task.assignment_scope THEN
             RAISE EXCEPTION 'Cannot change assignment scope of a completed task.';
         END IF;
         
         UPDATE public.tasks SET
             title = v_title_clean,
             instructions = v_instructions_clean,
-            due_at = p_due_at,
-            reward_points = p_reward_points,
+            due_at = v_due_at,
+            reward_points = v_reward_points,
             updated_at = now()
         WHERE id = p_task_id;
         
@@ -363,15 +380,15 @@ BEGIN
     UPDATE public.tasks SET
         title = v_title_clean,
         instructions = v_instructions_clean,
-        due_at = p_due_at,
-        reward_points = p_reward_points,
-        assignment_scope = p_assignment_scope,
+        due_at = v_due_at,
+        reward_points = v_reward_points,
+        assignment_scope = v_assignment_scope,
         updated_at = now()
     WHERE id = p_task_id;
     
     -- Sync assignments if not completed
     -- If switching to all_students explicitly
-    IF p_assignment_scope = 'all_students' THEN
+    IF v_assignment_scope = 'all_students' THEN
         -- Only add if it wasn't already all_students AND it's active.
         -- "When changing a draft from selected_students to all_students: do not populate the all-student roster yet"
         -- "When changing active task intentionally to all_students: use current active, non-deleted roster once"

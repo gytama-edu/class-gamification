@@ -126,7 +126,10 @@ export const ClassOverview: React.FC = () => {
 
             <Button
               variant="secondary"
-              onClick={() => window.open(`/projector/${classId}`, "_blank")}
+              onClick={() => {
+                const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, "");
+                window.open(`${baseUrl}/projector/${classId}`, "_blank");
+              }}
             >
               <ExternalLink size={18} className="mr-2" />
               Projector

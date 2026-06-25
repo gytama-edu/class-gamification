@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useState } from "react";
-import { NavLink, Outlet, useParams, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useParams, useNavigate, Link } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -181,15 +181,15 @@ export const Layout: React.FC = () => {
             ))}
 
             <div className="mt-6 pt-4 border-t border-mission-border/50">
-              <a
-                href={`/projector/${classId}`}
+              <Link
+                to={`/projector/${classId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-strong-green hover:bg-mission-panel-strong hover:text-radar-green text-sm"
               >
                 <MonitorPlay size={18} />
                 <span className="font-semibold">Open Projector</span>
-              </a>
+              </Link>
             </div>
           </>
         ) : (

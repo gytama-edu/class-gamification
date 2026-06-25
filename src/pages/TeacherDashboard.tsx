@@ -101,7 +101,10 @@ export const TeacherDashboard: React.FC = () => {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => window.open(`/projector/${classId}`, "_blank")}
+            onClick={() => {
+              const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, "");
+              window.open(`${baseUrl}/projector/${classId}`, "_blank");
+            }}
           >
             <ExternalLink size={16} className="mr-2" />
             Projector

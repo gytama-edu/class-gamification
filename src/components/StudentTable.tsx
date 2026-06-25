@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import {
   Heart,
   Plus,
@@ -15,6 +15,7 @@ import { EmptyState, Button, IconButton } from "./ui";
 
 export const StudentTable: React.FC = () => {
   const { classId } = useParams();
+  const navigate = useNavigate();
   const {
     dashboardData,
     addPoints,
@@ -51,7 +52,7 @@ export const StudentTable: React.FC = () => {
         title="No Students Yet"
         description="Add students before running the live meeting."
         action={
-          <Button variant="secondary" onClick={() => window.location.href = `/teacher/classes/${classId}/students`}>
+          <Button variant="secondary" onClick={() => navigate(`/teacher/classes/${classId}/students`)}>
             Manage Students
           </Button>
         }

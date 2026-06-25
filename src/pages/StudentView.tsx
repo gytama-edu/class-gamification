@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Heart,
   Trophy,
@@ -33,6 +33,7 @@ import {
 
 export const StudentView: React.FC = () => {
   const { studentId } = useParams<{ studentId: string }>();
+  const navigate = useNavigate();
 
   const [student, setStudent] = useState<StudentWithCurrentState | null>(null);
   const [classroom, setClassroom] = useState<Classroom | null>(null);
@@ -132,7 +133,7 @@ export const StudentView: React.FC = () => {
             description="The student you are looking for does not exist or has been removed."
             action={{
               label: "Back to Classes",
-              onClick: () => window.history.back()
+              onClick: () => navigate(-1)
             }}
          />
       </div>

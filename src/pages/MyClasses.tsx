@@ -228,7 +228,10 @@ export const MyClasses: React.FC = () => {
                   <Button 
                     variant="secondary" 
                     size="sm" 
-                    onClick={() => window.open(`/projector/${cls.id}`, "_blank")}
+                    onClick={() => {
+                      const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, "");
+                      window.open(`${baseUrl}/projector/${cls.id}`, "_blank");
+                    }}
                   >
                     <MonitorPlay size={16} className="mr-2" />
                     Projector

@@ -54,6 +54,7 @@ import { MeetingReport } from "./pages/MeetingReport";
 import { TeacherTasks } from "./pages/TeacherTasks";
 import { TeacherTaskDetail } from "./pages/TeacherTaskDetail";
 import { StudentTaskDetail } from "./pages/StudentTaskDetail";
+import { StudentGroupTaskDetail } from "./pages/StudentGroupTaskDetail";
 
 import { ProjectGroups } from "./pages/ProjectGroups";
 
@@ -78,6 +79,7 @@ export default function App() {
           <Route element={<StudentProtectedRoute />}>
             <Route path="/student/dashboard" element={<StudentDashboard />} />
             <Route path="/student/tasks/:taskId" element={<StudentTaskDetail />} />
+            <Route path="/student/group-tasks/:assignmentId" element={<StudentGroupTaskDetail />} />
           </Route>
 
           {/* Teacher Protected Routes */}

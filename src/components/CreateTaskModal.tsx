@@ -1,23 +1,25 @@
 import React, { useState } from "react";
 import { ModalShell } from "./ui/ModalShell";
 import { Button } from "./ui";
-import { DbStudent, CreateTaskInput } from "../lib/types/database";
+import { DbStudent, CreateTaskInput, ProjectGroupWithMembers } from "../lib/types/database";
 import { getRepository } from "../lib/data/repository";
 
 interface CreateTaskModalProps {
   classId: string;
   students: DbStudent[];
+  projectGroups: ProjectGroupWithMembers[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, students, onClose, onSuccess }) => {
+export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, students, projectGroups, onClose, onSuccess }) => {
   const [title, setTitle] = useState("");
   const [instructions, setInstructions] = useState("");
   const [rewardPoints, setRewardPoints] = useState(0);
   const [dueAt, setDueAt] = useState("");
-  const [assignmentScope, setAssignmentScope] = useState<'all_students' | 'selected_students'>('all_students');
+  const [assignmentScope, setAssignmentScope] = useState<'all_students' | 'selected_students' | 'project_groups'>('all_students');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,17 +30,29 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
     setError(null);
     try {
       const repo = getRepository();
-      const input: CreateTaskInput = {
-        title: title.trim(),
-        instructions: instructions.trim(),
-        due_at: dueAt ? new Date(dueAt).toISOString() : null,
-        reward_points: rewardPoints,
-        assignment_scope: assignmentScope,
-        student_ids: selectedStudentIds,
-        publish_immediately: publishImmediately
-      };
       
-      await repo.createTask(classId, input);
+      if (assignmentScope === 'project_groups') {
+        await repo.createProjectGroupTask(classId, {
+          title: title.trim(),
+          instructions: instructions.trim(),
+          due_at: dueAt ? new Date(dueAt).toISOString() : null,
+          reward_points: rewardPoints,
+          project_group_ids: selectedGroupIds,
+          publish_immediately: publishImmediately
+        });
+      } else {
+        const input: CreateTaskInput = {
+          title: title.trim(),
+          instructions: instructions.trim(),
+          due_at: dueAt ? new Date(dueAt).toISOString() : null,
+          reward_points: rewardPoints,
+          assignment_scope: assignmentScope,
+          student_ids: selectedStudentIds,
+          publish_immediately: publishImmediately
+        };
+        await repo.createTask(classId, input);
+      }
+      
       onSuccess();
     } catch (err: any) {
       setError(err.message || "Failed to create task");
@@ -54,6 +68,12 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
   const toggleStudent = (studentId: string) => {
     setSelectedStudentIds(prev => 
       prev.includes(studentId) ? prev.filter(id => id !== studentId) : [...prev, studentId]
+    );
+  };
+
+  const toggleGroup = (groupId: string) => {
+    setSelectedGroupIds(prev => 
+      prev.includes(groupId) ? prev.filter(id => id !== groupId) : [...prev, groupId]
     );
   };
 
@@ -119,7 +139,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
         
         <div className="space-y-3">
           <label className="block text-sm font-medium text-mission-secondary-text">Assign To</label>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
               <input 
                 type="radio" 
@@ -140,6 +160,16 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
               />
               Selected Students
             </label>
+            <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
+              <input 
+                type="radio" 
+                name="assignmentScope" 
+                checked={assignmentScope === 'project_groups'}
+                onChange={() => setAssignmentScope('project_groups')}
+                className="text-radar-green bg-mission-bg-secondary border-mission-border"
+              />
+              Project Groups
+            </label>
           </div>
           
           {assignmentScope === 'selected_students' && (
@@ -156,6 +186,24 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
                 </label>
               ))}
               {students.length === 0 && <div className="text-mission-muted-text text-sm">No active students.</div>}
+            </div>
+          )}
+
+          {assignmentScope === 'project_groups' && (
+            <div className="mt-3 max-h-40 overflow-y-auto p-3 bg-mission-bg-secondary border border-mission-border rounded-lg space-y-2">
+              {projectGroups.map(g => (
+                <label key={g.id} className="flex items-center gap-2 text-sm text-white cursor-pointer hover:bg-mission-panel p-1 rounded transition-colors">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedGroupIds.includes(g.id)}
+                    onChange={() => toggleGroup(g.id)}
+                    className="rounded text-radar-green bg-mission-panel border-mission-border"
+                  />
+                  <div className={`w-3 h-3 rounded-full bg-${g.color_key}-500`} />
+                  {g.name} <span className="text-mission-muted-text">({g.members.length} members)</span>
+                </label>
+              ))}
+              {projectGroups.length === 0 && <div className="text-mission-muted-text text-sm">No active project groups.</div>}
             </div>
           )}
         </div>
@@ -175,7 +223,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
           <Button 
             type="button" 
             onClick={() => submitTask(true)}
-            disabled={isSubmitting || !title.trim() || (assignmentScope === 'selected_students' && selectedStudentIds.length === 0)}
+            disabled={isSubmitting || !title.trim() || (assignmentScope === 'selected_students' && selectedStudentIds.length === 0) || (assignmentScope === 'project_groups' && selectedGroupIds.length === 0)}
           >
             {isSubmitting ? "Creating..." : "Publish Task"}
           </Button>

@@ -17,7 +17,7 @@ import {
   TeacherRecognitionInput,
   ClassTask, TaskWithSummary, TaskAssignment, TaskAssignmentWithStudent,
   StudentTask, CreateTaskInput, UpdateTaskInput, TaskReviewResult, TaskStatus,
-  ProjectGroupWithMembers, ProjectGroupSummary, CreateProjectGroupInput, UpdateProjectGroupInput, ProjectGroupDistribution, ProjectGroupDistributionResult, MyProjectGroup, ProjectGroupMember
+  TaskProjectGroupWithMembers, ProjectGroupTaskReviewResult, StudentProjectGroupTask, CreateProjectGroupTaskInput, UpdateProjectGroupTaskInput, ProjectGroupWithMembers, ProjectGroupSummary, CreateProjectGroupInput, UpdateProjectGroupInput, ProjectGroupDistribution, ProjectGroupDistributionResult, MyProjectGroup, ProjectGroupMember
 } from "../types/database";
 
 export class SupabaseClassroomRepository implements ClassroomRepository {
@@ -938,5 +938,118 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     const { data, error } = await supabase.rpc('get_my_project_group');
     if (error) throw error;
     return data as MyProjectGroup | null;
+  }
+
+  async createProjectGroupTask(classId: string, input: CreateProjectGroupTaskInput): Promise<string> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase.rpc('create_project_group_task', {
+      p_class_id: classId,
+      p_title: input.title,
+      p_instructions: input.instructions,
+      p_due_at: input.due_at,
+      p_reward_points: input.reward_points,
+      p_project_group_ids: input.project_group_ids,
+      p_publish_immediately: input.publish_immediately
+    });
+    if (error) throw error;
+    return data;
+  }
+
+  async updateProjectGroupTask(taskId: string, input: UpdateProjectGroupTaskInput): Promise<void> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { error } = await supabase.rpc('update_project_group_task', {
+      p_task_id: taskId,
+      p_title: input.title,
+      p_instructions: input.instructions,
+      p_due_at: input.due_at,
+      p_reward_points: input.reward_points,
+      p_project_group_ids: input.project_group_ids
+    });
+    if (error) throw error;
+  }
+
+  async setProjectGroupTaskStatus(taskId: string, status: TaskStatus): Promise<void> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { error } = await supabase.rpc('set_project_group_task_status', {
+      p_task_id: taskId,
+      p_status: status
+    });
+    if (error) throw error;
+  }
+
+  async getTaskProjectGroupAssignments(taskId: string): Promise<TaskProjectGroupWithMembers[]> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase
+      .from('task_project_group_assignments')
+      .select('*')
+      .eq('task_id', taskId);
+      
+    if (error) throw error;
+    
+    const pgaIds = (data || []).map((a: any) => a.id);
+    
+    let assignmentsData: any[] = [];
+    if (pgaIds.length > 0) {
+      const { data: aData, error: aError } = await supabase
+        .from('task_assignments')
+        .select('project_group_assignment_id, student_id, students(display_name)')
+        .in('project_group_assignment_id', pgaIds);
+      if (aError) throw aError;
+      assignmentsData = aData || [];
+    }
+    
+    return (data || []).map((pga: any) => {
+      const membersData = assignmentsData.filter((a: any) => a.project_group_assignment_id === pga.id);
+      const members: ProjectGroupMember[] = membersData.map((m: any) => ({
+        student_id: m.student_id,
+        display_name: m.students?.display_name || 'Unknown Student'
+      }));
+      
+      return {
+        ...pga,
+        members
+      };
+    });
+  }
+
+  async submitProjectGroupTask(groupAssignmentId: string, submissionText?: string): Promise<void> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { error } = await supabase.rpc('submit_project_group_task', {
+      p_group_assignment_id: groupAssignmentId,
+      p_submission_text: submissionText || null
+    });
+    if (error) throw error;
+  }
+
+  async reviewProjectGroupTask(groupAssignmentId: string, action: 'approve' | 'return', feedback?: string): Promise<ProjectGroupTaskReviewResult> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase.rpc('review_project_group_task', {
+      p_group_assignment_id: groupAssignmentId,
+      p_action: action,
+      p_teacher_feedback: feedback || null
+    });
+    if (error) throw error;
+    return data;
+  }
+
+  async getMyProjectGroupTasks(): Promise<StudentProjectGroupTask[]> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase.rpc('get_my_project_group_tasks');
+    if (error) throw error;
+    
+    const now = new Date().getTime();
+    return (data || []).map((t: any) => {
+      let is_overdue = false;
+      if (t.task_status === 'active' && t.group_assignment_status !== 'approved' && t.due_at) {
+        const due = new Date(t.due_at).getTime();
+        if (now > due) {
+          is_overdue = true;
+        }
+      }
+      return {
+        ...t,
+        is_overdue
+      };
+    });
   }
 }

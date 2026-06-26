@@ -6,7 +6,8 @@ import {
   StudentTask, CreateTaskInput, UpdateTaskInput, TaskReviewResult, TaskStatus,
   ProjectGroupWithMembers, ProjectGroupSummary, CreateProjectGroupInput,
   UpdateProjectGroupInput, ProjectGroupDistribution, ProjectGroupDistributionResult,
-  MyProjectGroup
+  MyProjectGroup, CreateProjectGroupTaskInput, UpdateProjectGroupTaskInput,
+  TaskProjectGroupWithMembers, ProjectGroupTaskReviewResult, StudentProjectGroupTask
 } from '../types/database';
 
 export interface CreateClassInput {
@@ -85,4 +86,13 @@ export interface ClassroomRepository {
   removeStudentFromProjectGroup(groupId: string, studentId: string): Promise<void>;
   applyProjectGroupDistribution(classId: string, distribution: ProjectGroupDistribution[]): Promise<ProjectGroupDistributionResult>;
   getMyProjectGroup(): Promise<MyProjectGroup | null>;
+
+  // Project Group Tasks
+  createProjectGroupTask(classId: string, input: CreateProjectGroupTaskInput): Promise<string>;
+  updateProjectGroupTask(taskId: string, input: UpdateProjectGroupTaskInput): Promise<void>;
+  setProjectGroupTaskStatus(taskId: string, status: TaskStatus): Promise<void>;
+  getTaskProjectGroupAssignments(taskId: string): Promise<TaskProjectGroupWithMembers[]>;
+  submitProjectGroupTask(groupAssignmentId: string, submissionText?: string): Promise<void>;
+  reviewProjectGroupTask(groupAssignmentId: string, action: 'approve' | 'return', feedback?: string): Promise<ProjectGroupTaskReviewResult>;
+  getMyProjectGroupTasks(): Promise<StudentProjectGroupTask[]>;
 }

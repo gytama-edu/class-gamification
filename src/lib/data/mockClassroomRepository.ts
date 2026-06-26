@@ -1899,4 +1899,46 @@ export class MockClassroomRepository implements ClassroomRepository {
       member_names
     };
   }
+
+  // Project Group Tasks
+  async createProjectGroupTask(classId: string, input: any): Promise<string> {
+    console.warn("createProjectGroupTask not fully implemented in mock");
+    return generateId();
+  }
+
+  async updateProjectGroupTask(taskId: string, input: any): Promise<void> {
+    console.warn("updateProjectGroupTask not fully implemented in mock");
+  }
+
+  async setProjectGroupTaskStatus(taskId: string, status: any): Promise<void> {
+    console.warn("setProjectGroupTaskStatus not fully implemented in mock");
+  }
+
+  async getTaskProjectGroupAssignments(taskId: string): Promise<any[]> {
+    console.warn("getTaskProjectGroupAssignments not fully implemented in mock");
+    return [];
+  }
+
+  async submitProjectGroupTask(groupAssignmentId: string, submissionText?: string): Promise<void> {
+    console.warn("submitProjectGroupTask not fully implemented in mock");
+  }
+
+  async reviewProjectGroupTask(groupAssignmentId: string, action: 'approve' | 'return', feedback?: string): Promise<any> {
+    console.warn("reviewProjectGroupTask not fully implemented in mock");
+    return {
+      id: groupAssignmentId,
+      status: action === 'approve' ? 'approved' : 'returned',
+      points_per_member_awarded: 0,
+      member_count: 0,
+      total_distributed: 0,
+      group_name_snapshot: 'Mock Group',
+      reviewed_at: new Date().toISOString(),
+      member_results: []
+    };
+  }
+
+  async getMyProjectGroupTasks(): Promise<any[]> {
+    console.warn("getMyProjectGroupTasks not fully implemented in mock");
+    return [];
+  }
 }

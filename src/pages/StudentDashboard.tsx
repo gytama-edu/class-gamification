@@ -17,6 +17,7 @@ import {
   Meeting,
   StudentAchievement,
   StudentTask,
+  StudentProjectGroupTask
 } from "../lib/types/database";
 import { useClassroomRealtime } from "../lib/realtime/useClassroomRealtime";
 
@@ -38,6 +39,7 @@ export const StudentDashboard: React.FC = () => {
   } | null>(null);
   const [achievements, setAchievements] = useState<StudentAchievement[]>([]);
   const [tasks, setTasks] = useState<StudentTask[]>([]);
+  const [groupTasks, setGroupTasks] = useState<StudentProjectGroupTask[]>([]);
   const [projectGroup, setProjectGroup] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -62,6 +64,9 @@ export const StudentDashboard: React.FC = () => {
       
       const studentTasks = await repo.getStudentTasks(studentId);
       setTasks(studentTasks);
+      
+      const pGroupTasks = await repo.getMyProjectGroupTasks();
+      setGroupTasks(pGroupTasks);
       
       const pg = await repo.getMyProjectGroup();
       setProjectGroup(pg);
@@ -284,14 +289,14 @@ export const StudentDashboard: React.FC = () => {
                 My Tasks
               </h2>
             </div>
-            {tasks.filter(t => t.assignment.status === 'assigned' || t.assignment.status === 'returned').length > 0 && (
+            {tasks.filter(t => t.assignment.status === 'assigned' || t.assignment.status === 'returned').length + groupTasks.filter(t => t.group_assignment_status === 'assigned' || t.group_assignment_status === 'returned').length > 0 && (
               <span className="bg-cyan-500/10 text-cyan-400 text-[10px] font-bold px-2 py-0.5 rounded border border-cyan-500/20 uppercase tracking-wider">
-                {tasks.filter(t => t.assignment.status === 'assigned' || t.assignment.status === 'returned').length} Action Required
+                {tasks.filter(t => t.assignment.status === 'assigned' || t.assignment.status === 'returned').length + groupTasks.filter(t => t.group_assignment_status === 'assigned' || t.group_assignment_status === 'returned').length} Action Required
               </span>
             )}
           </div>
           <div className="p-0 bg-mission-panel-elevated/30">
-            {tasks.length === 0 ? (
+            {tasks.length === 0 && groupTasks.length === 0 ? (
               <div className="text-center py-6">
                 <div className="w-12 h-12 rounded-xl bg-mission-bg-secondary border border-mission-border/50 flex items-center justify-center mx-auto mb-3">
                    <ListTodo className="text-mission-muted-text" size={24} />
@@ -302,6 +307,34 @@ export const StudentDashboard: React.FC = () => {
               </div>
             ) : (
               <div className="divide-y divide-mission-border/50">
+                {groupTasks.map((task) => (
+                  <button 
+                    key={task.task_id} 
+                    className="w-full p-4 flex items-center justify-between hover:bg-mission-panel transition-colors text-left group"
+                    onClick={() => navigate(`/student/group-tasks/${task.group_assignment_id}`)}
+                  >
+                    <div>
+                      <div className="font-medium text-white group-hover:text-cyan-400 transition-colors flex items-center gap-2">
+                        {task.task_title}
+                        <span className="bg-purple-500/10 text-purple-400 text-[10px] px-1.5 py-0.5 rounded border border-purple-500/20">Group Task</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        {task.group_assignment_status === 'assigned' && <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-mission-bg-secondary text-mission-muted-text">To Do</span>}
+                        {task.group_assignment_status === 'submitted' && <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/10 text-amber-500">Submitted</span>}
+                        {task.group_assignment_status === 'approved' && <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-radar-green/10 text-radar-green">Approved</span>}
+                        {task.group_assignment_status === 'returned' && <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-mission-danger/10 text-mission-danger">Returned</span>}
+                        
+                        {task.reward_points_per_member > 0 && task.group_assignment_status !== 'approved' && (
+                          <span className="text-xs text-radar-green">{task.reward_points_per_member} pts</span>
+                        )}
+                        {task.is_overdue && (
+                          <span className="text-xs text-mission-danger">Overdue</span>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight size={18} className="text-mission-muted-text group-hover:text-white transition-colors" />
+                  </button>
+                ))}
                 {tasks.map((task) => (
                   <button 
                     key={task.id} 

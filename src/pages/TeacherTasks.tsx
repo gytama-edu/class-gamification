@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getRepository } from "../lib/data/repository";
-import { TaskWithSummary, ClassTask, CreateTaskInput, StudentWithCurrentState, DbStudent } from "../lib/types/database";
+import { TaskWithSummary, ClassTask, CreateTaskInput, StudentWithCurrentState, DbStudent, ProjectGroupWithMembers } from "../lib/types/database";
 import { PageHeader, Panel, Button, EmptyState, LoadingSkeleton } from "../components/ui";
 import { ListTodo, Plus, Calendar as CalendarIcon, CheckCircle, Clock } from "lucide-react";
 import { CreateTaskModal } from "../components/CreateTaskModal";
@@ -12,6 +12,7 @@ export const TeacherTasks: React.FC = () => {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<TaskWithSummary[]>([]);
   const [students, setStudents] = useState<DbStudent[]>([]);
+  const [projectGroups, setProjectGroups] = useState<ProjectGroupWithMembers[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
@@ -25,6 +26,9 @@ export const TeacherTasks: React.FC = () => {
       
       const loadedStudents = await repo.getStudents(classId);
       setStudents(loadedStudents.filter(s => s.is_active));
+      
+      const pGroups = await repo.getProjectGroups(classId);
+      setProjectGroups(pGroups.groups);
     } catch (err) {
       console.error(err);
     } finally {
@@ -122,6 +126,7 @@ export const TeacherTasks: React.FC = () => {
         <CreateTaskModal 
           classId={classId!}
           students={students}
+          projectGroups={projectGroups}
           onClose={() => setIsCreateModalOpen(false)}
           onSuccess={() => {
             setIsCreateModalOpen(false);

@@ -214,8 +214,9 @@ export interface LeaderboardEntry {
 }
 
 export type TaskStatus = 'draft' | 'active' | 'completed' | 'archived';
-export type TaskAssignmentScope = 'all_students' | 'selected_students';
+export type TaskAssignmentScope = 'all_students' | 'selected_students' | 'project_groups';
 export type TaskAssignmentStatus = 'assigned' | 'submitted' | 'approved' | 'returned';
+export type TaskProjectGroupAssignmentStatus = 'pending' | 'assigned' | 'submitted' | 'returned' | 'approved';
 
 export interface ClassTask {
   id: string;
@@ -248,6 +249,10 @@ export interface TaskAssignment {
   points_awarded_at: string | null;
   created_at: string;
   updated_at: string;
+  project_group_assignment_id?: string | null;
+  source_project_group_id?: string | null;
+  source_group_name_snapshot?: string | null;
+  source_group_color_key_snapshot?: ProjectGroupColorKey | null;
 }
 
 export type ProjectGroupStatus = 'active' | 'archived';
@@ -332,6 +337,11 @@ export interface TaskWithSummary extends ClassTask {
   submitted_count: number;
   approved_count: number;
   overdue_count: number;
+  assigned_group_count?: number;
+  submitted_group_count?: number;
+  approved_group_count?: number;
+  overdue_group_count?: number;
+  total_member_count?: number;
 }
 
 export interface TaskAssignmentWithStudent extends TaskAssignment {
@@ -350,6 +360,7 @@ export interface CreateTaskInput {
   reward_points: number;
   assignment_scope: TaskAssignmentScope;
   student_ids: string[];
+  project_group_ids?: string[];
   publish_immediately: boolean;
 }
 
@@ -360,10 +371,95 @@ export interface UpdateTaskInput {
   reward_points: number;
   assignment_scope: TaskAssignmentScope;
   student_ids: string[];
+  project_group_ids?: string[];
 }
 
 export interface TaskReviewResult {
   assignment: TaskAssignment;
   points_awarded: number;
   student_new_total: number;
+}
+
+export interface TaskProjectGroupAssignment {
+  id: string;
+  task_id: string;
+  class_id: string;
+  project_group_id: string;
+  group_name_snapshot: string | null;
+  group_color_key_snapshot: ProjectGroupColorKey | null;
+  member_count_snapshot: number | null;
+  status: TaskProjectGroupAssignmentStatus;
+  submission_text: string | null;
+  submitted_at: string | null;
+  submitted_by_student_id: string | null;
+  submitted_by_name_snapshot: string | null;
+  teacher_feedback: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  reward_points_per_member: number;
+  approved_member_count: number;
+  snapshot_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskProjectGroupMemberResult {
+  student_id: string;
+  student_name: string;
+  points_awarded: number;
+  new_total: number;
+}
+
+export interface TaskProjectGroupWithMembers extends TaskProjectGroupAssignment {
+  members: ProjectGroupMember[];
+}
+
+export interface CreateProjectGroupTaskInput {
+  title: string;
+  instructions: string;
+  due_at: string | null;
+  reward_points: number;
+  project_group_ids: string[];
+  publish_immediately: boolean;
+}
+
+export interface UpdateProjectGroupTaskInput {
+  title: string;
+  instructions: string;
+  due_at: string | null;
+  reward_points: number;
+  project_group_ids: string[];
+}
+
+export interface ProjectGroupTaskReviewResult {
+  id: string;
+  status: TaskProjectGroupAssignmentStatus;
+  points_per_member_awarded: number;
+  member_count: number;
+  total_distributed: number;
+  group_name_snapshot: string;
+  reviewed_at: string;
+  member_results: TaskProjectGroupMemberResult[];
+}
+
+export interface StudentProjectGroupTask {
+  task_id: string;
+  assignment_id: string;
+  group_assignment_id: string;
+  task_title: string;
+  instructions: string;
+  due_at: string | null;
+  reward_points_per_member: number;
+  task_status: TaskStatus;
+  group_assignment_status: TaskProjectGroupAssignmentStatus;
+  group_name_snapshot: string;
+  group_color_key_snapshot: ProjectGroupColorKey;
+  submission_text: string | null;
+  submitted_at: string | null;
+  submitted_by_name_snapshot: string | null;
+  teacher_feedback: string | null;
+  reviewed_at: string | null;
+  student_awarded_points: number;
+  member_names_snapshot: string[];
+  is_overdue: boolean;
 }

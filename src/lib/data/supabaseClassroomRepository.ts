@@ -17,7 +17,7 @@ import {
   TeacherRecognitionInput,
   ClassTask, TaskWithSummary, TaskAssignment, TaskAssignmentWithStudent,
   StudentTask, CreateTaskInput, UpdateTaskInput, TaskReviewResult, TaskStatus,
-  TaskProjectGroupWithMembers, ProjectGroupTaskReviewResult, StudentProjectGroupTask, CreateProjectGroupTaskInput, UpdateProjectGroupTaskInput, ProjectGroupWithMembers, ProjectGroupSummary, CreateProjectGroupInput, UpdateProjectGroupInput, ProjectGroupDistribution, ProjectGroupDistributionResult, MyProjectGroup, ProjectGroupMember
+  TaskProjectGroupWithMembers, ProjectGroupTaskReviewResult, StudentProjectGroupTask, CreateProjectGroupTaskInput, UpdateProjectGroupTaskInput, ProjectGroupWithMembers, ProjectGroupSummary, CreateProjectGroupInput, UpdateProjectGroupInput, ProjectGroupDistribution, ProjectGroupDistributionResult, MyProjectGroup, ProjectGroupMember, CreateProjectGroupBatchItem, CreateProjectGroupsBatchResult
 } from "../types/database";
 
 export class SupabaseClassroomRepository implements ClassroomRepository {
@@ -884,6 +884,26 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     });
     if (error) throw error;
     return data;
+  }
+
+  async createProjectGroupsBatch(classId: string, groups: CreateProjectGroupBatchItem[]): Promise<CreateProjectGroupsBatchResult[]> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { data, error } = await supabase.rpc('create_project_groups_batch', {
+      p_class_id: classId,
+      p_groups: groups
+    });
+    if (error) throw error;
+    return data;
+  }
+
+  async createAndDistributeProjectGroups(classId: string, groups: CreateProjectGroupBatchItem[], distribution: ProjectGroupDistribution[]): Promise<void> {
+    if (!supabase) throw new Error("Supabase not initialized");
+    const { error } = await supabase.rpc('create_and_distribute_project_groups', {
+      p_class_id: classId,
+      p_groups: groups,
+      p_distribution: distribution.map(d => ({ group_id: d.groupId, student_ids: d.studentIds }))
+    });
+    if (error) throw error;
   }
 
   async updateProjectGroup(groupId: string, input: UpdateProjectGroupInput): Promise<void> {

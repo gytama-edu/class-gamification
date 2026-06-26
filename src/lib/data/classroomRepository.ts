@@ -7,7 +7,8 @@ import {
   ProjectGroupWithMembers, ProjectGroupSummary, CreateProjectGroupInput,
   UpdateProjectGroupInput, ProjectGroupDistribution, ProjectGroupDistributionResult,
   MyProjectGroup, CreateProjectGroupTaskInput, UpdateProjectGroupTaskInput,
-  TaskProjectGroupWithMembers, ProjectGroupTaskReviewResult, StudentProjectGroupTask
+  TaskProjectGroupWithMembers, ProjectGroupTaskReviewResult, StudentProjectGroupTask,
+  CreateProjectGroupBatchItem, CreateProjectGroupsBatchResult
 } from '../types/database';
 
 export interface CreateClassInput {
@@ -80,6 +81,8 @@ export interface ClassroomRepository {
   // Project Groups
   getProjectGroups(classId: string): Promise<{ groups: ProjectGroupWithMembers[], archivedGroups: ProjectGroupWithMembers[], summary: ProjectGroupSummary, unassignedStudents: DbStudent[] }>;
   createProjectGroup(classId: string, input: CreateProjectGroupInput): Promise<string>;
+  createProjectGroupsBatch(classId: string, groups: CreateProjectGroupBatchItem[]): Promise<CreateProjectGroupsBatchResult[]>;
+  createAndDistributeProjectGroups(classId: string, groups: CreateProjectGroupBatchItem[], distribution: ProjectGroupDistribution[]): Promise<void>;
   updateProjectGroup(groupId: string, input: UpdateProjectGroupInput): Promise<void>;
   archiveProjectGroup(groupId: string): Promise<void>;
   assignStudentToProjectGroup(groupId: string, studentId: string): Promise<void>;

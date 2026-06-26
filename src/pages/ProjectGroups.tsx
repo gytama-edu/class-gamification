@@ -94,6 +94,12 @@ export const ProjectGroups: React.FC = () => {
     await loadData();
   };
 
+  const handleCreateGroupBatch = async (groups: any[]) => {
+    if (!classId) return;
+    await getRepository().createProjectGroupsBatch(classId, groups);
+    await loadData();
+  };
+
   const handleEditGroup = async (input: any) => {
     if (!editingGroup) return;
     await getRepository().updateProjectGroup(editingGroup.id, input);
@@ -323,6 +329,7 @@ export const ProjectGroups: React.FC = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateGroup}
+        onSubmitBatch={handleCreateGroupBatch}
         mode="create"
       />
       

@@ -20,7 +20,7 @@ import {
   StudentTask, CreateTaskInput, UpdateTaskInput, TaskReviewResult, TaskStatus,
   ProjectGroupWithMembers, ProjectGroupSummary, CreateProjectGroupInput,
   UpdateProjectGroupInput, ProjectGroupDistribution, ProjectGroupDistributionResult,
-  MyProjectGroup, ProjectGroupMember
+  MyProjectGroup, ProjectGroupMember, CreateProjectGroupBatchItem, CreateProjectGroupsBatchResult
 } from "../types/database";
 import { notifyMockUpdate } from "../realtime/useClassroomRealtime";
 
@@ -1678,6 +1678,120 @@ export class MockClassroomRepository implements ClassroomRepository {
     this.saveDb(db);
     notifyMockUpdate('project_groups');
     return newGroup.id;
+  }
+
+  async createProjectGroupsBatch(classId: string, groups: CreateProjectGroupBatchItem[]): Promise<CreateProjectGroupsBatchResult[]> {
+    const db = this.getDb();
+    
+    if (groups.length === 0) throw new Error("Groups payload cannot be empty");
+    if (groups.length > 20) throw new Error("The number of groups must be between 2 and 20.");
+    
+    const names = new Set<string>();
+    for (const g of groups) {
+      const normalized = g.name.trim().toLowerCase();
+      if (normalized.length < 2 || normalized.length > 60) {
+        throw new Error("Group name must be between 2 and 60 characters.");
+      }
+      if (names.has(normalized)) {
+        throw new Error("Two generated groups have the same name.");
+      }
+      names.add(normalized);
+    }
+    
+    for (const name of names) {
+      const existing = db.project_groups.find((g: any) => g.class_id === classId && g.status === 'active' && g.name.trim().toLowerCase() === name);
+      if (existing) {
+        throw new Error("A group with this name already exists.");
+      }
+    }
+    
+    let maxOrder = db.project_groups.filter((g: any) => g.class_id === classId && g.status === 'active')
+      .reduce((max: number, g: any) => Math.max(max, g.display_order), -1);
+      
+    const results: CreateProjectGroupsBatchResult[] = [];
+    
+    for (const g of groups) {
+      maxOrder++;
+      const newGroup = {
+        id: generateId(),
+        class_id: classId,
+        created_by: 'mock-teacher-id',
+        name: g.name.trim(),
+        description: g.description.trim(),
+        color_key: g.color_key,
+        display_order: maxOrder,
+        status: 'active' as const,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        archived_at: null
+      };
+      db.project_groups.push(newGroup);
+      results.push({ id: newGroup.id, name: newGroup.name, color_key: newGroup.color_key });
+    }
+    
+    this.saveDb(db);
+    notifyMockUpdate('project_groups');
+    return results;
+  }
+
+  async createAndDistributeProjectGroups(classId: string, groups: CreateProjectGroupBatchItem[], distribution: ProjectGroupDistribution[]): Promise<void> {
+    const db = this.getDb();
+    const groupMap = new Map<string, string>();
+    
+    if (groups && groups.length > 0) {
+      if (groups.length > 20) throw new Error("The number of groups must be between 2 and 20.");
+      
+      const names = new Set<string>();
+      for (const g of groups) {
+        const normalized = g.name.trim().toLowerCase();
+        if (normalized.length < 2 || normalized.length > 60) {
+          throw new Error("Group name must be between 2 and 60 characters.");
+        }
+        if (names.has(normalized)) {
+          throw new Error("Two generated groups have the same name.");
+        }
+        names.add(normalized);
+      }
+      
+      for (const name of names) {
+        const existing = db.project_groups.find((g: any) => g.class_id === classId && g.status === 'active' && g.name.trim().toLowerCase() === name);
+        if (existing) {
+          throw new Error("A group with this name already exists.");
+        }
+      }
+      
+      let maxOrder = db.project_groups.filter((g: any) => g.class_id === classId && g.status === 'active')
+        .reduce((max: number, g: any) => Math.max(max, g.display_order), -1);
+        
+      for (const g of groups) {
+        maxOrder++;
+        const newGroup = {
+          id: generateId(),
+          class_id: classId,
+          created_by: 'mock-teacher-id',
+          name: g.name.trim(),
+          description: g.description.trim(),
+          color_key: g.color_key,
+          display_order: maxOrder,
+          status: 'active' as const,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          archived_at: null
+        };
+        db.project_groups.push(newGroup);
+        if (g.temp_id) {
+          groupMap.set(g.temp_id, newGroup.id);
+        }
+      }
+      this.saveDb(db);
+    }
+    
+    const finalDistribution: ProjectGroupDistribution[] = distribution.map(d => ({
+      groupId: groupMap.get(d.groupId) || d.groupId,
+      studentIds: d.studentIds
+    }));
+    
+    await this.applyProjectGroupDistribution(classId, finalDistribution);
   }
 
   async updateProjectGroup(groupId: string, input: UpdateProjectGroupInput): Promise<void> {

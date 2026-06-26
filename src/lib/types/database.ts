@@ -306,6 +306,19 @@ export interface CreateProjectGroupInput {
   color_key: ProjectGroupColorKey;
 }
 
+export interface CreateProjectGroupBatchItem {
+  temp_id?: string;
+  name: string;
+  description: string;
+  color_key: ProjectGroupColorKey;
+}
+
+export interface CreateProjectGroupsBatchResult {
+  id: string;
+  name: string;
+  color_key: ProjectGroupColorKey;
+}
+
 export interface UpdateProjectGroupInput {
   name: string;
   description: string;

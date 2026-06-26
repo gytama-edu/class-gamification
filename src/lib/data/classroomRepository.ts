@@ -8,7 +8,9 @@ import {
   UpdateProjectGroupInput, ProjectGroupDistribution, ProjectGroupDistributionResult,
   MyProjectGroup, CreateProjectGroupTaskInput, UpdateProjectGroupTaskInput,
   TaskProjectGroupWithMembers, ProjectGroupTaskReviewResult, StudentProjectGroupTask,
-  CreateProjectGroupBatchItem, CreateProjectGroupsBatchResult
+  CreateProjectGroupBatchItem, CreateProjectGroupsBatchResult,
+  PrepareGroupUploadInput, PrepareGroupUploadResult,
+  TaskProjectGroupSubmissionFile, GroupSubmissionWithFiles
 } from '../types/database';
 
 export interface CreateClassInput {
@@ -102,4 +104,12 @@ export interface ClassroomRepository {
   submitProjectGroupTask(groupAssignmentId: string, submissionText?: string): Promise<void>;
   reviewProjectGroupTask(groupAssignmentId: string, action: 'approve' | 'return', feedback?: string): Promise<ProjectGroupTaskReviewResult>;
   getMyProjectGroupTasks(): Promise<StudentProjectGroupTask[]>;
+
+  // Group Task Submissions
+  prepareGroupSubmissionUpload(input: PrepareGroupUploadInput): Promise<PrepareGroupUploadResult>;
+  uploadGroupSubmissionFile(bucket: string, path: string, file: File): Promise<void>;
+  finalizeGroupSubmissionUpload(attachmentId: string): Promise<TaskProjectGroupSubmissionFile>;
+  removeGroupSubmissionFile(attachmentId: string): Promise<void>;
+  getGroupSubmissionAttempts(groupAssignmentId: string): Promise<GroupSubmissionWithFiles[]>;
+  getGroupSubmissionFileUrl(attachmentId: string): Promise<string>;
 }

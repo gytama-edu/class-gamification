@@ -218,7 +218,21 @@ export type TaskAssignmentScope = 'all_students' | 'selected_students' | 'projec
 export type TaskAssignmentStatus = 'assigned' | 'submitted' | 'approved' | 'returned';
 export type TaskProjectGroupAssignmentStatus = 'pending' | 'assigned' | 'submitted' | 'returned' | 'approved';
 
-export interface ClassTask {
+export type GroupSubmissionAttemptStatus = "draft" | "submitted" | "returned" | "approved" | "superseded";
+export type GroupSubmissionFileStatus = "pending" | "ready" | "failed" | "deleted";
+export type GroupSubmissionFileCategory = "image" | "document";
+
+export interface TaskSubmissionSettings {
+  allow_submission_text: boolean;
+  allow_submission_files: boolean;
+  require_submission_file: boolean;
+  allowed_submission_file_categories: GroupSubmissionFileCategory[];
+  max_submission_files: number;
+  max_submission_file_size_bytes: number;
+  max_submission_total_size_bytes: number;
+}
+
+export interface ClassTask extends TaskSubmissionSettings {
   id: string;
   class_id: string;
   created_by: string;
@@ -232,6 +246,67 @@ export interface ClassTask {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface TaskProjectGroupSubmissionAttempt {
+  id: string;
+  group_assignment_id: string;
+  task_id: string;
+  class_id: string;
+  attempt_number: number;
+  status: GroupSubmissionAttemptStatus;
+  submission_text: string | null;
+  submitted_at: string | null;
+  submitted_by_student_id: string | null;
+  submitted_by_name_snapshot: string | null;
+  teacher_feedback: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskProjectGroupSubmissionFile {
+  id: string;
+  submission_attempt_id: string;
+  group_assignment_id: string;
+  task_id: string;
+  class_id: string;
+  uploaded_by_student_id: string;
+  uploaded_by_name_snapshot: string;
+  original_file_name: string;
+  safe_file_name: string;
+  storage_bucket: string;
+  storage_path: string;
+  mime_type: string;
+  file_extension: string;
+  file_size_bytes: number;
+  file_category: GroupSubmissionFileCategory;
+  upload_status: GroupSubmissionFileStatus;
+  created_at: string;
+  ready_at: string | null;
+  deleted_at: string | null;
+  deleted_by_student_id: string | null;
+}
+
+export interface PrepareGroupUploadInput {
+  group_assignment_id: string;
+  original_filename: string;
+  mime_type: string;
+  file_size_bytes: number;
+  file_category: GroupSubmissionFileCategory;
+}
+
+export interface PrepareGroupUploadResult {
+  attachment_id: string;
+  storage_bucket: string;
+  storage_path: string;
+  allowed_size: number;
+  attempt_id: string;
+}
+
+export interface GroupSubmissionWithFiles extends TaskProjectGroupSubmissionAttempt {
+  files: TaskProjectGroupSubmissionFile[];
 }
 
 export interface TaskAssignment {
@@ -366,7 +441,7 @@ export interface StudentTask extends ClassTask {
   is_overdue: boolean;
 }
 
-export interface CreateTaskInput {
+export interface CreateTaskInput extends Partial<TaskSubmissionSettings> {
   title: string;
   instructions: string;
   due_at: string | null;
@@ -377,7 +452,7 @@ export interface CreateTaskInput {
   publish_immediately: boolean;
 }
 
-export interface UpdateTaskInput {
+export interface UpdateTaskInput extends Partial<TaskSubmissionSettings> {
   title: string;
   instructions: string;
   due_at: string | null;
@@ -427,7 +502,7 @@ export interface TaskProjectGroupWithMembers extends TaskProjectGroupAssignment 
   members: ProjectGroupMember[];
 }
 
-export interface CreateProjectGroupTaskInput {
+export interface CreateProjectGroupTaskInput extends Partial<TaskSubmissionSettings> {
   title: string;
   instructions: string;
   due_at: string | null;
@@ -436,7 +511,7 @@ export interface CreateProjectGroupTaskInput {
   publish_immediately: boolean;
 }
 
-export interface UpdateProjectGroupTaskInput {
+export interface UpdateProjectGroupTaskInput extends Partial<TaskSubmissionSettings> {
   title: string;
   instructions: string;
   due_at: string | null;
@@ -455,7 +530,7 @@ export interface ProjectGroupTaskReviewResult {
   member_results: TaskProjectGroupMemberResult[];
 }
 
-export interface StudentProjectGroupTask {
+export interface StudentProjectGroupTask extends Partial<TaskSubmissionSettings> {
   task_id: string;
   assignment_id: string;
   group_assignment_id: string;
@@ -475,4 +550,5 @@ export interface StudentProjectGroupTask {
   student_awarded_points: number;
   member_names_snapshot: string[];
   is_overdue: boolean;
+  attachment_count?: number;
 }

@@ -5,6 +5,7 @@ import { ClassTask, TaskAssignmentWithStudent, TaskProjectGroupWithMembers } fro
 import { PageHeader, Panel, Button, EmptyState, LoadingSkeleton } from "../components/ui";
 import { ArrowLeft, Clock, CheckCircle, Check, X, FileText, Users } from "lucide-react";
 import { format } from "date-fns";
+import { GroupSubmissionAttachments } from "../components/GroupSubmissionAttachments";
 
 export const TeacherTaskDetail: React.FC = () => {
   const { classId, taskId } = useParams<{ classId: string, taskId: string }>();
@@ -169,6 +170,21 @@ export const TeacherTaskDetail: React.FC = () => {
                         {a.submission_text}
                       </div>
                     )}
+                    
+                    <div className="mt-3">
+                      <GroupSubmissionAttachments
+                        groupAssignmentId={a.id}
+                        allowFiles={task.allow_submission_files || false}
+                        requireFiles={task.require_submission_file || false}
+                        allowedCategories={task.allowed_submission_file_categories || ['document', 'image']}
+                        maxFiles={task.max_submission_files || 5}
+                        maxSizeBytes={task.max_submission_file_size_bytes || 10485760}
+                        maxTotalBytes={task.max_submission_total_size_bytes || 31457280}
+                        isSubmitted={a.status === 'submitted'}
+                        isApproved={a.status === 'approved'}
+                        isTeacherView={true}
+                      />
+                    </div>
                   </div>
 
                   {a.status === 'submitted' && (

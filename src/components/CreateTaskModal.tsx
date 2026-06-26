@@ -20,6 +20,15 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
   const [assignmentScope, setAssignmentScope] = useState<'all_students' | 'selected_students' | 'project_groups'>('all_students');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  
+  // Submission Settings
+  const [allowSubmissionText, setAllowSubmissionText] = useState(true);
+  const [allowSubmissionFiles, setAllowSubmissionFiles] = useState(false);
+  const [requireSubmissionFile, setRequireSubmissionFile] = useState(false);
+  const [allowedCategories, setAllowedCategories] = useState<'image' | 'document'[]>(['image', 'document']);
+  const [maxSubmissionFiles, setMaxSubmissionFiles] = useState(5);
+  const [maxSubmissionFileSize, setMaxSubmissionFileSize] = useState(10); // MB
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +40,16 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
     try {
       const repo = getRepository();
       
+      const settings = {
+        allow_submission_text: allowSubmissionText,
+        allow_submission_files: allowSubmissionFiles,
+        require_submission_file: requireSubmissionFile,
+        allowed_submission_file_categories: allowedCategories as any[],
+        max_submission_files: maxSubmissionFiles,
+        max_submission_file_size_bytes: maxSubmissionFileSize * 1024 * 1024,
+        max_submission_total_size_bytes: Math.min(maxSubmissionFiles * maxSubmissionFileSize * 1024 * 1024, 30 * 1024 * 1024)
+      };
+
       if (assignmentScope === 'project_groups') {
         await repo.createProjectGroupTask(classId, {
           title: title.trim(),
@@ -38,7 +57,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
           due_at: dueAt ? new Date(dueAt).toISOString() : null,
           reward_points: rewardPoints,
           project_group_ids: selectedGroupIds,
-          publish_immediately: publishImmediately
+          publish_immediately: publishImmediately,
+          ...settings
         });
       } else {
         const input: CreateTaskInput = {
@@ -49,6 +69,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
           assignment_scope: assignmentScope,
           student_ids: selectedStudentIds,
           publish_immediately: publishImmediately
+          // we do not include settings for non-group tasks yet
         };
         await repo.createTask(classId, input);
       }
@@ -207,6 +228,88 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
             </div>
           )}
         </div>
+
+        {assignmentScope === 'project_groups' && (
+          <div className="space-y-4 pt-4 border-t border-mission-border">
+            <h4 className="text-sm font-medium text-white">Submission Requirements</h4>
+            <p className="text-xs text-mission-muted-text">Students may submit one shared response for their project group.</p>
+            
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={allowSubmissionText}
+                  onChange={(e) => setAllowSubmissionText(e.target.checked)}
+                  className="rounded text-radar-green bg-mission-panel border-mission-border"
+                />
+                Allow written response
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={allowSubmissionFiles}
+                  onChange={(e) => setAllowSubmissionFiles(e.target.checked)}
+                  className="rounded text-radar-green bg-mission-panel border-mission-border"
+                />
+                Allow attachments
+              </label>
+            </div>
+
+            {allowSubmissionFiles && (
+              <div className="pl-6 space-y-3">
+                <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={requireSubmissionFile}
+                    onChange={(e) => setRequireSubmissionFile(e.target.checked)}
+                    className="rounded text-radar-green bg-mission-panel border-mission-border"
+                  />
+                  Require at least one attachment
+                </label>
+                
+                <div>
+                  <label className="block text-sm text-mission-muted-text mb-1">Allowed Categories</label>
+                  <select 
+                    value={allowedCategories.length === 2 ? 'both' : allowedCategories[0]}
+                    onChange={(e) => {
+                      if (e.target.value === 'both') setAllowedCategories(['image', 'document']);
+                      else setAllowedCategories([e.target.value as any]);
+                    }}
+                    className="w-full p-2 bg-mission-bg-secondary border border-mission-border rounded text-white text-sm"
+                  >
+                    <option value="both">Pictures and Documents</option>
+                    <option value="image">Pictures</option>
+                    <option value="document">Documents</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm text-mission-muted-text mb-1">Max Files</label>
+                    <input 
+                      type="number" min="1" max="10" 
+                      value={maxSubmissionFiles}
+                      onChange={(e) => setMaxSubmissionFiles(parseInt(e.target.value) || 5)}
+                      className="w-full p-2 bg-mission-bg-secondary border border-mission-border rounded text-white text-sm"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm text-mission-muted-text mb-1">Max Size (MB)</label>
+                    <input 
+                      type="number" min="1" max="20" 
+                      value={maxSubmissionFileSize}
+                      onChange={(e) => setMaxSubmissionFileSize(parseInt(e.target.value) || 10)}
+                      className="w-full p-2 bg-mission-bg-secondary border border-mission-border rounded text-white text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="pt-4 flex justify-end gap-3 border-t border-mission-border/50">
           <Button variant="ghost" type="button" onClick={onClose} disabled={isSubmitting}>

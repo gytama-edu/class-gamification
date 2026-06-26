@@ -20,7 +20,8 @@ import {
   StudentTask, CreateTaskInput, UpdateTaskInput, TaskReviewResult, TaskStatus,
   ProjectGroupWithMembers, ProjectGroupSummary, CreateProjectGroupInput,
   UpdateProjectGroupInput, ProjectGroupDistribution, ProjectGroupDistributionResult,
-  MyProjectGroup, ProjectGroupMember, CreateProjectGroupBatchItem, CreateProjectGroupsBatchResult
+  MyProjectGroup, ProjectGroupMember, CreateProjectGroupBatchItem, CreateProjectGroupsBatchResult,
+  PrepareGroupUploadInput, PrepareGroupUploadResult, TaskProjectGroupSubmissionFile, GroupSubmissionWithFiles
 } from "../types/database";
 import { notifyMockUpdate } from "../realtime/useClassroomRealtime";
 
@@ -699,14 +700,14 @@ export class MockClassroomRepository implements ClassroomRepository {
     const student = db.students.find((s: any) => s.id === studentId);
     if (!student || !student.is_active || !student.access_enabled || student.deleted_at) return null;
     const cls = db.classes.find((c: any) => c.id === student.class_id);
-    if (!cls || !cls.student_access_enabled || cls.status !== 'active') return null;
+    if (!cls || !cls.student_access_enabled || cls.is_archived) return null;
     
     return {
       student_id: student.id,
       class_id: cls.id,
       display_name: student.display_name,
       class_name: cls.name,
-      class_level: cls.level,
+      class_level: cls.level_name,
       class_type: cls.class_type,
       access_valid: true
     };
@@ -736,7 +737,7 @@ export class MockClassroomRepository implements ClassroomRepository {
       classroom: {
         id: dash.classroom.id,
         name: dash.classroom.name,
-        level: dash.classroom.level,
+        level: dash.classroom.level_name,
         max_lives: dash.classroom.max_lives,
         current_meeting_number: dash.classroom.current_meeting_number,
         class_type: dash.classroom.class_type
@@ -745,7 +746,7 @@ export class MockClassroomRepository implements ClassroomRepository {
         id: dash.activeMeeting.id,
         meeting_number: dash.activeMeeting.meeting_number,
         status: dash.activeMeeting.status,
-        start_time: dash.activeMeeting.start_time,
+        start_time: dash.activeMeeting.started_at,
         max_lives_snapshot: dash.activeMeeting.max_lives_snapshot
       } : null,
       state: {
@@ -1372,15 +1373,22 @@ export class MockClassroomRepository implements ClassroomRepository {
       class_id: classId,
       created_by: 'mock-teacher-id',
       title: input.title,
-      instructions: input.instructions,
+      instructions: input.instructions || '',
       due_at: input.due_at || null,
-      reward_points: input.reward_points,
+      reward_points: input.reward_points || 0,
       assignment_scope: input.assignment_scope,
       status: input.publish_immediately ? 'active' : 'draft',
       published_at: input.publish_immediately ? now : null,
       completed_at: null,
       created_at: now,
-      updated_at: now
+      updated_at: now,
+      allow_submission_text: input.allow_submission_text ?? true,
+      allow_submission_files: input.allow_submission_files ?? false,
+      require_submission_file: input.require_submission_file ?? false,
+      allowed_submission_file_categories: input.allowed_submission_file_categories ?? ['document', 'image'],
+      max_submission_files: input.max_submission_files ?? 5,
+      max_submission_file_size_bytes: input.max_submission_file_size_bytes ?? 10485760,
+      max_submission_total_size_bytes: input.max_submission_total_size_bytes ?? 31457280
     };
     
     db.tasks.push(task);
@@ -2124,5 +2132,61 @@ export class MockClassroomRepository implements ClassroomRepository {
   async getMyProjectGroupTasks(): Promise<any[]> {
     console.warn("getMyProjectGroupTasks not fully implemented in mock");
     return [];
+  }
+
+  // Group Task Submissions
+  async prepareGroupSubmissionUpload(input: PrepareGroupUploadInput): Promise<PrepareGroupUploadResult> {
+    console.warn("prepareGroupSubmissionUpload not fully implemented in mock");
+    return {
+      attachment_id: crypto.randomUUID(),
+      storage_bucket: 'group-task-submissions',
+      storage_path: 'mock/path/' + input.original_filename,
+      allowed_size: 10485760,
+      attempt_id: crypto.randomUUID()
+    };
+  }
+
+  async uploadGroupSubmissionFile(bucket: string, path: string, file: File): Promise<void> {
+    console.warn("uploadGroupSubmissionFile not fully implemented in mock");
+  }
+
+  async finalizeGroupSubmissionUpload(attachmentId: string): Promise<TaskProjectGroupSubmissionFile> {
+    console.warn("finalizeGroupSubmissionUpload not fully implemented in mock");
+    return {
+      id: attachmentId,
+      submission_attempt_id: crypto.randomUUID(),
+      group_assignment_id: crypto.randomUUID(),
+      task_id: crypto.randomUUID(),
+      class_id: crypto.randomUUID(),
+      uploaded_by_student_id: crypto.randomUUID(),
+      uploaded_by_name_snapshot: 'Mock Student',
+      original_file_name: 'mock_file.pdf',
+      safe_file_name: 'mock_file.pdf',
+      storage_bucket: 'group-task-submissions',
+      storage_path: 'mock/path/mock_file.pdf',
+      mime_type: 'application/pdf',
+      file_extension: 'pdf',
+      file_size_bytes: 1024,
+      file_category: 'document',
+      upload_status: 'ready',
+      created_at: new Date().toISOString(),
+      ready_at: new Date().toISOString(),
+      deleted_at: null,
+      deleted_by_student_id: null
+    };
+  }
+
+  async removeGroupSubmissionFile(attachmentId: string): Promise<void> {
+    console.warn("removeGroupSubmissionFile not fully implemented in mock");
+  }
+
+  async getGroupSubmissionAttempts(groupAssignmentId: string): Promise<GroupSubmissionWithFiles[]> {
+    console.warn("getGroupSubmissionAttempts not fully implemented in mock");
+    return [];
+  }
+
+  async getGroupSubmissionFileUrl(attachmentId: string): Promise<string> {
+    console.warn("getGroupSubmissionFileUrl not fully implemented in mock");
+    return "https://example.com/mock-file";
   }
 }

@@ -6,6 +6,7 @@ import { StudentProjectGroupTask } from "../lib/types/database";
 import { Panel, Button, LoadingSkeleton } from "../components/ui";
 import { format } from "date-fns";
 import { useStudentAuth } from "../lib/auth/StudentAuthContext";
+import { GroupSubmissionAttachments } from "../components/GroupSubmissionAttachments";
 
 export const StudentGroupTaskDetail: React.FC = () => {
   const { assignmentId } = useParams<{ assignmentId: string }>();
@@ -147,6 +148,19 @@ export const StudentGroupTaskDetail: React.FC = () => {
               ) : (
                 <div className="text-sm text-mission-muted-text">No text submitted.</div>
               )}
+              
+              <GroupSubmissionAttachments
+                groupAssignmentId={task.group_assignment_id}
+                allowFiles={task.allow_submission_files || false}
+                requireFiles={task.require_submission_file || false}
+                allowedCategories={task.allowed_submission_file_categories || ['document', 'image']}
+                maxFiles={task.max_submission_files || 5}
+                maxSizeBytes={task.max_submission_file_size_bytes || 10485760}
+                maxTotalBytes={task.max_submission_total_size_bytes || 31457280}
+                isSubmitted={task.group_assignment_status === 'submitted'}
+                isApproved={task.group_assignment_status === 'approved'}
+              />
+
               <div className="flex items-center justify-between p-3 bg-radar-green/10 border border-radar-green/20 rounded-lg">
                 <span className="text-sm font-bold text-radar-green">Your Score</span>
                 <span className="text-sm font-bold text-radar-green">+{task.reward_points_per_member} pts</span>
@@ -154,15 +168,29 @@ export const StudentGroupTaskDetail: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              <textarea 
-                placeholder="Type your group's submission here..."
-                value={submissionText}
-                onChange={(e) => setSubmissionText(e.target.value)}
-                disabled={task.group_assignment_status === 'submitted' || isSubmitting}
-                rows={6}
-                className="w-full bg-mission-bg-secondary border border-mission-border text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-radar-green"
-              />
+              {task.allow_submission_text !== false && (
+                <textarea 
+                  placeholder="Type your group's submission here..."
+                  value={submissionText}
+                  onChange={(e) => setSubmissionText(e.target.value)}
+                  disabled={task.group_assignment_status === 'submitted' || isSubmitting}
+                  rows={6}
+                  className="w-full bg-mission-bg-secondary border border-mission-border text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-radar-green"
+                />
+              )}
               
+              <GroupSubmissionAttachments
+                groupAssignmentId={task.group_assignment_id}
+                allowFiles={task.allow_submission_files || false}
+                requireFiles={task.require_submission_file || false}
+                allowedCategories={task.allowed_submission_file_categories || ['document', 'image']}
+                maxFiles={task.max_submission_files || 5}
+                maxSizeBytes={task.max_submission_file_size_bytes || 10485760}
+                maxTotalBytes={task.max_submission_total_size_bytes || 31457280}
+                isSubmitted={task.group_assignment_status === 'submitted'}
+                isApproved={task.group_assignment_status === 'approved'}
+              />
+
               {task.group_assignment_status === 'submitted' ? (
                 <div className="text-center p-3 bg-amber-500/10 text-amber-500 rounded-lg text-sm border border-amber-500/20">
                   Waiting for teacher review
@@ -171,7 +199,7 @@ export const StudentGroupTaskDetail: React.FC = () => {
                 <Button 
                   className="w-full" 
                   onClick={handleSubmit}
-                  disabled={isSubmitting || !submissionText.trim()}
+                  disabled={isSubmitting || (task.allow_submission_text !== false && !submissionText.trim() && !task.allow_submission_files)}
                 >
                   {isSubmitting ? "Submitting..." : (
                     <>

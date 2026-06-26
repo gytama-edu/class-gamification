@@ -18,7 +18,8 @@ import {
   TeacherRecognitionInput,
   ClassTask, TaskWithSummary, TaskAssignment, TaskAssignmentWithStudent,
   StudentTask, CreateTaskInput, UpdateTaskInput, TaskReviewResult, TaskStatus,
-  TaskProjectGroupWithMembers, ProjectGroupTaskReviewResult, StudentProjectGroupTask, CreateProjectGroupTaskInput, UpdateProjectGroupTaskInput, ProjectGroupWithMembers, ProjectGroupSummary, CreateProjectGroupInput, UpdateProjectGroupInput, ProjectGroupDistribution, ProjectGroupDistributionResult, MyProjectGroup, ProjectGroupMember, CreateProjectGroupBatchItem, CreateProjectGroupsBatchResult
+  TaskProjectGroupWithMembers, ProjectGroupTaskReviewResult, StudentProjectGroupTask, CreateProjectGroupTaskInput, UpdateProjectGroupTaskInput, ProjectGroupWithMembers, ProjectGroupSummary, CreateProjectGroupInput, UpdateProjectGroupInput, ProjectGroupDistribution, ProjectGroupDistributionResult, MyProjectGroup, ProjectGroupMember, CreateProjectGroupBatchItem, CreateProjectGroupsBatchResult,
+  PrepareGroupUploadInput, PrepareGroupUploadResult, TaskProjectGroupSubmissionFile, GroupSubmissionWithFiles
 } from "../types/database";
 
 export class SupabaseClassroomRepository implements ClassroomRepository {
@@ -1067,8 +1068,8 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
   }
 
   async submitProjectGroupTask(groupAssignmentId: string, submissionText?: string): Promise<void> {
-    if (!supabase) throw new Error("Supabase not initialized");
-    const { error } = await supabase.rpc('submit_project_group_task', {
+    if (!studentSupabase) throw new Error("Supabase not initialized");
+    const { error } = await studentSupabase.rpc('submit_project_group_task', {
       p_group_assignment_id: groupAssignmentId,
       p_submission_text: submissionText || null
     });
@@ -1087,8 +1088,8 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
   }
 
   async getMyProjectGroupTasks(): Promise<StudentProjectGroupTask[]> {
-    if (!supabase) throw new Error("Supabase not initialized");
-    const { data, error } = await supabase.rpc('get_my_project_group_tasks');
+    if (!studentSupabase) throw new Error("Supabase not initialized");
+    const { data, error } = await studentSupabase.rpc('get_my_project_group_tasks');
     if (error) throw error;
     
     const now = new Date().getTime();
@@ -1105,5 +1106,89 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
         is_overdue
       };
     });
+  }
+
+  // Group Task Submissions
+  async prepareGroupSubmissionUpload(input: PrepareGroupUploadInput): Promise<PrepareGroupUploadResult> {
+    if (!studentSupabase) throw new Error("Supabase not initialized");
+    const { data, error } = await studentSupabase.rpc('prepare_project_group_submission_upload', {
+      p_group_assignment_id: input.group_assignment_id,
+      p_original_filename: input.original_filename,
+      p_mime_type: input.mime_type,
+      p_file_size_bytes: input.file_size_bytes,
+      p_file_category: input.file_category
+    });
+    if (error) throw error;
+    return data as any;
+  }
+
+  async uploadGroupSubmissionFile(bucket: string, path: string, file: File): Promise<void> {
+    if (!studentSupabase) throw new Error("Supabase not initialized");
+    const { error } = await studentSupabase.storage
+      .from(bucket)
+      .upload(path, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
+    if (error) throw error;
+  }
+
+  async finalizeGroupSubmissionUpload(attachmentId: string): Promise<TaskProjectGroupSubmissionFile> {
+    if (!studentSupabase) throw new Error("Supabase not initialized");
+    const { data, error } = await studentSupabase.rpc('finalize_project_group_submission_upload', {
+      p_attachment_id: attachmentId
+    });
+    if (error) throw error;
+    return data as any;
+  }
+
+  async removeGroupSubmissionFile(attachmentId: string): Promise<void> {
+    if (!studentSupabase) throw new Error("Supabase not initialized");
+    const { data: path, error } = await studentSupabase.rpc('remove_project_group_submission_file', {
+      p_attachment_id: attachmentId
+    });
+    if (error) throw error;
+    if (path) {
+      await studentSupabase.storage.from('group-task-submissions').remove([path]);
+    }
+  }
+
+  async getGroupSubmissionAttempts(groupAssignmentId: string): Promise<GroupSubmissionWithFiles[]> {
+    const client = supabase || studentSupabase;
+    if (!client) throw new Error("Supabase not initialized");
+
+    const { data, error } = await client
+      .from('task_project_group_submission_attempts')
+      .select('*, files:task_project_group_submission_files(*)')
+      .eq('group_assignment_id', groupAssignmentId)
+      .order('attempt_number', { ascending: false });
+    
+    if (error) throw error;
+    
+    return (data || []).map((attempt: any) => ({
+      ...attempt,
+      files: (attempt.files || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    }));
+  }
+
+  async getGroupSubmissionFileUrl(attachmentId: string): Promise<string> {
+    const client = supabase || studentSupabase;
+    if (!client) throw new Error("Supabase not initialized");
+
+    const { data: file, error: fetchError } = await client
+      .from('task_project_group_submission_files')
+      .select('storage_bucket, storage_path')
+      .eq('id', attachmentId)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!file) throw new Error("File not found");
+
+    const { data, error } = await client.storage
+      .from(file.storage_bucket)
+      .createSignedUrl(file.storage_path, 300);
+
+    if (error) throw error;
+    return data.signedUrl;
   }
 }

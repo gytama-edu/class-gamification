@@ -688,7 +688,71 @@ export class MockClassroomRepository implements ClassroomRepository {
     student.access_activated_at = new Date().toISOString();
 
     this.saveDb(db);
+    localStorage.setItem('gytama_student_id', student.id);
     return { student_id: student.id, class_id: cls.id };
+  }
+
+  async getMyStudentSession(): Promise<any> {
+    const studentId = localStorage.getItem('gytama_student_id');
+    if (!studentId) return null;
+    const db = this.getDb();
+    const student = db.students.find((s: any) => s.id === studentId);
+    if (!student || !student.is_active || !student.access_enabled || student.deleted_at) return null;
+    const cls = db.classes.find((c: any) => c.id === student.class_id);
+    if (!cls || !cls.student_access_enabled || cls.status !== 'active') return null;
+    
+    return {
+      student_id: student.id,
+      class_id: cls.id,
+      display_name: student.display_name,
+      class_name: cls.name,
+      class_level: cls.level,
+      class_type: cls.class_type,
+      access_valid: true
+    };
+  }
+
+  async releaseMyStudentSession(): Promise<void> {
+    localStorage.removeItem('gytama_student_id');
+    sessionStorage.removeItem('gytama_student_id');
+  }
+
+  async getMyStudentDashboard(): Promise<any> {
+    const studentId = localStorage.getItem('gytama_student_id') || sessionStorage.getItem('gytama_student_id');
+    if (!studentId) throw new Error("Not authenticated");
+    const dash = await this.getStudentDashboard(studentId);
+    if (!dash) throw new Error("Dashboard not found");
+    
+    // Convert to new shape
+    return {
+      student: {
+        id: dash.student.id,
+        class_id: dash.student.class_id,
+        display_name: dash.student.display_name,
+        avatar_key: dash.student.avatar_key,
+        total_points: dash.student.total_points,
+        is_active: dash.student.is_active
+      },
+      classroom: {
+        id: dash.classroom.id,
+        name: dash.classroom.name,
+        level: dash.classroom.level,
+        max_lives: dash.classroom.max_lives,
+        current_meeting_number: dash.classroom.current_meeting_number,
+        class_type: dash.classroom.class_type
+      },
+      current_meeting: dash.activeMeeting ? {
+        id: dash.activeMeeting.id,
+        meeting_number: dash.activeMeeting.meeting_number,
+        status: dash.activeMeeting.status,
+        start_time: dash.activeMeeting.start_time,
+        max_lives_snapshot: dash.activeMeeting.max_lives_snapshot
+      } : null,
+      state: {
+        lives_remaining: dash.lives_remaining,
+        rank: dash.rank
+      }
+    };
   }
 
   async getStudentDashboard(studentId: string): Promise<{
@@ -1150,6 +1214,12 @@ export class MockClassroomRepository implements ClassroomRepository {
     return db.student_achievements
       .filter((a) => a.student_id === studentId)
       .sort((a, b) => new Date(b.earned_at).getTime() - new Date(a.earned_at).getTime());
+  }
+
+  async getMyAchievements(): Promise<StudentAchievement[]> {
+    const studentId = localStorage.getItem('gytama_student_id') || sessionStorage.getItem('gytama_student_id');
+    if (!studentId) throw new Error("Not authenticated");
+    return this.getStudentAchievements(studentId);
   }
 
   async getClassAchievementSummary(classId: string): Promise<{ student_id: string; achievement: StudentAchievement }[]> {

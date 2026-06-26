@@ -43,9 +43,12 @@ export interface ClassroomRepository {
   resetStudentDevice(studentId: string): Promise<void>;
 
   joinClassAsStudent(classCode: string, pin: string): Promise<{ student_id: string; class_id: string }>;
+  getMyStudentSession(): Promise<any>;
+  releaseMyStudentSession(): Promise<void>;
 
   getActiveMeeting(classId: string): Promise<Meeting | null>;
   getStudentDashboard(studentId: string): Promise<{ student: DbStudent; classroom: Classroom; activeMeeting: Meeting | null; lives_remaining: number; rank: number } | null>;
+  getMyStudentDashboard(): Promise<any>;
   getStudentProfile(studentId: string): Promise<StudentWithCurrentState | null>;
   getLeaderboard(classId: string): Promise<LeaderboardEntry[]>;
 
@@ -61,6 +64,7 @@ export interface ClassroomRepository {
   getMeetingReport(classId: string, meetingId: string): Promise<MeetingReport | null>;
   
   getStudentAchievements(studentId: string): Promise<StudentAchievement[]>;
+  getMyAchievements(): Promise<StudentAchievement[]>;
   getClassAchievementSummary(classId: string): Promise<{ student_id: string; achievement: StudentAchievement }[]>;
   evaluateClassAchievements(classId: string): Promise<void>;
   awardTeacherRecognition(studentId: string, input: TeacherRecognitionInput): Promise<StudentAchievement>;

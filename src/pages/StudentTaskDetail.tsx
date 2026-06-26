@@ -5,6 +5,7 @@ import { getRepository } from "../lib/data/repository";
 import { StudentTask } from "../lib/types/database";
 import { Panel, Button, LoadingSkeleton } from "../components/ui";
 import { format } from "date-fns";
+import { useStudentAuth } from "../lib/auth/StudentAuthContext";
 
 export const StudentTaskDetail: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
@@ -14,7 +15,8 @@ export const StudentTaskDetail: React.FC = () => {
   const [submissionText, setSubmissionText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const studentId = localStorage.getItem("gytama_student_id");
+  const { session } = useStudentAuth();
+  const studentId = session?.student_id;
 
   const loadData = useCallback(async () => {
     if (!studentId || !taskId) return;

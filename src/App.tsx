@@ -21,10 +21,13 @@ import { StudentProtectedRoute } from "./components/auth/StudentProtectedRoute";
 import { StudentJoin } from "./pages/StudentJoin";
 import { StudentDashboard } from "./pages/StudentDashboard";
 
+import { StudentAuthProvider, useStudentAuth } from './lib/auth/StudentAuthContext';
+
 const RootRedirect = () => {
   const { session, isLoading } = useAuth();
+  const { isAuthenticated, loading: studentLoading } = useStudentAuth();
 
-  if (isLoading) {
+  if (isLoading || studentLoading) {
     return (
       <div className="min-h-screen bg-mission-bg flex items-center justify-center font-sans">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-radar-green mb-6"></div>
@@ -32,16 +35,13 @@ const RootRedirect = () => {
     );
   }
 
-  // Determine if it's an anonymous student session or a teacher
-  if (session) {
-    if (session.user?.is_anonymous) {
-      return <Navigate to="/student/dashboard" replace />;
-    }
+  // Determine if it's a teacher session
+  if (session && !session.user?.is_anonymous) {
     return <Navigate to="/teacher/classes" replace />;
   }
 
-  // For unauthenticated users or users relying on mock localStorage, check if they have a student session
-  if (localStorage.getItem("gytama_student_id")) {
+  // Check student session
+  if (isAuthenticated) {
     return <Navigate to="/student/dashboard" replace />;
   }
 
@@ -66,8 +66,9 @@ const routerBasename = window.location.pathname.startsWith(configuredBase)
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter basename={routerBasename}>
-        <Routes>
+      <StudentAuthProvider>
+        <BrowserRouter basename={routerBasename}>
+          <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/join" element={<StudentJoin />} />
@@ -131,6 +132,7 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </StudentAuthProvider>
     </AuthProvider>
   );
 }

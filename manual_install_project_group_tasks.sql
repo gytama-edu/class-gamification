@@ -455,7 +455,7 @@ BEGIN
     -- resolve student
     SELECT id, display_name INTO v_student
     FROM public.students
-    WHERE auth_user_id = v_user_id AND is_active = true AND deleted_at IS NULL AND access_enabled = true;
+    WHERE student_auth_user_id = v_user_id AND is_active = true AND deleted_at IS NULL AND access_enabled = true;
 
     IF v_student.id IS NULL THEN RAISE EXCEPTION 'Student not found or access disabled'; END IF;
 
@@ -678,7 +678,7 @@ DECLARE
     v_user_id uuid := auth.uid();
     v_student_id uuid;
 BEGIN
-    SELECT id INTO v_student_id FROM public.students WHERE auth_user_id = v_user_id AND is_active = true AND deleted_at IS NULL;
+    SELECT id INTO v_student_id FROM public.students WHERE student_auth_user_id = v_user_id AND is_active = true AND deleted_at IS NULL;
     IF v_student_id IS NULL THEN RETURN; END IF;
 
     RETURN QUERY

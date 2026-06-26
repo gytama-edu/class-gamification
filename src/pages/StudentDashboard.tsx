@@ -20,7 +20,7 @@ import {
   StudentProjectGroupTask
 } from "../lib/types/database";
 import { useClassroomRealtime } from "../lib/realtime/useClassroomRealtime";
-
+import { useStudentAuth } from "../lib/auth/StudentAuthContext";
 import { useAuth } from "../lib/auth/AuthContext";
 import { supabase } from "../lib/supabase/client";
 import { AchievementCard } from "../components/AchievementCard";
@@ -43,49 +43,55 @@ export const StudentDashboard: React.FC = () => {
   const [projectGroup, setProjectGroup] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const studentId = localStorage.getItem("gytama_student_id");
+  const { session, releaseSession } = useStudentAuth();
 
   const loadData = useCallback(async () => {
-    if (!studentId) {
-      navigate("/join");
-      return;
-    }
+    if (!session) return;
     try {
       const repo = getRepository();
-      const dashboardData = await repo.getStudentDashboard(studentId);
+      
+      // Load core dashboard data first (must succeed)
+      const dashboardData = await repo.getMyStudentDashboard();
       if (!dashboardData) {
         throw new Error("Could not load student dashboard.");
       }
       setData(dashboardData);
 
-      const achs = await repo.getStudentAchievements(studentId);
-      setAchievements(achs);
+      // Load optional modules independently
+      const results = await Promise.allSettled([
+        repo.getMyAchievements(),
+        repo.getStudentTasks(session.student_id),
+        repo.getMyProjectGroupTasks(),
+        repo.getMyProjectGroup()
+      ]);
+
+      if (results[0].status === 'fulfilled') setAchievements(results[0].value);
+      else console.warn("Failed to load achievements", results[0].reason);
+
+      if (results[1].status === 'fulfilled') setTasks(results[1].value);
+      else console.warn("Failed to load tasks", results[1].reason);
+
+      if (results[2].status === 'fulfilled') setGroupTasks(results[2].value);
+      else console.warn("Failed to load group tasks", results[2].reason);
+
+      if (results[3].status === 'fulfilled') setProjectGroup(results[3].value);
+      else console.warn("Failed to load project group", results[3].reason);
       
-      const studentTasks = await repo.getStudentTasks(studentId);
-      setTasks(studentTasks);
-      
-      const pGroupTasks = await repo.getMyProjectGroupTasks();
-      setGroupTasks(pGroupTasks);
-      
-      const pg = await repo.getMyProjectGroup();
-      setProjectGroup(pg);
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Failed to load data");
+      console.error("Dashboard error:", err);
+      setError(err.message || "Failed to load dashboard data");
       if (
         err.message?.includes("authorized") ||
         err.message?.includes("incorrect") ||
-        err.message?.includes("Could not load")
+        err.message?.includes("not valid")
       ) {
-        localStorage.removeItem("gytama_student_id");
-        if (supabase) await supabase.auth.signOut();
+        await releaseSession();
         navigate("/join");
       }
     } finally {
       setIsLoading(false);
     }
-  }, [studentId, navigate]);
+  }, [session, navigate, releaseSession]);
 
   useEffect(() => {
     loadData();
@@ -98,10 +104,7 @@ export const StudentDashboard: React.FC = () => {
   );
 
   const handleLeave = async () => {
-    localStorage.removeItem("gytama_student_id");
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
+    await releaseSession();
     navigate("/join");
   };
 

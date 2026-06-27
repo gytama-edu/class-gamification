@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION public.create_project_group_task(
     p_allow_submission_text boolean DEFAULT true,
     p_allow_submission_files boolean DEFAULT false,
     p_require_submission_file boolean DEFAULT false,
-    p_allowed_submission_file_categories text[] DEFAULT ARRAY['image', 'document'],
+    p_allowed_submission_file_categories text[] DEFAULT ARRAY['images', 'documents'],
     p_max_submission_files integer DEFAULT 5,
     p_max_submission_file_size_bytes bigint DEFAULT 10485760,
     p_max_submission_total_size_bytes bigint DEFAULT 31457280
@@ -144,7 +144,7 @@ CREATE OR REPLACE FUNCTION public.update_project_group_task(
     p_allow_submission_text boolean DEFAULT true,
     p_allow_submission_files boolean DEFAULT false,
     p_require_submission_file boolean DEFAULT false,
-    p_allowed_submission_file_categories text[] DEFAULT ARRAY['image', 'document'],
+    p_allowed_submission_file_categories text[] DEFAULT ARRAY['images', 'documents'],
     p_max_submission_files integer DEFAULT 5,
     p_max_submission_file_size_bytes bigint DEFAULT 10485760,
     p_max_submission_total_size_bytes bigint DEFAULT 31457280

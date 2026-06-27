@@ -12,7 +12,7 @@ ALTER TABLE public.tasks ADD CONSTRAINT tasks_submission_settings_check CHECK (
     (max_submission_files BETWEEN 1 AND 10) AND
     (max_submission_file_size_bytes BETWEEN 1 AND 20971520) AND
     (max_submission_total_size_bytes BETWEEN 1 AND 52428800) AND
-    (allowed_submission_file_categories <@ ARRAY['image', 'document']::text[])
+    (allowed_submission_file_categories <@ ARRAY['images', 'documents']::text[])
 );
 
 -- 3. Drop the old functions to recreate with new signatures
@@ -31,7 +31,7 @@ CREATE OR REPLACE FUNCTION public.create_project_group_task(
     p_allow_submission_text boolean DEFAULT true,
     p_allow_submission_files boolean DEFAULT false,
     p_require_submission_file boolean DEFAULT false,
-    p_allowed_submission_file_categories text[] DEFAULT ARRAY['image', 'document'],
+    p_allowed_submission_file_categories text[] DEFAULT ARRAY['images', 'documents'],
     p_max_submission_files integer DEFAULT 5,
     p_max_submission_file_size_bytes bigint DEFAULT 10485760,
     p_max_submission_total_size_bytes bigint DEFAULT 31457280
@@ -159,7 +159,7 @@ CREATE OR REPLACE FUNCTION public.update_project_group_task(
     p_allow_submission_text boolean DEFAULT true,
     p_allow_submission_files boolean DEFAULT false,
     p_require_submission_file boolean DEFAULT false,
-    p_allowed_submission_file_categories text[] DEFAULT ARRAY['image', 'document'],
+    p_allowed_submission_file_categories text[] DEFAULT ARRAY['images', 'documents'],
     p_max_submission_files integer DEFAULT 5,
     p_max_submission_file_size_bytes bigint DEFAULT 10485760,
     p_max_submission_total_size_bytes bigint DEFAULT 31457280

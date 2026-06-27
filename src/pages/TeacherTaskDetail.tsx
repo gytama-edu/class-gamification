@@ -176,7 +176,7 @@ export const TeacherTaskDetail: React.FC = () => {
                         groupAssignmentId={a.id}
                         allowFiles={task.allow_submission_files || false}
                         requireFiles={task.require_submission_file || false}
-                        allowedCategories={task.allowed_submission_file_categories || ['document', 'image']}
+                        allowedCategories={task.allowed_submission_file_categories || ['documents', 'images']}
                         maxFiles={task.max_submission_files || 5}
                         maxSizeBytes={task.max_submission_file_size_bytes || 10485760}
                         maxTotalBytes={task.max_submission_total_size_bytes || 31457280}

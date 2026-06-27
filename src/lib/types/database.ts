@@ -221,12 +221,13 @@ export type TaskProjectGroupAssignmentStatus = 'pending' | 'assigned' | 'submitt
 export type GroupSubmissionAttemptStatus = "draft" | "submitted" | "returned" | "approved" | "superseded";
 export type GroupSubmissionFileStatus = "pending" | "ready" | "failed" | "deleted";
 export type GroupSubmissionFileCategory = "image" | "document";
+export type TaskSubmissionFileCategory = "images" | "documents";
 
 export interface TaskSubmissionSettings {
   allow_submission_text: boolean;
   allow_submission_files: boolean;
   require_submission_file: boolean;
-  allowed_submission_file_categories: GroupSubmissionFileCategory[];
+  allowed_submission_file_categories: TaskSubmissionFileCategory[];
   max_submission_files: number;
   max_submission_file_size_bytes: number;
   max_submission_total_size_bytes: number;

@@ -32,16 +32,16 @@ CREATE TABLE IF NOT EXISTS public.task_project_group_assignments (
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS allow_submission_text boolean not null default true;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS allow_submission_files boolean not null default false;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS require_submission_file boolean not null default false;
-ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS allowed_submission_file_categories text[] not null default ARRAY['image','document'];
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS allowed_submission_file_categories text[] not null default ARRAY['images','documents'];
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_files integer not null default 5;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_file_size_bytes bigint not null default 10485760;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_total_size_bytes bigint not null default 31457280;
 
-ALTER TABLE public.tasks ALTER COLUMN allowed_submission_file_categories SET DEFAULT ARRAY['image', 'document']::text[];
+ALTER TABLE public.tasks ALTER COLUMN allowed_submission_file_categories SET DEFAULT ARRAY['images', 'documents']::text[];
 
 UPDATE public.tasks 
-SET allowed_submission_file_categories = ARRAY['image', 'document']::text[] 
-WHERE NOT allowed_submission_file_categories <@ ARRAY['image', 'document']::text[];
+SET allowed_submission_file_categories = ARRAY['images', 'documents']::text[] 
+WHERE NOT allowed_submission_file_categories <@ ARRAY['images', 'documents']::text[];
 
 ALTER TABLE public.tasks DROP CONSTRAINT IF EXISTS tasks_submission_settings_check;
 ALTER TABLE public.tasks ADD CONSTRAINT tasks_submission_settings_check CHECK (
@@ -50,7 +50,7 @@ ALTER TABLE public.tasks ADD CONSTRAINT tasks_submission_settings_check CHECK (
     (max_submission_files BETWEEN 1 AND 10) AND
     (max_submission_file_size_bytes BETWEEN 1 AND 20971520) AND
     (max_submission_total_size_bytes BETWEEN 1 AND 52428800) AND
-    (allowed_submission_file_categories <@ ARRAY['image', 'document']::text[])
+    (allowed_submission_file_categories <@ ARRAY['images', 'documents']::text[])
 );
 
 -- Ensure group submission attachment columns exist (from migration 031)
@@ -181,7 +181,7 @@ CREATE OR REPLACE FUNCTION public.create_project_group_task(
     p_allow_submission_text boolean DEFAULT true,
     p_allow_submission_files boolean DEFAULT false,
     p_require_submission_file boolean DEFAULT false,
-    p_allowed_submission_file_categories text[] DEFAULT ARRAY['image', 'document'],
+    p_allowed_submission_file_categories text[] DEFAULT ARRAY['images', 'documents'],
     p_max_submission_files integer DEFAULT 5,
     p_max_submission_file_size_bytes bigint DEFAULT 10485760,
     p_max_submission_total_size_bytes bigint DEFAULT 31457280
@@ -310,7 +310,7 @@ CREATE OR REPLACE FUNCTION public.update_project_group_task(
     p_allow_submission_text boolean DEFAULT true,
     p_allow_submission_files boolean DEFAULT false,
     p_require_submission_file boolean DEFAULT false,
-    p_allowed_submission_file_categories text[] DEFAULT ARRAY['image', 'document'],
+    p_allowed_submission_file_categories text[] DEFAULT ARRAY['images', 'documents'],
     p_max_submission_files integer DEFAULT 5,
     p_max_submission_file_size_bytes bigint DEFAULT 10485760,
     p_max_submission_total_size_bytes bigint DEFAULT 31457280
@@ -770,7 +770,7 @@ BEGIN
             COALESCE(t.allow_submission_text, true) as allow_submission_text,
             COALESCE(t.allow_submission_files, false) as allow_submission_files,
             COALESCE(t.require_submission_file, false) as require_submission_file,
-            COALESCE(t.allowed_submission_file_categories, ARRAY['image', 'document']) as allowed_submission_file_categories,
+            COALESCE(t.allowed_submission_file_categories, ARRAY['images', 'documents']) as allowed_submission_file_categories,
             COALESCE(t.max_submission_files, 5) as max_submission_files,
             COALESCE(t.max_submission_file_size_bytes, 10485760) as max_submission_file_size_bytes,
             COALESCE(t.max_submission_total_size_bytes, 31457280) as max_submission_total_size_bytes,

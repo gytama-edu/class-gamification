@@ -25,7 +25,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
   const [allowSubmissionText, setAllowSubmissionText] = useState(true);
   const [allowSubmissionFiles, setAllowSubmissionFiles] = useState(false);
   const [requireSubmissionFile, setRequireSubmissionFile] = useState(false);
-  const [allowedCategories, setAllowedCategories] = useState<'image' | 'document'[]>(['image', 'document']);
+  const [allowedCategories, setAllowedCategories] = useState<('images' | 'documents')[]>(['images', 'documents']);
   const [maxSubmissionFiles, setMaxSubmissionFiles] = useState(5);
   const [maxSubmissionFileSize, setMaxSubmissionFileSize] = useState(10); // MB
 
@@ -275,14 +275,14 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ classId, stude
                   <select 
                     value={allowedCategories.length === 2 ? 'both' : allowedCategories[0]}
                     onChange={(e) => {
-                      if (e.target.value === 'both') setAllowedCategories(['image', 'document']);
+                      if (e.target.value === 'both') setAllowedCategories(['images', 'documents']);
                       else setAllowedCategories([e.target.value as any]);
                     }}
                     className="w-full p-2 bg-mission-bg-secondary border border-mission-border rounded text-white text-sm"
                   >
                     <option value="both">Pictures and Documents</option>
-                    <option value="image">Pictures</option>
-                    <option value="document">Documents</option>
+                    <option value="images">Pictures</option>
+                    <option value="documents">Documents</option>
                   </select>
                 </div>
 

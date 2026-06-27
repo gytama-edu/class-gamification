@@ -6,7 +6,7 @@ BEGIN;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS allow_submission_text boolean not null default true;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS allow_submission_files boolean not null default false;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS require_submission_file boolean not null default false;
-ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS allowed_submission_file_categories text[] not null default ARRAY['image','document'];
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS allowed_submission_file_categories text[] not null default ARRAY['images','documents'];
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_files integer not null default 5;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_file_size_bytes bigint not null default 10485760;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_total_size_bytes bigint not null default 31457280;
@@ -34,7 +34,7 @@ VALUES (
     false, 
     10485760, -- 10MB
     ARRAY[
-        'images/jpeg', 'images/png', 'images/webp',
+        'image/jpeg', 'image/png', 'image/webp',
         'application/pdf',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -46,7 +46,7 @@ ON CONFLICT (id) DO UPDATE SET
     public = false, 
     file_size_limit = 10485760,
     allowed_mime_types = ARRAY[
-        'images/jpeg', 'images/png', 'images/webp',
+        'image/jpeg', 'image/png', 'image/webp',
         'application/pdf',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'application/vnd.openxmlformats-officedocument.presentationml.presentation',

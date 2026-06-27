@@ -1008,7 +1008,7 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       p_allow_submission_text: input.allow_submission_text ?? true,
       p_allow_submission_files: input.allow_submission_files ?? false,
       p_require_submission_file: input.require_submission_file ?? false,
-      p_allowed_submission_file_categories: input.allowed_submission_file_categories ?? ['image', 'document'],
+      p_allowed_submission_file_categories: input.allowed_submission_file_categories ?? ['images', 'documents'],
       p_max_submission_files: input.max_submission_files ?? 5,
       p_max_submission_file_size_bytes: input.max_submission_file_size_bytes ?? 10485760,
       p_max_submission_total_size_bytes: input.max_submission_total_size_bytes ?? 31457280
@@ -1029,7 +1029,7 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
       p_allow_submission_text: input.allow_submission_text ?? true,
       p_allow_submission_files: input.allow_submission_files ?? false,
       p_require_submission_file: input.require_submission_file ?? false,
-      p_allowed_submission_file_categories: input.allowed_submission_file_categories ?? ['image', 'document'],
+      p_allowed_submission_file_categories: input.allowed_submission_file_categories ?? ['images', 'documents'],
       p_max_submission_files: input.max_submission_files ?? 5,
       p_max_submission_file_size_bytes: input.max_submission_file_size_bytes ?? 10485760,
       p_max_submission_total_size_bytes: input.max_submission_total_size_bytes ?? 31457280

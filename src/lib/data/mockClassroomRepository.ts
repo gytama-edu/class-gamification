@@ -1385,7 +1385,7 @@ export class MockClassroomRepository implements ClassroomRepository {
       allow_submission_text: input.allow_submission_text ?? true,
       allow_submission_files: input.allow_submission_files ?? false,
       require_submission_file: input.require_submission_file ?? false,
-      allowed_submission_file_categories: input.allowed_submission_file_categories ?? ['document', 'image'],
+      allowed_submission_file_categories: input.allowed_submission_file_categories ?? ['documents', 'images'],
       max_submission_files: input.max_submission_files ?? 5,
       max_submission_file_size_bytes: input.max_submission_file_size_bytes ?? 10485760,
       max_submission_total_size_bytes: input.max_submission_total_size_bytes ?? 31457280

@@ -2180,12 +2180,12 @@ export class MockClassroomRepository implements ClassroomRepository {
     console.warn("removeGroupSubmissionFile not fully implemented in mock");
   }
 
-  async getGroupSubmissionAttempts(groupAssignmentId: string): Promise<GroupSubmissionWithFiles[]> {
+  async getGroupSubmissionAttempts(groupAssignmentId: string, asStudent?: boolean): Promise<GroupSubmissionWithFiles[]> {
     console.warn("getGroupSubmissionAttempts not fully implemented in mock");
     return [];
   }
 
-  async getGroupSubmissionFileUrl(attachmentId: string): Promise<string> {
+  async getGroupSubmissionFileUrl(attachmentId: string, asStudent?: boolean): Promise<string> {
     console.warn("getGroupSubmissionFileUrl not fully implemented in mock");
     return "https://example.com/mock-file";
   }

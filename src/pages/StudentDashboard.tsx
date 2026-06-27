@@ -38,6 +38,7 @@ export const StudentDashboard: React.FC = () => {
   const [tasks, setTasks] = useState<StudentTask[]>([]);
   const [groupTasks, setGroupTasks] = useState<StudentProjectGroupTask[]>([]);
   const [projectGroup, setProjectGroup] = useState<any>(null);
+  const [projectGroupError, setProjectGroupError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const { session, releaseSession } = useStudentAuth();
@@ -71,8 +72,13 @@ export const StudentDashboard: React.FC = () => {
       if (results[2].status === 'fulfilled') setGroupTasks(results[2].value);
       else console.warn("Failed to load group tasks", results[2].reason);
 
-      if (results[3].status === 'fulfilled') setProjectGroup(results[3].value);
-      else console.warn("Failed to load project group", results[3].reason);
+      if (results[3].status === 'fulfilled') {
+        setProjectGroup(results[3].value);
+        setProjectGroupError(false);
+      } else {
+        console.error("Failed to load project group", results[3].reason);
+        setProjectGroupError(true);
+      }
       
     } catch (err: any) {
       console.error("Dashboard error:", err);
@@ -241,7 +247,21 @@ export const StudentDashboard: React.FC = () => {
         </Panel>
 
         {/* Project Group Card */}
-        {projectGroup && (
+        {projectGroupError ? (
+          <Panel className="p-0 border-mission-border/50 overflow-hidden">
+            <div className="p-4 border-b border-mission-border/50 flex items-center gap-2 bg-mission-bg-secondary text-mission-muted-text">
+              <div className="w-3 h-3 rounded-full bg-mission-border shadow-[0_0_8px_rgba(0,0,0,0.5)]" />
+              <h2 className="font-display font-bold">
+                Project Group
+              </h2>
+            </div>
+            <div className="p-4 bg-mission-panel">
+              <p className="text-sm text-mission-secondary-text">
+                Project group is temporarily unavailable.
+              </p>
+            </div>
+          </Panel>
+        ) : projectGroup ? (
           <Panel className="p-0 border-mission-border/50 overflow-hidden">
             <div className={`p-4 border-b border-mission-border/50 flex items-center gap-2 ${
               projectGroup.color_key === 'green' ? 'bg-radar-green/10 text-radar-green' :
@@ -276,6 +296,20 @@ export const StudentDashboard: React.FC = () => {
                   </span>
                 ))}
               </div>
+            </div>
+          </Panel>
+        ) : (
+          <Panel className="p-0 border-mission-border/50 overflow-hidden">
+            <div className="p-4 border-b border-mission-border/50 flex items-center gap-2 bg-mission-bg-secondary text-mission-muted-text">
+              <div className="w-3 h-3 rounded-full bg-mission-border shadow-[0_0_8px_rgba(0,0,0,0.5)]" />
+              <h2 className="font-display font-bold">
+                Project Group
+              </h2>
+            </div>
+            <div className="p-4 bg-mission-panel">
+              <p className="text-sm text-mission-secondary-text">
+                You have not been assigned to a project group yet.
+              </p>
             </div>
           </Panel>
         )}

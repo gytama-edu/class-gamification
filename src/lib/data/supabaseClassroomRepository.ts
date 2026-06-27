@@ -989,8 +989,8 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
   }
 
   async getMyProjectGroup(): Promise<MyProjectGroup | null> {
-    if (!supabase) throw new Error("Supabase not initialized");
-    const { data, error } = await supabase.rpc('get_my_project_group');
+    if (!studentSupabase) throw new Error("Student Supabase not initialized");
+    const { data, error } = await studentSupabase.rpc('get_my_project_group');
     if (error) throw error;
     return data as MyProjectGroup | null;
   }
@@ -1153,8 +1153,8 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     }
   }
 
-  async getGroupSubmissionAttempts(groupAssignmentId: string): Promise<GroupSubmissionWithFiles[]> {
-    const client = supabase || studentSupabase;
+  async getGroupSubmissionAttempts(groupAssignmentId: string, asStudent?: boolean): Promise<GroupSubmissionWithFiles[]> {
+    const client = asStudent ? studentSupabase : supabase;
     if (!client) throw new Error("Supabase not initialized");
 
     const { data, error } = await client
@@ -1171,8 +1171,8 @@ export class SupabaseClassroomRepository implements ClassroomRepository {
     }));
   }
 
-  async getGroupSubmissionFileUrl(attachmentId: string): Promise<string> {
-    const client = supabase || studentSupabase;
+  async getGroupSubmissionFileUrl(attachmentId: string, asStudent?: boolean): Promise<string> {
+    const client = asStudent ? studentSupabase : supabase;
     if (!client) throw new Error("Supabase not initialized");
 
     const { data: file, error: fetchError } = await client

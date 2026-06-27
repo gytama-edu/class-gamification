@@ -110,6 +110,6 @@ export interface ClassroomRepository {
   uploadGroupSubmissionFile(bucket: string, path: string, file: File): Promise<void>;
   finalizeGroupSubmissionUpload(attachmentId: string): Promise<TaskProjectGroupSubmissionFile>;
   removeGroupSubmissionFile(attachmentId: string): Promise<void>;
-  getGroupSubmissionAttempts(groupAssignmentId: string): Promise<GroupSubmissionWithFiles[]>;
-  getGroupSubmissionFileUrl(attachmentId: string): Promise<string>;
+  getGroupSubmissionAttempts(groupAssignmentId: string, asStudent?: boolean): Promise<GroupSubmissionWithFiles[]>;
+  getGroupSubmissionFileUrl(attachmentId: string, asStudent?: boolean): Promise<string>;
 }

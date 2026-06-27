@@ -17,12 +17,12 @@ interface GroupSubmissionAttachmentsProps {
   isTeacherView?: boolean;
 }
 
-const ImageThumbnail: React.FC<{ attachmentId: string }> = ({ attachmentId }) => {
+const ImageThumbnail: React.FC<{ attachmentId: string, asStudent?: boolean }> = ({ attachmentId, asStudent }) => {
   const [url, setUrl] = useState<string | null>(null);
   
   useEffect(() => {
-    getRepository().getGroupSubmissionFileUrl(attachmentId).then(setUrl).catch(console.error);
-  }, [attachmentId]);
+    getRepository().getGroupSubmissionFileUrl(attachmentId, asStudent).then(setUrl).catch(console.error);
+  }, [attachmentId, asStudent]);
 
   if (!url) return <div className="w-10 h-10 bg-mission-bg-secondary animate-pulse rounded" />;
   
@@ -49,7 +49,7 @@ export const GroupSubmissionAttachments: React.FC<GroupSubmissionAttachmentsProp
 
   const loadAttempts = async () => {
     try {
-      const data = await getRepository().getGroupSubmissionAttempts(groupAssignmentId);
+      const data = await getRepository().getGroupSubmissionAttempts(groupAssignmentId, !isTeacherView);
       setAttempts(data);
     } catch (err: any) {
       console.error(err);
@@ -131,7 +131,7 @@ export const GroupSubmissionAttachments: React.FC<GroupSubmissionAttachmentsProp
 
   const handleDownload = async (attachmentId: string) => {
     try {
-      const url = await getRepository().getGroupSubmissionFileUrl(attachmentId);
+      const url = await getRepository().getGroupSubmissionFileUrl(attachmentId, !isTeacherView);
       window.open(url, '_blank');
     } catch (err) {
       console.error(err);
@@ -196,7 +196,7 @@ export const GroupSubmissionAttachments: React.FC<GroupSubmissionAttachmentsProp
                   onClick={() => handleDownload(f.id)}
                 >
                   {f.file_category === 'image' ? (
-                    <ImageThumbnail attachmentId={f.id} />
+                    <ImageThumbnail attachmentId={f.id} asStudent={!isTeacherView} />
                   ) : (
                     <div className="w-10 h-10 bg-mission-bg-secondary rounded flex items-center justify-center shrink-0">
                       <FileText size={20} className="text-amber-400" />

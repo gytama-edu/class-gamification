@@ -83,6 +83,50 @@ CREATE POLICY "Teacher all task_project_group_assignments"
 ON public.task_project_group_assignments FOR ALL TO authenticated
 USING (class_id IN (SELECT id FROM public.classes WHERE owner_id = auth.uid()));
 
+-- Student RLS policies for Project Groups and Memberships
+ALTER TABLE public.project_groups ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Students can view their own project groups" ON public.project_groups;
+CREATE POLICY "Students can view their own project groups"
+    ON public.project_groups FOR SELECT
+    TO authenticated
+    USING (
+        id IN (
+            SELECT group_id FROM public.project_group_memberships 
+            WHERE student_id IN (
+                SELECT id FROM public.students WHERE student_auth_user_id = auth.uid()
+            )
+            AND removed_at IS NULL
+        )
+    );
+
+ALTER TABLE public.project_group_memberships ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Students can view their own group memberships" ON public.project_group_memberships;
+CREATE POLICY "Students can view their own group memberships"
+    ON public.project_group_memberships FOR SELECT
+    TO authenticated
+    USING (
+        group_id IN (
+            SELECT group_id FROM public.project_group_memberships 
+            WHERE student_id IN (
+                SELECT id FROM public.students WHERE student_auth_user_id = auth.uid()
+            )
+            AND removed_at IS NULL
+        )
+    );
+
+DROP POLICY IF EXISTS "Students can view their own task_project_group_assignments" ON public.task_project_group_assignments;
+CREATE POLICY "Students can view their own task_project_group_assignments"
+ON public.task_project_group_assignments FOR SELECT TO authenticated
+USING (
+    project_group_id IN (
+        SELECT group_id FROM public.project_group_memberships 
+        WHERE student_id IN (
+            SELECT id FROM public.students WHERE student_auth_user_id = auth.uid()
+        )
+        AND removed_at IS NULL
+    )
+);
+
 -- 6. Guarded realtime publication
 DO $$
 BEGIN
@@ -423,20 +467,21 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_session record;
     v_student_id uuid;
     v_assignment record;
     v_task record;
     v_student record;
 BEGIN
-    SELECT * INTO v_session FROM public.student_login_sessions 
-    WHERE id = (current_setting('request.jwt.claims', true)::jsonb ->> 'session_id')::uuid
-    AND valid_until > now();
+    SELECT * INTO v_student FROM public.students 
+    WHERE student_auth_user_id = auth.uid()
+      AND is_active = true 
+      AND access_enabled = true
+      AND deleted_at IS NULL;
 
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'Not authenticated as a student';
+        RAISE EXCEPTION 'Not authenticated as an active student';
     END IF;
-    v_student_id := v_session.student_id;
+    v_student_id := v_student.id;
 
     IF NOT EXISTS (
         SELECT 1 FROM public.task_assignments
@@ -631,15 +676,17 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_session record;
+    v_student record;
     v_student_id uuid;
 BEGIN
-    SELECT * INTO v_session FROM public.student_login_sessions 
-    WHERE id = (current_setting('request.jwt.claims', true)::jsonb ->> 'session_id')::uuid
-    AND valid_until > now();
+    SELECT * INTO v_student FROM public.students 
+    WHERE student_auth_user_id = auth.uid()
+      AND is_active = true 
+      AND access_enabled = true
+      AND deleted_at IS NULL;
 
     IF FOUND THEN
-        v_student_id := v_session.student_id;
+        v_student_id := v_student.id;
         
         RETURN QUERY
         SELECT 
@@ -684,3 +731,62 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.get_my_project_group_tasks() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_my_project_group_tasks() TO authenticated;
+
+-- 7h. get_my_project_group
+CREATE OR REPLACE FUNCTION public.get_my_project_group()
+RETURNS jsonb
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_student_auth_id uuid := auth.uid();
+    v_student record;
+    v_group record;
+    v_members jsonb;
+    v_result jsonb;
+BEGIN
+    SELECT * INTO v_student
+    FROM public.students
+    WHERE student_auth_user_id = v_student_auth_id
+      AND is_active = true 
+      AND access_enabled = true
+      AND deleted_at IS NULL;
+
+    IF NOT FOUND THEN
+        RETURN NULL;
+    END IF;
+
+    SELECT pg.* INTO v_group
+    FROM public.project_group_memberships pgm
+    JOIN public.project_groups pg ON pg.id = pgm.group_id
+    WHERE pgm.student_id = v_student.id 
+      AND pgm.removed_at IS NULL
+      AND pg.status = 'active';
+
+    IF NOT FOUND THEN
+        RETURN NULL;
+    END IF;
+
+    -- Get member names safely
+    SELECT jsonb_agg(s.display_name ORDER BY s.display_name) INTO v_members
+    FROM public.project_group_memberships pgm
+    JOIN public.students s ON s.id = pgm.student_id
+    WHERE pgm.group_id = v_group.id 
+      AND pgm.removed_at IS NULL
+      AND s.is_active = true
+      AND s.deleted_at IS NULL;
+
+    v_result := jsonb_build_object(
+        'id', v_group.id,
+        'name', v_group.name,
+        'description', v_group.description,
+        'color_key', v_group.color_key,
+        'member_names', COALESCE(v_members, '[]'::jsonb)
+    );
+
+    RETURN v_result;
+END;
+$$ LANGUAGE plpgsql;
+
+REVOKE ALL ON FUNCTION public.get_my_project_group() FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.get_my_project_group() TO authenticated;

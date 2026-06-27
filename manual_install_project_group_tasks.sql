@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS public.task_project_group_assignments (
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS allow_submission_text boolean not null default true;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS allow_submission_files boolean not null default false;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS require_submission_file boolean not null default false;
-ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS allowed_submission_file_categories text[] not null default ARRAY['images','documents'];
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS allowed_submission_file_categories text[] not null default ARRAY['image','document'];
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_files integer not null default 5;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_file_size_bytes bigint not null default 10485760;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_total_size_bytes bigint not null default 31457280;
@@ -47,7 +47,7 @@ DO $$ BEGIN
             (max_submission_files BETWEEN 1 AND 10) AND
             (max_submission_file_size_bytes BETWEEN 1 AND 20971520) AND
             (max_submission_total_size_bytes BETWEEN 1 AND 52428800) AND
-            (allowed_submission_file_categories <@ ARRAY['images', 'documents'])
+            (allowed_submission_file_categories <@ ARRAY['image', 'document'])
         );
     END IF;
 END $$;

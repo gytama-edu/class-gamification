@@ -1,10 +1,25 @@
--- 033_project_group_tasks_rpc_update.sql
+-- 034_fix_allowed_file_categories.sql
 
--- Drop the old functions to recreate with new signatures
-DROP FUNCTION IF EXISTS public.create_project_group_task(uuid, text, text, timestamptz, integer, uuid[], boolean);
-DROP FUNCTION IF EXISTS public.update_project_group_task(uuid, text, text, timestamptz, integer, uuid[]);
+-- 1. Fix default value for existing and new rows
+ALTER TABLE public.tasks ALTER COLUMN allowed_submission_file_categories SET DEFAULT ARRAY['image', 'document'];
+UPDATE public.tasks SET allowed_submission_file_categories = ARRAY['image', 'document'];
 
--- 1. create_project_group_task with submission settings
+-- 2. Drop and recreate the check constraint
+ALTER TABLE public.tasks DROP CONSTRAINT IF EXISTS tasks_submission_settings_check;
+ALTER TABLE public.tasks ADD CONSTRAINT tasks_submission_settings_check CHECK (
+    (allow_submission_text = true OR allow_submission_files = true) AND
+    (require_submission_file = false OR allow_submission_files = true) AND
+    (max_submission_files BETWEEN 1 AND 10) AND
+    (max_submission_file_size_bytes BETWEEN 1 AND 20971520) AND
+    (max_submission_total_size_bytes BETWEEN 1 AND 52428800) AND
+    (allowed_submission_file_categories <@ ARRAY['image', 'document'])
+);
+
+-- 3. Drop the old functions to recreate with new signatures
+DROP FUNCTION IF EXISTS public.create_project_group_task(uuid, text, text, timestamptz, integer, uuid[], boolean, boolean, boolean, boolean, text[], integer, bigint, bigint);
+DROP FUNCTION IF EXISTS public.update_project_group_task(uuid, text, text, timestamptz, integer, uuid[], boolean, boolean, boolean, text[], integer, bigint, bigint);
+
+-- 4. create_project_group_task with submission settings
 CREATE OR REPLACE FUNCTION public.create_project_group_task(
     p_class_id uuid,
     p_title text,
@@ -86,7 +101,7 @@ BEGIN
             END IF;
 
             IF p_publish_immediately THEN
-                SELECT COUNT(*) INTO v_member_count FROM public.project_group_members WHERE project_group_id = v_group_id AND status = 'active';
+                SELECT COUNT(*) INTO v_member_count FROM public.project_group_memberships WHERE group_id = v_group_id AND removed_at IS NULL;
                 IF v_member_count = 0 THEN
                     RAISE EXCEPTION 'Group % has no active members', v_group.name;
                 END IF;
@@ -105,9 +120,9 @@ BEGIN
 
                 FOR v_member IN 
                     SELECT pgm.student_id 
-                    FROM public.project_group_members pgm
+                    FROM public.project_group_memberships pgm
                     JOIN public.students s ON s.id = pgm.student_id
-                    WHERE pgm.project_group_id = v_group_id AND pgm.status = 'active' AND s.deleted_at IS NULL
+                    WHERE pgm.group_id = v_group_id AND pgm.removed_at IS NULL AND s.deleted_at IS NULL
                 LOOP
                     INSERT INTO public.task_assignments (
                         task_id, class_id, student_id, status, project_group_assignment_id
@@ -133,7 +148,7 @@ $$;
 REVOKE ALL ON FUNCTION public.create_project_group_task FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.create_project_group_task TO authenticated;
 
--- 2. update_project_group_task with submission settings
+-- 5. update_project_group_task with submission settings
 CREATE OR REPLACE FUNCTION public.update_project_group_task(
     p_task_id uuid,
     p_title text,

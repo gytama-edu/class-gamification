@@ -11,6 +11,12 @@ ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_files integer n
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_file_size_bytes bigint not null default 10485760;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_total_size_bytes bigint not null default 31457280;
 
+ALTER TABLE public.tasks ALTER COLUMN allowed_submission_file_categories SET DEFAULT ARRAY['image', 'document']::text[];
+
+UPDATE public.tasks 
+SET allowed_submission_file_categories = ARRAY['image', 'document']::text[] 
+WHERE NOT allowed_submission_file_categories <@ ARRAY['image', 'document']::text[];
+
 ALTER TABLE public.tasks ADD CONSTRAINT tasks_submission_settings_check CHECK (
     (allow_submission_text = true OR allow_submission_files = true) AND
     (require_submission_file = false OR allow_submission_files = true) AND

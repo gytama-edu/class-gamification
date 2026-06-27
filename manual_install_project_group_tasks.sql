@@ -37,6 +37,12 @@ ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_files integer n
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_file_size_bytes bigint not null default 10485760;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_total_size_bytes bigint not null default 31457280;
 
+ALTER TABLE public.tasks ALTER COLUMN allowed_submission_file_categories SET DEFAULT ARRAY['image', 'document']::text[];
+
+UPDATE public.tasks 
+SET allowed_submission_file_categories = ARRAY['image', 'document']::text[] 
+WHERE NOT allowed_submission_file_categories <@ ARRAY['image', 'document']::text[];
+
 ALTER TABLE public.tasks DROP CONSTRAINT IF EXISTS tasks_submission_settings_check;
 ALTER TABLE public.tasks ADD CONSTRAINT tasks_submission_settings_check CHECK (
     (allow_submission_text = true OR allow_submission_files = true) AND
@@ -163,6 +169,7 @@ END $$;
 -- 7. Exact Secure RPCs
 
 -- 7a. create_project_group_task
+DROP FUNCTION IF EXISTS public.create_project_group_task(uuid,text,text,timestamptz,integer,uuid[],boolean);
 CREATE OR REPLACE FUNCTION public.create_project_group_task(
     p_class_id uuid,
     p_title text,
@@ -170,7 +177,14 @@ CREATE OR REPLACE FUNCTION public.create_project_group_task(
     p_due_at timestamptz,
     p_reward_points integer,
     p_project_group_ids uuid[],
-    p_publish_immediately boolean
+    p_publish_immediately boolean,
+    p_allow_submission_text boolean DEFAULT true,
+    p_allow_submission_files boolean DEFAULT false,
+    p_require_submission_file boolean DEFAULT false,
+    p_allowed_submission_file_categories text[] DEFAULT ARRAY['image', 'document'],
+    p_max_submission_files integer DEFAULT 5,
+    p_max_submission_file_size_bytes bigint DEFAULT 10485760,
+    p_max_submission_total_size_bytes bigint DEFAULT 31457280
 )
 RETURNS uuid
 LANGUAGE plpgsql
@@ -208,11 +222,17 @@ BEGIN
     -- Create task
     INSERT INTO public.tasks (
         class_id, created_by, title, instructions, due_at, reward_points,
-        assignment_scope, status, published_at
+        assignment_scope, status, published_at,
+        allow_submission_text, allow_submission_files, require_submission_file,
+        allowed_submission_file_categories, max_submission_files,
+        max_submission_file_size_bytes, max_submission_total_size_bytes
     )
     VALUES (
         p_class_id, v_teacher_id, p_title, p_instructions, p_due_at, p_reward_points,
-        'project_groups', v_status, v_published_at
+        'project_groups', v_status, v_published_at,
+        p_allow_submission_text, p_allow_submission_files, p_require_submission_file,
+        p_allowed_submission_file_categories, p_max_submission_files,
+        p_max_submission_file_size_bytes, p_max_submission_total_size_bytes
     )
     RETURNING id INTO v_task_id;
 
@@ -275,17 +295,25 @@ BEGIN
     RETURN v_task_id;
 END;
 $$;
-REVOKE ALL ON FUNCTION public.create_project_group_task(uuid,text,text,timestamptz,integer,uuid[],boolean) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.create_project_group_task(uuid,text,text,timestamptz,integer,uuid[],boolean) TO authenticated;
+REVOKE ALL ON FUNCTION public.create_project_group_task(uuid,text,text,timestamptz,integer,uuid[],boolean,boolean,boolean,boolean,text[],integer,bigint,bigint) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_project_group_task(uuid,text,text,timestamptz,integer,uuid[],boolean,boolean,boolean,boolean,text[],integer,bigint,bigint) TO authenticated;
 
 -- 7b. update_project_group_task
+DROP FUNCTION IF EXISTS public.update_project_group_task(uuid,text,text,timestamptz,integer,uuid[]);
 CREATE OR REPLACE FUNCTION public.update_project_group_task(
     p_task_id uuid,
     p_title text,
     p_instructions text,
     p_due_at timestamptz,
     p_reward_points integer,
-    p_project_group_ids uuid[]
+    p_project_group_ids uuid[],
+    p_allow_submission_text boolean DEFAULT true,
+    p_allow_submission_files boolean DEFAULT false,
+    p_require_submission_file boolean DEFAULT false,
+    p_allowed_submission_file_categories text[] DEFAULT ARRAY['image', 'document'],
+    p_max_submission_files integer DEFAULT 5,
+    p_max_submission_file_size_bytes bigint DEFAULT 10485760,
+    p_max_submission_total_size_bytes bigint DEFAULT 31457280
 )
 RETURNS uuid
 LANGUAGE plpgsql
@@ -316,6 +344,13 @@ BEGIN
         instructions = COALESCE(p_instructions, instructions),
         due_at = p_due_at,
         reward_points = COALESCE(p_reward_points, reward_points),
+        allow_submission_text = COALESCE(p_allow_submission_text, allow_submission_text),
+        allow_submission_files = COALESCE(p_allow_submission_files, allow_submission_files),
+        require_submission_file = COALESCE(p_require_submission_file, require_submission_file),
+        allowed_submission_file_categories = COALESCE(p_allowed_submission_file_categories, allowed_submission_file_categories),
+        max_submission_files = COALESCE(p_max_submission_files, max_submission_files),
+        max_submission_file_size_bytes = COALESCE(p_max_submission_file_size_bytes, max_submission_file_size_bytes),
+        max_submission_total_size_bytes = COALESCE(p_max_submission_total_size_bytes, max_submission_total_size_bytes),
         updated_at = now()
     WHERE id = p_task_id;
 
@@ -345,8 +380,8 @@ BEGIN
     RETURN p_task_id;
 END;
 $$;
-REVOKE ALL ON FUNCTION public.update_project_group_task(uuid,text,text,timestamptz,integer,uuid[]) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.update_project_group_task(uuid,text,text,timestamptz,integer,uuid[]) TO authenticated;
+REVOKE ALL ON FUNCTION public.update_project_group_task(uuid,text,text,timestamptz,integer,uuid[],boolean,boolean,boolean,text[],integer,bigint,bigint) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.update_project_group_task(uuid,text,text,timestamptz,integer,uuid[],boolean,boolean,boolean,text[],integer,bigint,bigint) TO authenticated;
 
 -- 7c. set_project_group_task_status
 CREATE OR REPLACE FUNCTION public.set_project_group_task_status(

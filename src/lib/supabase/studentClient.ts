@@ -10,15 +10,13 @@ const STUDENT_AUTH_KEY = 'mission-control-student-auth';
 // depending on the user's preference.
 const customStorage = {
   getItem: (key: string): string | null => {
-    // If the preference is not set to true, try reading from sessionStorage first,
-    // otherwise fallback to localStorage just in case, but prefer what's there.
-    // Actually, we should check where it currently lives.
     const fromSession = sessionStorage.getItem(key);
     const fromLocal = localStorage.getItem(key);
     return fromLocal || fromSession;
   },
   setItem: (key: string, value: string): void => {
-    const isPersistent = localStorage.getItem(STUDENT_PREF_KEY) === 'true';
+    // Default to true if not explicitly set to 'false'
+    const isPersistent = localStorage.getItem(STUDENT_PREF_KEY) !== 'false';
     if (isPersistent) {
       localStorage.setItem(key, value);
       sessionStorage.removeItem(key);

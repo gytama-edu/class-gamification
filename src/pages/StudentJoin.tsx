@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { LogIn, AlertCircle, User, RefreshCw } from "lucide-react";
 import { getRepository } from "../lib/data/repository";
-import { supabase } from "../lib/supabase/client";
+import { studentSupabase } from "../lib/supabase/studentClient";
 import { useStudentAuth } from "../lib/auth/StudentAuthContext";
 import { AuthShell, Button } from "../components/ui";
 
@@ -17,7 +17,7 @@ export const StudentJoin: React.FC = () => {
   const { isAuthenticated, session, loading: authLoading, isPersistent, setPersistence, releaseSession, refreshSession } = useStudentAuth();
 
   const isSupabaseMode = import.meta.env.VITE_DATA_SOURCE === "supabase";
-  const isSupabaseConfigured = isSupabaseMode ? !!supabase : true;
+  const isSupabaseConfigured = isSupabaseMode ? !!studentSupabase : true;
 
   useEffect(() => {
     const errParam = searchParams.get('error');

@@ -35,6 +35,20 @@ export const StudentAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       setLoading(true);
       setError(null);
+      
+      // First ensure the Supabase client has a valid auth session
+      if (studentSupabase) {
+        const { data: { session }, error: authError } = await studentSupabase.auth.getSession();
+        if (authError || !session) {
+          // No valid supabase session, so we can't be logged in
+          setSession(null);
+          localStorage.removeItem('gytama_student_id');
+          sessionStorage.removeItem('gytama_student_id');
+          setLoading(false);
+          return;
+        }
+      }
+
       const data = await getRepository().getMyStudentSession();
       if (data && data.access_valid) {
         setSession(data);

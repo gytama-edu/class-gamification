@@ -21,15 +21,12 @@ import {
 } from "../lib/types/database";
 import { useClassroomRealtime } from "../lib/realtime/useClassroomRealtime";
 import { useStudentAuth } from "../lib/auth/StudentAuthContext";
-import { useAuth } from "../lib/auth/AuthContext";
-import { supabase } from "../lib/supabase/client";
 import { AchievementCard } from "../components/AchievementCard";
 import { Panel, StatCard, LoadingSkeleton } from "../components/ui";
 import { ClassTypeBadge } from "../components/ClassTypeBadge";
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
   const [data, setData] = useState<{
     student: DbStudent;
     classroom: Classroom;

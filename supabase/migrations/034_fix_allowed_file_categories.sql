@@ -1,8 +1,8 @@
 -- 034_fix_allowed_file_categories.sql
 
 -- 1. Fix default value for existing and new rows
-ALTER TABLE public.tasks ALTER COLUMN allowed_submission_file_categories SET DEFAULT ARRAY['image', 'document']::text[];
-UPDATE public.tasks SET allowed_submission_file_categories = ARRAY['image', 'document']::text[];
+ALTER TABLE public.tasks ALTER COLUMN allowed_submission_file_categories SET DEFAULT ARRAY['images', 'documents']::text[];
+UPDATE public.tasks SET allowed_submission_file_categories = ARRAY['images', 'documents']::text[];
 
 -- 2. Drop and recreate the check constraint
 ALTER TABLE public.tasks DROP CONSTRAINT IF EXISTS tasks_submission_settings_check;

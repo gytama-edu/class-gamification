@@ -37,20 +37,15 @@ ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_files integer n
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_file_size_bytes bigint not null default 10485760;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_total_size_bytes bigint not null default 31457280;
 
-DO $$ BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'tasks_submission_settings_check'
-    ) THEN
-        ALTER TABLE public.tasks ADD CONSTRAINT tasks_submission_settings_check CHECK (
-            (allow_submission_text = true OR allow_submission_files = true) AND
-            (require_submission_file = false OR allow_submission_files = true) AND
-            (max_submission_files BETWEEN 1 AND 10) AND
-            (max_submission_file_size_bytes BETWEEN 1 AND 20971520) AND
-            (max_submission_total_size_bytes BETWEEN 1 AND 52428800) AND
-            (allowed_submission_file_categories <@ ARRAY['image', 'document'])
-        );
-    END IF;
-END $$;
+ALTER TABLE public.tasks DROP CONSTRAINT IF EXISTS tasks_submission_settings_check;
+ALTER TABLE public.tasks ADD CONSTRAINT tasks_submission_settings_check CHECK (
+    (allow_submission_text = true OR allow_submission_files = true) AND
+    (require_submission_file = false OR allow_submission_files = true) AND
+    (max_submission_files BETWEEN 1 AND 10) AND
+    (max_submission_file_size_bytes BETWEEN 1 AND 20971520) AND
+    (max_submission_total_size_bytes BETWEEN 1 AND 52428800) AND
+    (allowed_submission_file_categories <@ ARRAY['image', 'document']::text[])
+);
 
 -- Ensure group submission attachment columns exist (from migration 031)
 DO $$

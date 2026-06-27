@@ -11,11 +11,11 @@ ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_files integer n
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_file_size_bytes bigint not null default 10485760;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS max_submission_total_size_bytes bigint not null default 31457280;
 
-ALTER TABLE public.tasks ALTER COLUMN allowed_submission_file_categories SET DEFAULT ARRAY['image', 'document']::text[];
+ALTER TABLE public.tasks ALTER COLUMN allowed_submission_file_categories SET DEFAULT ARRAY['images', 'documents']::text[];
 
 UPDATE public.tasks 
-SET allowed_submission_file_categories = ARRAY['image', 'document']::text[] 
-WHERE NOT allowed_submission_file_categories <@ ARRAY['image', 'document']::text[];
+SET allowed_submission_file_categories = ARRAY['images', 'documents']::text[] 
+WHERE NOT allowed_submission_file_categories <@ ARRAY['images', 'documents']::text[];
 
 ALTER TABLE public.tasks ADD CONSTRAINT tasks_submission_settings_check CHECK (
     (allow_submission_text = true OR allow_submission_files = true) AND
@@ -23,7 +23,7 @@ ALTER TABLE public.tasks ADD CONSTRAINT tasks_submission_settings_check CHECK (
     (max_submission_files BETWEEN 1 AND 10) AND
     (max_submission_file_size_bytes BETWEEN 1 AND 20971520) AND
     (max_submission_total_size_bytes BETWEEN 1 AND 52428800) AND
-    (allowed_submission_file_categories <@ ARRAY['image', 'document']::text[])
+    (allowed_submission_file_categories <@ ARRAY['images', 'documents']::text[])
 );
 
 -- 2. Storage bucket
@@ -34,7 +34,7 @@ VALUES (
     false, 
     10485760, -- 10MB
     ARRAY[
-        'image/jpeg', 'image/png', 'image/webp',
+        'images/jpeg', 'images/png', 'images/webp',
         'application/pdf',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -46,7 +46,7 @@ ON CONFLICT (id) DO UPDATE SET
     public = false, 
     file_size_limit = 10485760,
     allowed_mime_types = ARRAY[
-        'image/jpeg', 'image/png', 'image/webp',
+        'images/jpeg', 'images/png', 'images/webp',
         'application/pdf',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
